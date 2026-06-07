@@ -1,0 +1,831 @@
+import {
+  FaceLandmarker,
+  FilesetResolver,
+  HandLandmarker,
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/+esm";
+
+const MEDIAPIPE = {
+  wasmBaseUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm",
+  faceModelUrl:
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+  handModelUrl:
+    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+};
+
+const STORAGE_KEY = "nail-guard.daily-stats.v1";
+const SETTINGS_KEY = "nail-guard.settings.v1";
+const MOUTH_INDICES = [13, 14, 61, 291];
+const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
+const REPLACEMENTS = [
+  "Faust 10 Sekunden ballen",
+  "Hände auf Oberschenkel legen",
+  "Stressball nehmen",
+  "3 tiefe Atemzüge",
+  "Wasser trinken",
+];
+const SOUND_PRESETS = {
+  softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
+  breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
+  doubleTap: { notes: [[240, 0, 0.08, "sine"], [240, 0.14, 0.08, "sine"]] },
+  bubblePop: { notes: [[420, 0, 0.08, "sine"], [760, 0.07, 0.12, "sine"]] },
+  tinyRobot: { notes: [[660, 0, 0.07, "square"], [520, 0.09, 0.07, "square"], [780, 0.18, 0.09, "square"]] },
+  boing: { notes: [[260, 0, 0.16, "sawtooth"], [180, 0.1, 0.22, "sine"]] },
+};
+
+const els = {
+  startPanel: document.querySelector("#startPanel"),
+  workspace: document.querySelector("#workspace"),
+  startButton: document.querySelector("#startButton"),
+  statusPill: document.querySelector("#statusPill"),
+  statusText: document.querySelector("#statusText"),
+  errorMessage: document.querySelector("#errorMessage"),
+  errorText: document.querySelector("#errorText"),
+  errorHints: document.querySelector("#errorHints"),
+  modeTabs: [...document.querySelectorAll(".mode-tab")],
+  modeLinks: [...document.querySelectorAll("[data-mode-link]")],
+  modeViews: [...document.querySelectorAll(".mode-view")],
+  focusStatus: document.querySelector("#focusStatus"),
+  focusStreak: document.querySelector("#focusStreak"),
+  focusConfirmed: document.querySelector("#focusConfirmed"),
+  pauseButton: document.querySelector("#pauseButton"),
+  focusVideo: document.querySelector("#focusVideo"),
+  video: document.querySelector("#video"),
+  overlay: document.querySelector("#overlay"),
+  warmOverlay: document.querySelector("#warmOverlay"),
+  proximityBar: document.querySelector("#proximityBar"),
+  faceSignal: document.querySelector("#faceSignal"),
+  handSignal: document.querySelector("#handSignal"),
+  nearSignal: document.querySelector("#nearSignal"),
+  distanceSignal: document.querySelector("#distanceSignal"),
+  distanceThreshold: document.querySelector("#distanceThreshold"),
+  holdSeconds: document.querySelector("#holdSeconds"),
+  cooldownSeconds: document.querySelector("#cooldownSeconds"),
+  distanceValue: document.querySelector("#distanceValue"),
+  holdValue: document.querySelector("#holdValue"),
+  cooldownValue: document.querySelector("#cooldownValue"),
+  overlayToggle: document.querySelector("#overlayToggle"),
+  warmthToggle: document.querySelector("#warmthToggle"),
+  soundToggle: document.querySelector("#soundToggle"),
+  soundPreset: document.querySelector("#soundPreset"),
+  soundVolume: document.querySelector("#soundVolume"),
+  volumeValue: document.querySelector("#volumeValue"),
+  testSoundButton: document.querySelector("#testSoundButton"),
+  testWarningButton: document.querySelector("#testWarningButton"),
+  vibrationToggle: document.querySelector("#vibrationToggle"),
+  replacementAction: document.querySelector("#replacementAction"),
+  alertPanel: document.querySelector("#alertPanel"),
+  alertReplacement: document.querySelector("#alertReplacement"),
+  confirmBitingButton: document.querySelector("#confirmBitingButton"),
+  falseAlarmButton: document.querySelector("#falseAlarmButton"),
+  faceTouchButton: document.querySelector("#faceTouchButton"),
+  resetStatsButton: document.querySelector("#resetStatsButton"),
+  dailySummary: document.querySelector("#dailySummary"),
+  statWarnings: document.querySelector("#statWarnings"),
+  statConfirmed: document.querySelector("#statConfirmed"),
+  statFalse: document.querySelector("#statFalse"),
+  statFace: document.querySelector("#statFace"),
+  statLongest: document.querySelector("#statLongest"),
+  statStreak: document.querySelector("#statStreak"),
+  statLastWarning: document.querySelector("#statLastWarning"),
+};
+
+const state = {
+  faceLandmarker: null,
+  handLandmarker: null,
+  stream: null,
+  running: false,
+  paused: false,
+  lastVideoTime: -1,
+  nearSince: null,
+  lastAlertAt: 0,
+  alertOpen: false,
+  activeMode: "focus",
+  mouthCenter: null,
+  fingertips: [],
+  minDistance: Number.POSITIVE_INFINITY,
+  settings: loadSettings(),
+  stats: loadStats(),
+};
+
+init();
+
+function init() {
+  state.activeMode = state.settings.activeMode;
+  applySettingsToUi();
+  bindEvents();
+  switchMode(state.activeMode);
+  renderAll();
+  updateStatus("Bereit");
+  setInterval(renderStats, 15_000);
+}
+
+function bindEvents() {
+  els.startButton.addEventListener("click", startApp);
+  els.pauseButton.addEventListener("click", togglePause);
+
+  for (const button of els.modeTabs) {
+    button.addEventListener("click", () => switchMode(button.dataset.mode));
+  }
+
+  for (const link of els.modeLinks) {
+    link.addEventListener("click", () => switchMode(link.dataset.modeLink));
+  }
+
+  for (const input of [els.distanceThreshold, els.holdSeconds, els.cooldownSeconds, els.soundVolume]) {
+    input.addEventListener("input", () => {
+      settingsFromUi();
+      renderSettings();
+    });
+  }
+
+  els.soundPreset.addEventListener("change", settingsFromUi);
+  els.testSoundButton.addEventListener("click", () => {
+    settingsFromUi();
+    playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
+  });
+  els.testWarningButton.addEventListener("click", () => {
+    triggerIntervention("manual_test", 1, { countStats: false });
+  });
+
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle]) {
+    input.addEventListener("change", () => {
+      settingsFromUi();
+      if (!state.settings.showOverlay) clearOverlay();
+      if (!state.settings.warmthFeedback) setWarmth(0);
+    });
+  }
+
+  els.confirmBitingButton.addEventListener("click", () => resolveIntervention("confirmed"));
+  els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
+  els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
+  els.resetStatsButton.addEventListener("click", resetStats);
+}
+
+async function startApp() {
+  hideError();
+  els.startButton.disabled = true;
+  els.startButton.textContent = "Kamera starten";
+
+  try {
+    updateStatus("Modell lädt");
+    await detection.loadModels();
+
+    updateStatus("Kamera wird geöffnet");
+    await detection.startCamera();
+
+    els.startPanel.hidden = true;
+    els.workspace.hidden = false;
+    state.running = true;
+    state.paused = false;
+    switchMode(state.activeMode);
+    updateStatus("Erkennung läuft", "active");
+    requestAnimationFrame(detection.loop);
+  } catch (error) {
+    els.startButton.disabled = false;
+    els.startButton.textContent = "Erneut versuchen";
+    updateStatus("Fehler", "warning");
+    showError(readableError(error));
+  }
+}
+
+const detection = {
+  async loadModels() {
+    if (state.faceLandmarker && state.handLandmarker) return;
+
+    const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE.wasmBaseUrl);
+    const [faceLandmarker, handLandmarker] = await Promise.all([
+      createFaceLandmarker(vision),
+      createHandLandmarker(vision),
+    ]);
+
+    state.faceLandmarker = faceLandmarker;
+    state.handLandmarker = handLandmarker;
+  },
+
+  async startCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("getUserMedia-unavailable");
+    }
+
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    });
+
+    els.video.srcObject = state.stream;
+    els.focusVideo.srcObject = state.stream;
+    await new Promise((resolve) => {
+      els.video.onloadedmetadata = resolve;
+    });
+    await els.video.play();
+    await els.focusVideo.play();
+    resizeOverlay();
+  },
+
+  loop(now) {
+    if (!state.running) return;
+
+    if (els.video.currentTime !== state.lastVideoTime && els.video.readyState >= 2) {
+      state.lastVideoTime = els.video.currentTime;
+      detection.detectFrame(now);
+    }
+
+    requestAnimationFrame(detection.loop);
+  },
+
+  detectFrame(now) {
+    resizeOverlay();
+
+    const faceResult = state.faceLandmarker.detectForVideo(els.video, now);
+    const handResult = state.handLandmarker.detectForVideo(els.video, now);
+    const faceLandmarks = faceResult.faceLandmarks?.[0] ?? null;
+    const handLandmarks = handResult.landmarks ?? [];
+
+    state.mouthCenter = faceLandmarks ? averageLandmarks(faceLandmarks, MOUTH_INDICES) : null;
+    state.fingertips = handLandmarks.flatMap((hand) => FINGERTIP_INDICES.map((index) => hand[index]));
+    state.minDistance = computeMinMouthDistance(state.mouthCenter, state.fingertips);
+
+    renderLiveSignals(faceLandmarks, handLandmarks);
+    detection.evaluateProximity(now);
+
+    if (state.settings.showOverlay) {
+      drawOverlay();
+    } else {
+      clearOverlay();
+    }
+  },
+
+  evaluateProximity(now) {
+    const threshold = state.settings.distanceThreshold;
+    const holdMs = state.settings.holdSeconds * 1000;
+    const cooldownMs = state.settings.cooldownSeconds * 1000;
+    const isNear = state.minDistance <= threshold;
+    const proximityRatio = isFinite(state.minDistance)
+      ? Math.max(0, Math.min(1, 1 - state.minDistance / threshold))
+      : 0;
+
+    els.proximityBar.style.width = `${Math.round(proximityRatio * 100)}%`;
+    els.proximityBar.style.background = proximityRatio > 0.85 ? "#c97943" : "#57c7b7";
+
+    if (state.paused) {
+      state.nearSince = null;
+      setWarmth(0);
+      return;
+    }
+
+    if (isNear && !state.alertOpen) {
+      state.nearSince ??= now;
+      const holdProgress = Math.max(0, Math.min(1, (now - state.nearSince) / holdMs));
+      setWarmth(holdProgress);
+    } else {
+      setWarmth(state.alertOpen ? 1 : 0);
+    }
+
+    if (!isNear || state.alertOpen) {
+      if (!isNear) state.nearSince = null;
+      return;
+    }
+
+    const heldLongEnough = now - state.nearSince >= holdMs;
+    const cooledDown = Date.now() - state.lastAlertAt >= cooldownMs;
+
+    if (heldLongEnough && cooledDown) {
+      const confidence = Math.max(0, Math.min(1, 1 - state.minDistance / threshold));
+      triggerIntervention("hand_near_mouth", confidence);
+    }
+  },
+};
+
+async function createFaceLandmarker(vision) {
+  const options = {
+    baseOptions: {
+      modelAssetPath: MEDIAPIPE.faceModelUrl,
+      delegate: "GPU",
+    },
+    runningMode: "VIDEO",
+    numFaces: 1,
+  };
+
+  try {
+    return await FaceLandmarker.createFromOptions(vision, options);
+  } catch {
+    return FaceLandmarker.createFromOptions(vision, {
+      ...options,
+      baseOptions: { modelAssetPath: MEDIAPIPE.faceModelUrl, delegate: "CPU" },
+    });
+  }
+}
+
+async function createHandLandmarker(vision) {
+  const options = {
+    baseOptions: {
+      modelAssetPath: MEDIAPIPE.handModelUrl,
+      delegate: "GPU",
+    },
+    runningMode: "VIDEO",
+    numHands: 2,
+  };
+
+  try {
+    return await HandLandmarker.createFromOptions(vision, options);
+  } catch {
+    return HandLandmarker.createFromOptions(vision, {
+      ...options,
+      baseOptions: { modelAssetPath: MEDIAPIPE.handModelUrl, delegate: "CPU" },
+    });
+  }
+}
+
+function triggerIntervention(reason, confidence, options = {}) {
+  const { countStats = true } = options;
+  const now = Date.now();
+  const replacement = randomReplacement();
+
+  ensureTodayStats();
+
+  if (countStats) {
+    const previousWarning = state.stats.lastWarningAt || state.stats.trackingStartedAt;
+    state.stats.warnings += 1;
+    state.stats.lastWarningAt = now;
+    state.stats.longestWarningFreeMs = Math.max(
+      state.stats.longestWarningFreeMs,
+      now - previousWarning,
+    );
+    saveStats();
+  }
+
+  state.lastAlertAt = now;
+  state.alertOpen = true;
+  state.nearSince = null;
+  state.currentIntervention = { reason, confidence, replacement, at: now, countStats };
+
+  renderReplacement(replacement);
+  renderStats();
+  showBrowserIntervention(replacement);
+  notifyUser();
+
+  // Future Mac wrapper hook: replace or augment this browser UI with a native overlay.
+  window.dispatchEvent(new CustomEvent("nailguard:intervention", {
+    detail: { reason, confidence, replacement, at: now },
+  }));
+}
+
+function showBrowserIntervention(replacement) {
+  els.alertReplacement.textContent = replacement;
+  els.alertPanel.hidden = false;
+  updateStatus("Ruhige Unterbrechung", "warning");
+}
+
+function resolveIntervention(kind) {
+  ensureTodayStats();
+
+  if (state.currentIntervention?.countStats !== false) {
+    if (kind === "confirmed") {
+      state.stats.confirmed += 1;
+      state.stats.lastConfirmedAt = Date.now();
+    } else if (kind === "falseAlarm") {
+      state.stats.falseAlarms += 1;
+    } else if (kind === "faceTouch") {
+      state.stats.faceTouches += 1;
+    }
+  }
+
+  state.alertOpen = false;
+  state.currentIntervention = null;
+  setWarmth(0);
+  els.alertPanel.hidden = true;
+  updateStatus(state.paused ? "Pausiert" : "Erkennung läuft", state.paused ? "paused" : "active");
+  saveStats();
+  renderStats();
+}
+
+function notifyUser() {
+  if (state.settings.vibration && "vibrate" in navigator) {
+    navigator.vibrate([90, 50, 90]);
+  }
+
+  if (state.settings.sound) {
+    playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
+  }
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  state.nearSince = null;
+  setWarmth(0);
+  renderPauseState();
+}
+
+function switchMode(mode) {
+  state.activeMode = ["focus", "calibration", "review"].includes(mode) ? mode : "focus";
+  state.settings.activeMode = state.activeMode;
+  saveSettings();
+
+  for (const tab of els.modeTabs) {
+    tab.classList.toggle("active", tab.dataset.mode === state.activeMode);
+  }
+
+  for (const view of els.modeViews) {
+    view.classList.toggle("active", view.dataset.view === state.activeMode);
+  }
+
+  if (state.activeMode !== "calibration") {
+    clearOverlay();
+  }
+}
+
+function renderAll() {
+  renderSettings();
+  renderStats();
+  renderPauseState();
+}
+
+function renderLiveSignals(faceLandmarks, handLandmarks) {
+  els.faceSignal.textContent = faceLandmarks ? "Gesicht: erkannt" : "Gesicht: sucht";
+  els.handSignal.textContent = handLandmarks.length ? `Hand: ${handLandmarks.length} erkannt` : "Hand: sucht";
+
+  if (!isFinite(state.minDistance)) {
+    els.nearSignal.textContent = "Nähe: wartet";
+    els.distanceSignal.textContent = "Distanz: --";
+    return;
+  }
+
+  const isNear = state.minDistance <= state.settings.distanceThreshold;
+  els.nearSignal.textContent = `Nähe: ${isNear ? "nahe" : "ruhig"}`;
+  els.distanceSignal.textContent = `Distanz: ${state.minDistance.toFixed(3)}`;
+}
+
+function renderStats() {
+  ensureTodayStats();
+  const now = Date.now();
+  const warningStart = state.stats.lastWarningAt || state.stats.trackingStartedAt;
+  const confirmedStart = state.stats.lastConfirmedAt || state.stats.trackingStartedAt;
+  const longestQuiet = Math.max(state.stats.longestWarningFreeMs, now - warningStart);
+  const streak = now - confirmedStart;
+
+  els.statWarnings.textContent = state.stats.warnings;
+  els.statConfirmed.textContent = state.stats.confirmed;
+  els.statFalse.textContent = state.stats.falseAlarms;
+  els.statFace.textContent = state.stats.faceTouches;
+  els.statLongest.textContent = formatDuration(longestQuiet);
+  els.statStreak.textContent = formatDuration(streak);
+  els.focusStreak.textContent = formatDuration(streak);
+  els.focusConfirmed.textContent = state.stats.confirmed;
+  els.dailySummary.textContent = dailySummaryText(longestQuiet);
+  els.statLastWarning.textContent = state.stats.lastWarningAt
+    ? `Letzte Warnung: ${new Date(state.stats.lastWarningAt).toLocaleTimeString("de-AT", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`
+    : "Letzte Warnung: keine";
+}
+
+function renderSettings() {
+  els.distanceValue.textContent = Number(els.distanceThreshold.value).toFixed(3);
+  els.holdValue.textContent = `${Number(els.holdSeconds.value).toFixed(1)} s`;
+  els.cooldownValue.textContent = `${Math.round(Number(els.cooldownSeconds.value))} s`;
+  els.volumeValue.textContent = `${Math.round(Number(els.soundVolume.value) * 100)}%`;
+}
+
+function renderPauseState() {
+  els.pauseButton.textContent = state.paused ? "Fortsetzen" : "Pause";
+  els.pauseButton.classList.toggle("paused", state.paused);
+  els.focusStatus.textContent = state.paused ? "Erkennung pausiert" : "Erkennung läuft";
+  updateStatus(state.paused ? "Pausiert" : "Erkennung läuft", state.paused ? "paused" : "active");
+}
+
+function renderReplacement(replacement) {
+  els.replacementAction.textContent = replacement;
+}
+
+function dailySummaryText(longestQuiet) {
+  if (state.stats.confirmed === 0 && state.stats.warnings === 0) {
+    return "Heute ist noch ruhig. Lass die App im Hintergrund mitlaufen.";
+  }
+
+  if (state.stats.confirmed === 0) {
+    return `${formatDuration(longestQuiet)} ruhige Phase. Gute Selbstbeobachtung heute.`;
+  }
+
+  return `${state.stats.confirmed} bestätigte Episode${state.stats.confirmed === 1 ? "" : "n"} heute. Der nächste ruhige Abschnitt beginnt jetzt.`;
+}
+
+function settingsFromUi() {
+  state.settings = {
+    ...state.settings,
+    distanceThreshold: Number(els.distanceThreshold.value),
+    holdSeconds: Number(els.holdSeconds.value),
+    cooldownSeconds: Number(els.cooldownSeconds.value),
+    showOverlay: els.overlayToggle.checked,
+    warmthFeedback: els.warmthToggle.checked,
+    sound: els.soundToggle.checked,
+    soundPreset: els.soundPreset.value,
+    soundVolume: Number(els.soundVolume.value),
+    vibration: els.vibrationToggle.checked,
+  };
+  saveSettings();
+}
+
+function applySettingsToUi() {
+  els.distanceThreshold.value = state.settings.distanceThreshold;
+  els.holdSeconds.value = state.settings.holdSeconds;
+  els.cooldownSeconds.value = state.settings.cooldownSeconds;
+  els.overlayToggle.checked = state.settings.showOverlay;
+  els.warmthToggle.checked = state.settings.warmthFeedback;
+  els.soundToggle.checked = state.settings.sound;
+  els.soundPreset.value = SOUND_PRESETS[state.settings.soundPreset]
+    ? state.settings.soundPreset
+    : "softChime";
+  els.soundVolume.value = state.settings.soundVolume;
+  els.vibrationToggle.checked = state.settings.vibration;
+}
+
+function loadSettings() {
+  const defaults = {
+    activeMode: "focus",
+    distanceThreshold: 0.09,
+    holdSeconds: 2,
+    cooldownSeconds: 15,
+    showOverlay: true,
+    warmthFeedback: true,
+    sound: false,
+    soundPreset: "softChime",
+    soundVolume: 0.35,
+    vibration: true,
+  };
+
+  try {
+    return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+}
+
+function loadStats() {
+  const today = todayKey();
+
+  try {
+    const allStats = JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? {};
+    return normalizeStats(allStats[today], today);
+  } catch {
+    return normalizeStats(null, today);
+  }
+}
+
+function saveStats() {
+  const today = todayKey();
+  const allStats = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  allStats[today] = state.stats;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allStats));
+}
+
+function resetStats() {
+  state.stats = normalizeStats(null, todayKey());
+  saveStats();
+  renderStats();
+}
+
+function normalizeStats(stats, date) {
+  const now = Date.now();
+  const trackingStartedAt = stats?.trackingStartedAt ?? stats?.lastWarningAt ?? now;
+  const longestWarningFreeMs = Math.min(
+    stats?.longestWarningFreeMs ?? 0,
+    Math.max(0, now - trackingStartedAt),
+  );
+
+  return {
+    date,
+    trackingStartedAt,
+    warnings: stats?.warnings ?? 0,
+    confirmed: stats?.confirmed ?? 0,
+    falseAlarms: stats?.falseAlarms ?? 0,
+    faceTouches: stats?.faceTouches ?? 0,
+    lastWarningAt: stats?.lastWarningAt ?? null,
+    lastConfirmedAt: stats?.lastConfirmedAt ?? null,
+    longestWarningFreeMs,
+  };
+}
+
+function ensureTodayStats() {
+  const today = todayKey();
+  if (state.stats.date === today) return;
+
+  state.stats = loadStats();
+}
+
+function todayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function averageLandmarks(landmarks, indices) {
+  const total = indices.reduce(
+    (sum, index) => ({
+      x: sum.x + landmarks[index].x,
+      y: sum.y + landmarks[index].y,
+      z: sum.z + (landmarks[index].z ?? 0),
+    }),
+    { x: 0, y: 0, z: 0 },
+  );
+
+  return {
+    x: total.x / indices.length,
+    y: total.y / indices.length,
+    z: total.z / indices.length,
+  };
+}
+
+function computeMinMouthDistance(mouthCenter, fingertips) {
+  if (!mouthCenter || fingertips.length === 0) return Number.POSITIVE_INFINITY;
+
+  return fingertips.reduce((min, fingertip) => {
+    const dx = mouthCenter.x - fingertip.x;
+    const dy = mouthCenter.y - fingertip.y;
+    return Math.min(min, Math.hypot(dx, dy));
+  }, Number.POSITIVE_INFINITY);
+}
+
+function drawOverlay() {
+  const ctx = els.overlay.getContext("2d");
+  clearOverlay();
+
+  if (state.mouthCenter) {
+    drawPoint(ctx, state.mouthCenter, 8, "#f2a24f");
+  }
+
+  for (const fingertip of state.fingertips) {
+    drawPoint(ctx, fingertip, 6, "#57c7b7");
+    if (state.mouthCenter) drawLine(ctx, state.mouthCenter, fingertip);
+  }
+}
+
+function drawPoint(ctx, landmark, radius, color) {
+  ctx.beginPath();
+  ctx.arc(landmark.x * els.overlay.width, landmark.y * els.overlay.height, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(255,255,255,0.86)";
+  ctx.stroke();
+}
+
+function drawLine(ctx, from, to) {
+  ctx.beginPath();
+  ctx.moveTo(from.x * els.overlay.width, from.y * els.overlay.height);
+  ctx.lineTo(to.x * els.overlay.width, to.y * els.overlay.height);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.34)";
+  ctx.stroke();
+}
+
+function clearOverlay() {
+  const ctx = els.overlay.getContext("2d");
+  ctx.clearRect(0, 0, els.overlay.width, els.overlay.height);
+}
+
+function resizeOverlay() {
+  const rect = els.video.getBoundingClientRect();
+  const width = Math.round(rect.width * window.devicePixelRatio);
+  const height = Math.round(rect.height * window.devicePixelRatio);
+
+  if (els.overlay.width !== width || els.overlay.height !== height) {
+    els.overlay.width = width;
+    els.overlay.height = height;
+  }
+}
+
+function setWarmth(value) {
+  const clamped = Math.max(0, Math.min(1, value));
+  const eased = state.settings.warmthFeedback ? Math.pow(clamped, 0.85) : 0;
+  els.warmOverlay.style.setProperty("--warmth", eased.toFixed(3));
+}
+
+function randomReplacement() {
+  return REPLACEMENTS[Math.floor(Math.random() * REPLACEMENTS.length)];
+}
+
+function playSoundPreset(presetKey, volume) {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+
+  const context = new AudioContext();
+  const preset = SOUND_PRESETS[presetKey] ?? SOUND_PRESETS.softChime;
+  const masterGain = context.createGain();
+  const safeVolume = Math.max(0, Math.min(1, volume));
+
+  masterGain.gain.value = safeVolume * 0.22;
+  masterGain.connect(context.destination);
+
+  for (const [frequency, delay, duration, type] of preset.notes) {
+    playTone(context, masterGain, frequency, delay, duration, type);
+  }
+
+  const endTime = Math.max(...preset.notes.map(([, delay, duration]) => delay + duration)) + 0.08;
+  window.setTimeout(() => context.close(), endTime * 1000);
+}
+
+function playTone(context, destination, frequency, delay, duration, type) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const start = context.currentTime + delay;
+  const end = start + duration;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, start);
+  if (type === "sawtooth") {
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, frequency * 0.58), end);
+  }
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.8, start + 0.018);
+  gain.gain.exponentialRampToValueAtTime(0.0001, end);
+  oscillator.connect(gain).connect(destination);
+  oscillator.start(start);
+  oscillator.stop(end + 0.02);
+}
+
+function formatDuration(ms) {
+  const totalMinutes = Math.max(0, Math.floor(ms / 60_000));
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes ? `${hours} h ${minutes} min` : `${hours} h`;
+}
+
+function updateStatus(text, tone = "") {
+  els.statusText.textContent = text;
+  els.statusPill.classList.toggle("active", tone === "active");
+  els.statusPill.classList.toggle("warning", tone === "warning");
+  els.statusPill.classList.toggle("paused", tone === "paused");
+}
+
+function showError(errorInfo) {
+  els.errorText.textContent = errorInfo.message;
+  els.errorHints.replaceChildren(
+    ...errorInfo.hints.map((hint) => {
+      const item = document.createElement("li");
+      item.textContent = hint;
+      return item;
+    }),
+  );
+  els.errorMessage.hidden = false;
+}
+
+function hideError() {
+  els.errorMessage.hidden = true;
+}
+
+function readableError(error) {
+  if (error?.name === "NotAllowedError") {
+    return {
+      message: "Kamerazugriff wurde blockiert.",
+      hints: [
+        "Im in-app Browser kann die Kamera je nach Berechtigungssituation blockiert sein.",
+        `Öffne ${window.location.origin} in Chrome oder Safari und erlaube die Kamera in der Adressleiste.`,
+        "Falls du zuvor blockiert hast: Website-Einstellungen öffnen, Kamera auf Erlauben setzen und Seite neu laden.",
+      ],
+    };
+  }
+
+  if (error?.name === "NotFoundError") {
+    return {
+      message: "Keine Kamera gefunden.",
+      hints: [
+        "Prüfe, ob eine Webcam angeschlossen ist.",
+        "Schließe Apps, die die Kamera bereits verwenden.",
+        "Lade die Seite neu und versuche es erneut.",
+      ],
+    };
+  }
+
+  if (error?.message === "getUserMedia-unavailable") {
+    return {
+      message: "Dieser Browser unterstützt keinen direkten Kamerazugriff.",
+      hints: [
+        "Nutze Chrome, Safari oder Edge.",
+        "Öffne die App über HTTPS oder lokal über http://localhost, nicht direkt als Datei.",
+      ],
+    };
+  }
+
+  return {
+    message: "Die App konnte nicht starten.",
+    hints: [
+      "Prüfe die Internetverbindung für den ersten MediaPipe-Download.",
+      "Prüfe die Browser-Kamerafreigabe.",
+      "Lade die Seite neu und versuche es erneut.",
+    ],
+  };
+}

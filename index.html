@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; worker-src 'self' blob:;"
+    />
+    <title>Nail Guard</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="App Status">
+        <div>
+          <p class="eyebrow">Calm habit coach</p>
+          <h1>Nail Guard</h1>
+        </div>
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="statusText">Bereit</span>
+        </div>
+      </section>
+
+      <section class="start-panel" id="startPanel">
+        <div class="start-copy">
+          <h2>Eine ruhige Unterbrechung, bevor die Hand zu lange am Mund bleibt.</h2>
+          <p>
+            Die Erkennung läuft lokal in deinem Browser. Es werden keine Webcam-Bilder
+            oder Videos gespeichert, hochgeladen oder an einen Server geschickt.
+          </p>
+          <p class="privacy-note">
+            MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen.
+            Kameradaten bleiben im Browser.
+          </p>
+        </div>
+        <button class="primary-action" id="startButton" type="button">Kamera starten</button>
+      </section>
+
+      <section class="workspace" id="workspace" hidden>
+        <nav class="mode-tabs" aria-label="App-Modus">
+          <button class="mode-tab active" type="button" data-mode="focus">Focus</button>
+          <button class="mode-tab" type="button" data-mode="calibration">Calibration</button>
+          <button class="mode-tab" type="button" data-mode="review">Review</button>
+        </nav>
+
+        <section class="mode-view focus-view active" id="focusView" data-view="focus">
+          <div class="coach-card hero-card">
+            <p class="eyebrow">Jetzt</p>
+            <h2 id="focusStatus">Erkennung läuft</h2>
+            <p class="quiet-copy">Bleib bei dem, was du gerade tust. Nail Guard meldet sich nur, wenn es nötig wird.</p>
+            <div class="focus-actions">
+              <button class="secondary-action" id="pauseButton" type="button">Pause</button>
+              <button class="text-action" type="button" data-mode-link="calibration">Kalibrieren</button>
+            </div>
+          </div>
+
+          <div class="focus-metrics">
+            <article class="metric-card large">
+              <span>Aktuelle Streak</span>
+              <strong id="focusStreak">0 min</strong>
+            </article>
+            <article class="metric-card">
+              <span>Heute bestätigt</span>
+              <strong id="focusConfirmed">0</strong>
+            </article>
+          </div>
+
+          <article class="coach-card replacement-card">
+            <p class="eyebrow">Ersatzhandlung</p>
+            <h3 id="replacementAction">3 tiefe Atemzüge</h3>
+            <p>Wenn eine Warnung kommt, wähle etwas Kleines und Körpernahes.</p>
+          </article>
+
+          <article class="coach-card focus-camera-card" aria-label="Kleine Kameravorschau">
+            <p class="eyebrow">Kamera</p>
+            <div class="mini-video-frame">
+              <video id="focusVideo" playsinline muted autoplay></video>
+            </div>
+          </article>
+        </section>
+
+        <section class="mode-view calibration-view" id="calibrationView" data-view="calibration">
+          <div class="camera-column">
+            <div class="video-frame">
+              <video id="video" playsinline muted autoplay></video>
+              <canvas id="overlay" aria-hidden="true"></canvas>
+              <div class="warm-overlay" id="warmOverlay" aria-hidden="true"></div>
+              <div class="proximity-meter" aria-label="Nähe zum Mund">
+                <span id="proximityBar"></span>
+              </div>
+            </div>
+            <div class="signal-row">
+              <span id="faceSignal">Gesicht: wartet</span>
+              <span id="handSignal">Hand: wartet</span>
+              <span id="nearSignal">Nähe: ruhig</span>
+              <span id="distanceSignal">Distanz: --</span>
+            </div>
+          </div>
+
+          <aside class="settings-card" aria-label="Kalibrierung">
+            <div class="section-title-row">
+              <h2>Kalibrierung</h2>
+              <button class="mini-action" id="testWarningButton" type="button">Testwarnung</button>
+            </div>
+
+            <label class="control-row">
+              <span>Sensitivität</span>
+              <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.005" value="0.09" />
+              <output id="distanceValue">0.090</output>
+            </label>
+            <label class="control-row">
+              <span>Haltezeit</span>
+              <input id="holdSeconds" type="range" min="0.5" max="6" step="0.5" value="2" />
+              <output id="holdValue">2.0 s</output>
+            </label>
+            <label class="control-row">
+              <span>Cooldown</span>
+              <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" />
+              <output id="cooldownValue">15 s</output>
+            </label>
+
+            <div class="toggle-grid">
+              <label><input id="overlayToggle" type="checkbox" checked /> Overlay</label>
+              <label><input id="warmthToggle" type="checkbox" checked /> Farbwarnung</label>
+              <label><input id="soundToggle" type="checkbox" /> Ton</label>
+              <label><input id="vibrationToggle" type="checkbox" checked /> Vibration</label>
+            </div>
+
+            <label class="control-row select-row">
+              <span>Tonwarnung</span>
+              <select id="soundPreset">
+                <option value="softChime">Sanfter Gong</option>
+                <option value="breathBell">Atem-Glocke</option>
+                <option value="doubleTap">Doppel-Klopfen</option>
+                <option value="bubblePop">Bubble Pop</option>
+                <option value="tinyRobot">Mini-Roboter</option>
+                <option value="boing">Boing</option>
+              </select>
+              <button class="mini-action" id="testSoundButton" type="button">Test</button>
+            </label>
+            <label class="control-row">
+              <span>Lautstärke</span>
+              <input id="soundVolume" type="range" min="0" max="1" step="0.05" value="0.35" />
+              <output id="volumeValue">35%</output>
+            </label>
+          </aside>
+        </section>
+
+        <section class="mode-view review-view" id="reviewView" data-view="review">
+          <article class="coach-card summary-card">
+            <p class="eyebrow">Heute</p>
+            <h2 id="dailySummary">Ein ruhiger Anfang zählt.</h2>
+            <p id="statLastWarning">Letzte Warnung: keine</p>
+          </article>
+
+          <dl class="stats-grid">
+            <div><dt>Warnungen</dt><dd id="statWarnings">0</dd></div>
+            <div><dt>Nägelkauen</dt><dd id="statConfirmed">0</dd></div>
+            <div><dt>Fehlalarme</dt><dd id="statFalse">0</dd></div>
+            <div><dt>Gesicht berührt</dt><dd id="statFace">0</dd></div>
+            <div><dt>Längste ruhige Phase</dt><dd id="statLongest">0 min</dd></div>
+            <div><dt>Aktuelle Streak</dt><dd id="statStreak">0 min</dd></div>
+          </dl>
+
+          <button class="text-action reset-action" id="resetStatsButton" type="button">Statistik zurücksetzen</button>
+        </section>
+      </section>
+
+      <section class="alert-panel" id="alertPanel" role="dialog" aria-modal="true" aria-labelledby="alertTitle" hidden>
+        <div class="alert-content">
+          <p class="eyebrow">Pattern interrupt</p>
+          <h2 id="alertTitle">Hand runter. Kurz atmen. Wähle eine Ersatzhandlung.</h2>
+          <p id="alertReplacement">Faust 10 Sekunden ballen</p>
+          <div class="alert-actions">
+            <button id="confirmBitingButton" type="button">Ja, Nägelkauen</button>
+            <button id="falseAlarmButton" type="button">Fehlalarm</button>
+            <button id="faceTouchButton" type="button">Nur Gesicht berührt</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="error-message" id="errorMessage" role="alert" hidden>
+        <p id="errorText"></p>
+        <ul id="errorHints"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
