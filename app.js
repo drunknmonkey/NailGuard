@@ -14,6 +14,7 @@ const MEDIAPIPE = {
 
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
+const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
 const REPLACEMENTS = [
@@ -31,11 +32,22 @@ const SOUND_PRESETS = {
   tinyRobot: { notes: [[660, 0, 0.07, "square"], [520, 0.09, 0.07, "square"], [780, 0.18, 0.09, "square"]] },
   boing: { notes: [[260, 0, 0.16, "sawtooth"], [180, 0.1, 0.22, "sine"]] },
 };
+const NEUTRAL_INTERVENTIONS = [
+  ["Mini-Reset", "Zurück zum Fokus"],
+  ["Kurze Pause", "Schultern locker"],
+  ["Atmen", "3 Atemzüge"],
+  ["Zurück zum Fokus", "Ruhig weiter"],
+];
 
 const els = {
   startPanel: document.querySelector("#startPanel"),
   workspace: document.querySelector("#workspace"),
   startButton: document.querySelector("#startButton"),
+  appEyebrow: document.querySelector("#appEyebrow"),
+  appTitle: document.querySelector("#appTitle"),
+  startTitle: document.querySelector("#startTitle"),
+  startBody: document.querySelector("#startBody"),
+  startPrivacyNote: document.querySelector("#startPrivacyNote"),
   statusPill: document.querySelector("#statusPill"),
   statusText: document.querySelector("#statusText"),
   errorMessage: document.querySelector("#errorMessage"),
@@ -87,6 +99,20 @@ const els = {
   statLongest: document.querySelector("#statLongest"),
   statStreak: document.querySelector("#statStreak"),
   statLastWarning: document.querySelector("#statLastWarning"),
+  neutralLayoutSelect: document.querySelector("#neutralLayoutSelect"),
+  neutralSubtleToggle: document.querySelector("#neutralSubtleToggle"),
+  neutralLayouts: [...document.querySelectorAll(".neutral-layout")],
+  neutralClockTime: document.querySelector("#neutralClockTime"),
+  neutralClockDate: document.querySelector("#neutralClockDate"),
+  neutralTimerValue: document.querySelector("#neutralTimerValue"),
+  neutralNotes: document.querySelector("#neutralNotes"),
+  neutralBreathLabel: document.querySelector("#neutralBreathLabel"),
+  neutralDashboardTime: document.querySelector("#neutralDashboardTime"),
+  neutralFocusDuration: document.querySelector("#neutralFocusDuration"),
+  neutralBlankTime: document.querySelector("#neutralBlankTime"),
+  neutralIntervention: document.querySelector("#neutralIntervention"),
+  neutralInterventionTitle: document.querySelector("#neutralInterventionTitle"),
+  neutralInterventionText: document.querySelector("#neutralInterventionText"),
 };
 
 const state = {
@@ -105,6 +131,8 @@ const state = {
   minDistance: Number.POSITIVE_INFINITY,
   settings: loadSettings(),
   stats: loadStats(),
+  neutralTimerStartedAt: Date.now(),
+  neutralInterventionTimer: null,
 };
 
 init();
@@ -117,6 +145,7 @@ function init() {
   renderAll();
   updateStatus("Bereit");
   setInterval(renderStats, 15_000);
+  setInterval(renderNeutralInfo, 1_000);
 }
 
 function bindEvents() {
@@ -139,6 +168,14 @@ function bindEvents() {
   }
 
   els.soundPreset.addEventListener("change", settingsFromUi);
+  els.neutralLayoutSelect.addEventListener("change", () => {
+    settingsFromUi();
+    renderNeutralLayout();
+  });
+  els.neutralSubtleToggle.addEventListener("change", settingsFromUi);
+  els.neutralNotes.addEventListener("input", () => {
+    localStorage.setItem(NEUTRAL_NOTES_KEY, els.neutralNotes.value);
+  });
   els.testSoundButton.addEventListener("click", () => {
     settingsFromUi();
     playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
@@ -365,7 +402,11 @@ function triggerIntervention(reason, confidence, options = {}) {
 
   renderReplacement(replacement);
   renderStats();
-  showBrowserIntervention(replacement);
+  if (state.activeMode === "neutral") {
+    showNeutralIntervention();
+  } else {
+    showBrowserIntervention(replacement);
+  }
   notifyUser();
 
   // Future Mac wrapper hook: replace or augment this browser UI with a native overlay.
@@ -378,6 +419,24 @@ function showBrowserIntervention(replacement) {
   els.alertReplacement.textContent = replacement;
   els.alertPanel.hidden = false;
   updateStatus("Ruhige Unterbrechung", "warning");
+}
+
+function showNeutralIntervention() {
+  const [title, text] = NEUTRAL_INTERVENTIONS[Math.floor(Math.random() * NEUTRAL_INTERVENTIONS.length)];
+  window.clearTimeout(state.neutralInterventionTimer);
+  els.neutralInterventionTitle.textContent = title;
+  els.neutralInterventionText.textContent = text;
+  els.neutralIntervention.classList.toggle("prominent", !state.settings.neutralSubtleInterventions);
+  els.neutralIntervention.hidden = false;
+  updateStatus("Aktiv", "warning");
+
+  state.neutralInterventionTimer = window.setTimeout(() => {
+    els.neutralIntervention.hidden = true;
+    state.alertOpen = false;
+    state.currentIntervention = null;
+    setWarmth(0);
+    updateStatus(state.paused ? "Pausiert" : "Aktiv", state.paused ? "paused" : "active");
+  }, state.settings.neutralSubtleInterventions ? 3200 : 4600);
 }
 
 function resolveIntervention(kind) {
@@ -421,9 +480,10 @@ function togglePause() {
 }
 
 function switchMode(mode) {
-  state.activeMode = ["focus", "calibration", "review"].includes(mode) ? mode : "focus";
+  state.activeMode = ["focus", "calibration", "review", "neutral"].includes(mode) ? mode : "focus";
   state.settings.activeMode = state.activeMode;
   saveSettings();
+  renderAppChrome();
 
   for (const tab of els.modeTabs) {
     tab.classList.toggle("active", tab.dataset.mode === state.activeMode);
@@ -436,12 +496,19 @@ function switchMode(mode) {
   if (state.activeMode !== "calibration") {
     clearOverlay();
   }
+
+  if (state.activeMode !== "neutral") {
+    window.clearTimeout(state.neutralInterventionTimer);
+    els.neutralIntervention.hidden = true;
+  }
 }
 
 function renderAll() {
   renderSettings();
   renderStats();
   renderPauseState();
+  renderNeutralLayout();
+  renderNeutralInfo();
 }
 
 function renderLiveSignals(faceLandmarks, handLandmarks) {
@@ -491,11 +558,28 @@ function renderSettings() {
   els.volumeValue.textContent = `${Math.round(Number(els.soundVolume.value) * 100)}%`;
 }
 
+function renderAppChrome() {
+  const isNeutral = state.activeMode === "neutral";
+  els.appEyebrow.textContent = isNeutral ? "Workspace" : "Calm habit coach";
+  els.appTitle.textContent = isNeutral ? "Daily Board" : "Nail Guard";
+  els.startTitle.textContent = isNeutral
+    ? "Bereit für einen ruhigen Arbeitstag."
+    : "Eine ruhige Unterbrechung, bevor die Hand zu lange am Mund bleibt.";
+  els.startBody.textContent = isNeutral
+    ? "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen."
+    : "Die Erkennung läuft lokal in deinem Browser. Es werden keine Webcam-Bilder oder Videos gespeichert, hochgeladen oder an einen Server geschickt.";
+  els.startPrivacyNote.textContent = isNeutral
+    ? "Externe Bibliothek und Modelle werden geladen. Lokale Daten bleiben auf diesem Gerät."
+    : "MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen. Kameradaten bleiben im Browser.";
+  els.statusText.textContent = isNeutral && state.running ? "Aktiv" : els.statusText.textContent;
+}
+
 function renderPauseState() {
   els.pauseButton.textContent = state.paused ? "Fortsetzen" : "Pause";
   els.pauseButton.classList.toggle("paused", state.paused);
   els.focusStatus.textContent = state.paused ? "Erkennung pausiert" : "Erkennung läuft";
   updateStatus(state.paused ? "Pausiert" : "Erkennung läuft", state.paused ? "paused" : "active");
+  renderAppChrome();
 }
 
 function renderReplacement(replacement) {
@@ -514,6 +598,43 @@ function dailySummaryText(longestQuiet) {
   return `${state.stats.confirmed} bestätigte Episode${state.stats.confirmed === 1 ? "" : "n"} heute. Der nächste ruhige Abschnitt beginnt jetzt.`;
 }
 
+function renderNeutralLayout() {
+  const selectedLayout = [...els.neutralLayoutSelect.options].some((option) => option.value === state.settings.neutralLayout)
+    ? state.settings.neutralLayout
+    : "clock";
+  state.settings.neutralLayout = selectedLayout;
+  els.neutralLayoutSelect.value = selectedLayout;
+  els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
+  els.neutralNotes.value = localStorage.getItem(NEUTRAL_NOTES_KEY) ?? els.neutralNotes.value;
+
+  for (const layout of els.neutralLayouts) {
+    layout.classList.toggle("active", layout.dataset.neutralLayout === selectedLayout);
+  }
+}
+
+function renderNeutralInfo() {
+  const now = new Date();
+  const time = now.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString("de-AT", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+  const timerMs = Date.now() - state.neutralTimerStartedAt;
+  const timerMinutes = Math.floor(timerMs / 60_000);
+  const timerSeconds = Math.floor((timerMs % 60_000) / 1000);
+  const timer = `${String(timerMinutes).padStart(2, "0")}:${String(timerSeconds).padStart(2, "0")}`;
+  const breathPhase = Math.floor((Date.now() / 3500) % 2) === 0 ? "Einatmen" : "Ausatmen";
+
+  els.neutralClockTime.textContent = time;
+  els.neutralClockDate.textContent = date;
+  els.neutralTimerValue.textContent = timer;
+  els.neutralBreathLabel.textContent = breathPhase;
+  els.neutralDashboardTime.textContent = time;
+  els.neutralFocusDuration.textContent = `${timerMinutes} min`;
+  els.neutralBlankTime.textContent = time;
+}
+
 function settingsFromUi() {
   state.settings = {
     ...state.settings,
@@ -526,6 +647,8 @@ function settingsFromUi() {
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
+    neutralLayout: els.neutralLayoutSelect.value,
+    neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
   saveSettings();
 }
@@ -542,6 +665,8 @@ function applySettingsToUi() {
     : "softChime";
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
+  els.neutralLayoutSelect.value = state.settings.neutralLayout;
+  els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
 }
 
 function loadSettings() {
@@ -556,6 +681,8 @@ function loadSettings() {
     soundPreset: "softChime",
     soundVolume: 0.35,
     vibration: true,
+    neutralLayout: "clock",
+    neutralSubtleInterventions: true,
   };
 
   try {
@@ -765,7 +892,10 @@ function formatDuration(ms) {
 }
 
 function updateStatus(text, tone = "") {
-  els.statusText.textContent = text;
+  const visibleText = state.activeMode === "neutral" && text !== "Bereit" && text !== "Fehler"
+    ? (state.paused ? "Pausiert" : "Aktiv")
+    : text;
+  els.statusText.textContent = visibleText;
   els.statusPill.classList.toggle("active", tone === "active");
   els.statusPill.classList.toggle("warning", tone === "warning");
   els.statusPill.classList.toggle("paused", tone === "paused");

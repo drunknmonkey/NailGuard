@@ -14,8 +14,8 @@
     <main class="app-shell">
       <section class="topbar" aria-label="App Status">
         <div>
-          <p class="eyebrow">Calm habit coach</p>
-          <h1>Nail Guard</h1>
+          <p class="eyebrow" id="appEyebrow">Calm habit coach</p>
+          <h1 id="appTitle">Nail Guard</h1>
         </div>
         <div class="status-pill" id="statusPill">
           <span class="status-dot" aria-hidden="true"></span>
@@ -25,12 +25,12 @@
 
       <section class="start-panel" id="startPanel">
         <div class="start-copy">
-          <h2>Eine ruhige Unterbrechung, bevor die Hand zu lange am Mund bleibt.</h2>
-          <p>
+          <h2 id="startTitle">Eine ruhige Unterbrechung, bevor die Hand zu lange am Mund bleibt.</h2>
+          <p id="startBody">
             Die Erkennung läuft lokal in deinem Browser. Es werden keine Webcam-Bilder
             oder Videos gespeichert, hochgeladen oder an einen Server geschickt.
           </p>
-          <p class="privacy-note">
+          <p class="privacy-note" id="startPrivacyNote">
             MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen.
             Kameradaten bleiben im Browser.
           </p>
@@ -43,6 +43,7 @@
           <button class="mode-tab active" type="button" data-mode="focus">Focus</button>
           <button class="mode-tab" type="button" data-mode="calibration">Calibration</button>
           <button class="mode-tab" type="button" data-mode="review">Review</button>
+          <button class="mode-tab" type="button" data-mode="neutral">Neutral</button>
         </nav>
 
         <section class="mode-view focus-view active" id="focusView" data-view="focus">
@@ -166,6 +167,112 @@
 
           <button class="text-action reset-action" id="resetStatsButton" type="button">Statistik zurücksetzen</button>
         </section>
+
+        <section class="mode-view neutral-view" id="neutralView" data-view="neutral">
+          <div class="neutral-toolbar" aria-label="Neutrale Ansicht">
+            <label class="neutral-picker">
+              <span>Ansicht</span>
+              <select id="neutralLayoutSelect">
+                <option value="clock">Uhr & Datum</option>
+                <option value="timer">Fokus-Timer</option>
+                <option value="notes">Notizseite</option>
+                <option value="plan">Tagesplan</option>
+                <option value="breathing">Atemübung</option>
+                <option value="water">Wasser-Reminder</option>
+                <option value="calendar">Kalender-Look</option>
+                <option value="dashboard">Minimal Dashboard</option>
+                <option value="reading">Lesemodus</option>
+                <option value="blank">Blank Screen</option>
+              </select>
+            </label>
+            <label class="neutral-subtle-toggle">
+              <input id="neutralSubtleToggle" type="checkbox" checked />
+              Sehr dezente Einblendung
+            </label>
+          </div>
+
+          <div class="neutral-canvas" id="neutralCanvas">
+            <section class="neutral-layout neutral-clock active" data-neutral-layout="clock">
+              <p class="neutral-kicker">Workspace</p>
+              <time class="neutral-time" id="neutralClockTime">--:--</time>
+              <p class="neutral-date" id="neutralClockDate">Heute</p>
+              <span class="neutral-status"><i aria-hidden="true"></i>Aktiv</span>
+            </section>
+
+            <section class="neutral-layout neutral-timer" data-neutral-layout="timer">
+              <p class="neutral-kicker">Fokuszeit läuft</p>
+              <div class="neutral-timer-value" id="neutralTimerValue">00:00</div>
+              <button class="neutral-faux-button" type="button">Pause</button>
+            </section>
+
+            <section class="neutral-layout neutral-notes" data-neutral-layout="notes">
+              <p class="neutral-kicker">Gedanken / To-dos</p>
+              <textarea id="neutralNotes" spellcheck="false">Gedanken / To-dos</textarea>
+            </section>
+
+            <section class="neutral-layout neutral-plan" data-neutral-layout="plan">
+              <p class="neutral-kicker">Tagesplan</p>
+              <ul class="neutral-list">
+                <li><span>09:00</span><strong>Start & Überblick</strong></li>
+                <li><span>10:30</span><strong>Konzentrierter Block</strong></li>
+                <li><span>13:00</span><strong>Kurzer Check-in</strong></li>
+                <li><span>15:30</span><strong>Abschlussrunde</strong></li>
+              </ul>
+            </section>
+
+            <section class="neutral-layout neutral-breathing" data-neutral-layout="breathing">
+              <div class="breath-circle" aria-hidden="true"></div>
+              <p class="neutral-kicker" id="neutralBreathLabel">Einatmen</p>
+            </section>
+
+            <section class="neutral-layout neutral-water" data-neutral-layout="water">
+              <p class="neutral-kicker">Wasser trinken</p>
+              <div class="water-card">
+                <strong>3 / 6</strong>
+                <span>Gläser heute</span>
+              </div>
+            </section>
+
+            <section class="neutral-layout neutral-calendar" data-neutral-layout="calendar">
+              <p class="neutral-kicker">Heute</p>
+              <div class="calendar-look">
+                <div><span>09</span><p>Planung</p></div>
+                <div><span>11</span><p>Arbeitsblock</p></div>
+                <div><span>14</span><p>Review</p></div>
+                <div><span>16</span><p>Wrap-up</p></div>
+              </div>
+            </section>
+
+            <section class="neutral-layout neutral-dashboard" data-neutral-layout="dashboard">
+              <time class="neutral-dashboard-time" id="neutralDashboardTime">--:--</time>
+              <div class="neutral-dashboard-row">
+                <span><i aria-hidden="true"></i>Aktiv</span>
+                <strong id="neutralFocusDuration">0 min</strong>
+              </div>
+            </section>
+
+            <section class="neutral-layout neutral-reading" data-neutral-layout="reading">
+              <p class="neutral-kicker">Lesemodus</p>
+              <article>
+                <h2>Ruhig arbeiten</h2>
+                <p>
+                  Ein klarer Block, eine kleine Aufgabe, ein nächster Schritt. Weniger Wechsel,
+                  mehr Aufmerksamkeit. Danach kurz sammeln und weitergehen.
+                </p>
+              </article>
+            </section>
+
+            <section class="neutral-layout neutral-blank" data-neutral-layout="blank">
+              <span class="neutral-status"><i aria-hidden="true"></i>Aktiv</span>
+              <time id="neutralBlankTime">--:--</time>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section class="neutral-intervention" id="neutralIntervention" aria-live="polite" hidden>
+        <strong id="neutralInterventionTitle">Mini-Reset</strong>
+        <span id="neutralInterventionText">Zurück zum Fokus</span>
       </section>
 
       <section class="alert-panel" id="alertPanel" role="dialog" aria-modal="true" aria-labelledby="alertTitle" hidden>

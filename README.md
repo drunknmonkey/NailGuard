@@ -8,17 +8,15 @@ Die App ist als statische Web-App vorbereitet und kann per HTTPS auf Cloudflare 
 
 ```text
 NailGuard/
-├── index.html          # Statische App-Shell
-├── style.css           # UI, Layout und responsive Darstellung
-├── app.js              # MediaPipe-Erkennung, Settings, Statistik und Interventionen
-├── robots.txt          # Verhindert Indexierung der privaten App
-├── README.md           # Projekt-, Datenschutz- und Testdokumentation
-├── .gitignore          # Lokale Dateien, Secrets und Build-Artefakte ausschließen
+├── index.html
+├── style.css
+├── app.js
+├── robots.txt
+├── README.md
+├── .gitignore
 └── docs/
-    └── DEPLOYMENT.md   # Cloudflare-Pages-Anleitung
+    └── DEPLOYMENT.md
 ```
-
-Nicht Teil des eigentlichen Projekts sind Chat-Artefakte wie `.git` aus dem Arbeitsordner, `work/`, `outputs/`, temporäre Screenshots oder `.DS_Store`-Dateien.
 
 ## Start am Mac
 
@@ -91,6 +89,20 @@ Die Tagesauswertung:
 - motivierende Tageszusammenfassung
 - Statistik zurücksetzen
 
+### Neutral Mode
+
+Unauffällige Büro-/iPad-Ansicht, während die Kameraauswertung im Hintergrund weiterläuft:
+
+- keine große Kameravorschau
+- keine technischen Live-Werte
+- neutrale Seitentitel und Statusanzeigen
+- 10 auswählbare Layouts: Uhr & Datum, Fokus-Timer, Notizseite, Tagesplan, Atemübung, Wasser-Reminder, Kalender-Look, Minimal Dashboard, Lesemodus und Blank Screen
+- gewähltes Layout bleibt nach Reload gespeichert
+- neutrale Einblendungen wie `Mini-Reset`, `Atmen` oder `Zurück zum Fokus`
+- Option für sehr dezente Einblendungen
+
+Im Neutral Mode werden im sichtbaren UI keine Begriffe zum eigentlichen Tracking-Thema angezeigt. Die Verarbeitung bleibt unverändert lokal im Browser.
+
 ## Datenschutz
 
 - Es werden keine Webcam-Bilder oder Videos gespeichert.
@@ -119,7 +131,7 @@ Die App bleibt bewusst ohne Build-Step und ohne zusätzliche Dependencies. `app.
 - Settings: UI-Werte, Persistenz in `localStorage`
 - Statistics: Tageswerte, Streaks und lokale Speicherung
 - Intervention: zentrale Funktion `triggerIntervention(reason, confidence)`
-- UI Rendering: Moduswechsel, Status, Statistik, Warn-Dialog
+- UI Rendering: Moduswechsel, Status, Statistik, Warn-Dialog und Neutral-Ansichten
 
 Die zentrale Intervention ist vorbereitet, damit eine spätere Mac-App statt des Browser-Dialogs ein natives Desktop-Overlay auslösen kann.
 
@@ -140,11 +152,12 @@ Die zentrale Intervention ist vorbereitet, damit eine spätere Mac-App statt des
 1. Server starten: `python3 -m http.server 4173`
 2. `http://localhost:4173` in Chrome oder Safari öffnen.
 3. `Kamera starten` klicken und Kamerazugriff erlauben.
-4. Zwischen `Focus`, `Calibration` und `Review` wechseln.
+4. Zwischen `Focus`, `Calibration`, `Review` und `Neutral` wechseln.
 5. In `Calibration` prüfen: Gesicht/Hand-Status, Distanzwert und Overlay reagieren auf Kamera-Bewegung.
-6. Haltezeit auf `0.5 s` setzen und Sensitivität erhöhen, dann eine Hand in die Nähe des Mundes halten.
-7. Prüfen, dass die Farbwarnung ansteigt und danach eine ruhige Warnung erscheint.
-8. Warnung als `Ja, Nägelkauen`, `Fehlalarm` oder `Nur Gesicht berührt` markieren.
-9. In `Review` prüfen, dass Statistik und Tageszusammenfassung aktualisiert werden.
-10. Seite neu laden und prüfen, dass Settings und Statistik erhalten bleiben.
-11. Statistik mit `Statistik zurücksetzen` löschen.
+6. In `Neutral` alle 10 Layouts einmal auswählen und die Seite neu laden; die letzte Auswahl soll erhalten bleiben.
+7. Haltezeit auf `0.5 s` setzen und Sensitivität erhöhen, dann eine Hand in die Nähe des Mundes halten.
+8. Prüfen, dass die Farbwarnung ansteigt und in `Neutral` nur eine dezente neutrale Einblendung erscheint.
+9. Warnung in den anderen Modi als `Ja, Nägelkauen`, `Fehlalarm` oder `Nur Gesicht berührt` markieren.
+10. In `Review` prüfen, dass Statistik und Tageszusammenfassung aktualisiert werden.
+11. Seite neu laden und prüfen, dass Settings und Statistik erhalten bleiben.
+12. Statistik mit `Statistik zurücksetzen` löschen.

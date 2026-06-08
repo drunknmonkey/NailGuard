@@ -509,6 +509,314 @@ select {
   gap: 16px;
 }
 
+.neutral-view {
+  grid-template-columns: 1fr;
+  gap: 16px;
+  min-height: min(72vh, 780px);
+  background:
+    linear-gradient(180deg, rgba(252, 252, 249, 0.92), rgba(243, 243, 238, 0.96)),
+    radial-gradient(circle at 20% 20%, rgba(226, 232, 222, 0.9), transparent 38%);
+}
+
+.neutral-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 253, 250, 0.76);
+  box-shadow: 0 10px 26px rgba(45, 41, 32, 0.05);
+}
+
+.neutral-picker {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 260px);
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.neutral-subtle-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.neutral-canvas {
+  position: relative;
+  min-height: min(62vh, 680px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 253, 250, 0.82);
+  box-shadow: var(--shadow);
+}
+
+.neutral-layout {
+  display: none;
+  min-height: min(62vh, 680px);
+  padding: clamp(24px, 5vw, 64px);
+}
+
+.neutral-layout.active {
+  display: grid;
+}
+
+.neutral-kicker {
+  margin-bottom: 12px;
+  color: #6f776f;
+  font-size: 0.9rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.neutral-clock,
+.neutral-timer,
+.neutral-breathing,
+.neutral-water,
+.neutral-dashboard,
+.neutral-blank {
+  place-items: center;
+  text-align: center;
+}
+
+.neutral-time,
+.neutral-timer-value,
+.neutral-dashboard-time {
+  display: block;
+  color: #273027;
+  font-size: clamp(4.2rem, 15vw, 11rem);
+  line-height: 0.9;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.neutral-date {
+  color: var(--muted);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+}
+
+.neutral-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #6f776f;
+  font-weight: 850;
+}
+
+.neutral-status i,
+.neutral-dashboard-row i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #75a47f;
+}
+
+.neutral-faux-button {
+  margin-top: 18px;
+  min-width: 130px;
+  background: #2d352e;
+  color: #fff;
+  font-weight: 850;
+}
+
+.neutral-notes {
+  align-content: stretch;
+}
+
+.neutral-notes textarea {
+  width: 100%;
+  min-height: 420px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  border-radius: 8px;
+  padding: clamp(18px, 3vw, 32px);
+  background: rgba(255, 255, 255, 0.68);
+  color: #2f372f;
+  font: inherit;
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  line-height: 1.55;
+}
+
+.neutral-list,
+.calendar-look {
+  width: min(720px, 100%);
+  justify-self: center;
+  align-self: center;
+}
+
+.neutral-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.neutral-list li,
+.calendar-look div {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.neutral-list span,
+.calendar-look span {
+  color: var(--muted);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.neutral-list strong,
+.calendar-look p {
+  margin: 0;
+  color: #30372f;
+  font-size: 1.2rem;
+  font-weight: 850;
+}
+
+.breath-circle {
+  width: clamp(160px, 30vw, 260px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(117, 164, 127, 0.28), rgba(117, 164, 127, 0.08));
+  border: 1px solid rgba(117, 164, 127, 0.35);
+  animation: breathe 7s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(0.78);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+.water-card {
+  display: grid;
+  gap: 8px;
+  min-width: min(360px, 90vw);
+  padding: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.water-card strong {
+  font-size: clamp(3rem, 9vw, 6rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-card span,
+.neutral-dashboard-row {
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.calendar-look {
+  display: grid;
+  gap: 10px;
+}
+
+.neutral-dashboard-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.neutral-dashboard-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.neutral-reading {
+  place-items: center;
+}
+
+.neutral-reading article {
+  width: min(720px, 100%);
+}
+
+.neutral-reading h2 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.neutral-reading p {
+  color: var(--muted);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  line-height: 1.75;
+}
+
+.neutral-blank {
+  color: var(--muted);
+}
+
+.neutral-blank time {
+  position: absolute;
+  right: 22px;
+  bottom: 18px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.neutral-intervention {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  top: 18px;
+  display: grid;
+  gap: 2px;
+  min-width: min(320px, calc(100% - 32px));
+  padding: 13px 16px;
+  border: 1px solid rgba(117, 164, 127, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 253, 250, 0.9);
+  color: #2f372f;
+  box-shadow: 0 18px 44px rgba(45, 41, 32, 0.12);
+  transform: translateX(-50%);
+}
+
+.neutral-intervention strong {
+  font-size: 1rem;
+}
+
+.neutral-intervention span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.neutral-intervention.prominent {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 20px 24px;
+}
+
 .summary-card {
   box-shadow: none;
 }
@@ -629,6 +937,16 @@ select {
   .focus-view,
   .calibration-view {
     grid-template-columns: 1fr;
+  }
+
+  .neutral-toolbar,
+  .neutral-picker {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .neutral-toolbar {
+    flex-direction: column;
   }
 
   .signal-row,
