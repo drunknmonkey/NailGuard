@@ -225,7 +225,7 @@ h3 {
 }
 
 .focus-view {
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
   gap: 18px;
   align-items: stretch;
 }
@@ -237,10 +237,12 @@ h3 {
 }
 
 .hero-card {
-  min-height: 260px;
+  min-height: 310px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 250, 0.96), rgba(235, 242, 236, 0.92));
 }
 
 .hero-card h2 {
@@ -307,27 +309,6 @@ dd {
 
 .replacement-card h3 {
   color: #155c56;
-}
-
-.focus-camera-card {
-  background: rgba(255, 253, 250, 0.72);
-}
-
-.mini-video-frame {
-  width: 100%;
-  max-width: 260px;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #151916;
-}
-
-#focusVideo {
-  position: static;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1);
 }
 
 .calibration-view {
@@ -430,6 +411,43 @@ canvas {
 .section-title-row h2 {
   margin-bottom: 0;
   font-size: 1.28rem;
+}
+
+.calibration-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(240, 238, 230, 0.7);
+}
+
+.preset-button {
+  min-height: 42px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.preset-button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(45, 41, 32, 0.08);
+}
+
+.advanced-panel {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.advanced-panel summary {
+  min-height: 40px;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 900;
 }
 
 .control-row {
@@ -859,6 +877,18 @@ select {
   border-radius: 8px;
   background: #fff7ee;
   box-shadow: var(--shadow);
+  animation: soft-arrive 220ms ease-out;
+}
+
+@keyframes soft-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .alert-content h2 {

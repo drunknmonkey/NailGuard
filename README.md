@@ -54,42 +54,41 @@ Für Kamera-Zugriff im Browser ist ein sicherer Kontext nötig. Lokal funktionie
 
 Die ruhige Nutzungsansicht für den Alltag:
 
-- Status `Erkennung läuft`
-- aktuelle Streak / ruhige Zeit
-- bestätigte Nägelkau-Episoden heute
-- Ersatzhandlungsempfehlung
+- Status `Aktiv` / `Pausiert`
+- ruhige Zeit
+- heute unterbrochene Momente
 - Pause/Fortsetzen
-- kleine, unaufdringliche Kameravorschau
+- Office Mode öffnen
 - keine technischen Slider
 
-### Calibration Mode
+### Einstellungen
 
-Die technische Ansicht für Setup und Tuning:
+Die technische Ansicht ist als `Erweiterte Einstellungen` bewusst sekundär:
 
 - großes Kamerabild
 - Overlay für Mundpunkt und Fingerkuppen
 - Live-Distanzwert
+- einfache Voreinstellungen `Sanft`, `Normal`, `Präzise`
 - Sensitivität
 - Haltezeit
 - Cooldown
 - Farbwarnung, Ton und Vibration
 - Tonpresets, Lautstärke und Testton
-- Testwarnung
+- Mini-Reset testen
 
 ### Review Mode
 
-Die Tagesauswertung:
+Die Tagesauswertung beginnt mit einer kurzen, motivierenden Zusammenfassung. Danach folgen die Zahlen:
 
-- Warnungen heute
-- bestätigtes Nägelkauen
+- unterbrochene Momente
+- Treffer
 - Fehlalarme
 - Gesicht-berührt-Episoden
 - längste ruhige Phase
-- aktuelle Streak
-- motivierende Tageszusammenfassung
+- ruhige Zeit
 - Statistik zurücksetzen
 
-### Neutral Mode
+### Office Mode
 
 Unauffällige Büro-/iPad-Ansicht, während die Kameraauswertung im Hintergrund weiterläuft:
 
@@ -101,7 +100,7 @@ Unauffällige Büro-/iPad-Ansicht, während die Kameraauswertung im Hintergrund 
 - neutrale Einblendungen wie `Mini-Reset`, `Atmen` oder `Zurück zum Fokus`
 - Option für sehr dezente Einblendungen
 
-Im Neutral Mode werden im sichtbaren UI keine Begriffe zum eigentlichen Tracking-Thema angezeigt. Die Verarbeitung bleibt unverändert lokal im Browser.
+Im Office Mode werden im sichtbaren UI keine Begriffe zum eigentlichen Tracking-Thema angezeigt. Die Verarbeitung bleibt unverändert lokal im Browser.
 
 ## Datenschutz
 
@@ -152,12 +151,12 @@ Die zentrale Intervention ist vorbereitet, damit eine spätere Mac-App statt des
 1. Server starten: `python3 -m http.server 4173`
 2. `http://localhost:4173` in Chrome oder Safari öffnen.
 3. `Kamera starten` klicken und Kamerazugriff erlauben.
-4. Zwischen `Focus`, `Calibration`, `Review` und `Neutral` wechseln.
-5. In `Calibration` prüfen: Gesicht/Hand-Status, Distanzwert und Overlay reagieren auf Kamera-Bewegung.
-6. In `Neutral` alle 10 Layouts einmal auswählen und die Seite neu laden; die letzte Auswahl soll erhalten bleiben.
+4. Zwischen `Focus`, `Einstellungen`, `Review` und `Office` wechseln.
+5. In `Einstellungen` prüfen: Gesicht/Hand-Status, Distanzwert und Overlay reagieren auf Kamera-Bewegung.
+6. In `Office` alle 10 Layouts einmal auswählen und die Seite neu laden; die letzte Auswahl soll erhalten bleiben.
 7. Haltezeit auf `0.5 s` setzen und Sensitivität erhöhen, dann eine Hand in die Nähe des Mundes halten.
-8. Prüfen, dass die Farbwarnung ansteigt und in `Neutral` nur eine dezente neutrale Einblendung erscheint.
-9. Warnung in den anderen Modi als `Ja, Nägelkauen`, `Fehlalarm` oder `Nur Gesicht berührt` markieren.
+8. Prüfen, dass der Farbwechsel ansteigt und in `Office` nur eine dezente neutrale Einblendung erscheint.
+9. Den Mini-Reset in den anderen Modi als `Treffer`, `Fehlalarm` oder `Gesicht berührt` markieren.
 10. In `Review` prüfen, dass Statistik und Tageszusammenfassung aktualisiert werden.
 11. Seite neu laden und prüfen, dass Settings und Statistik erhalten bleiben.
 12. Statistik mit `Statistik zurücksetzen` löschen.

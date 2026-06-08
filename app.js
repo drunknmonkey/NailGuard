@@ -32,6 +32,11 @@ const SOUND_PRESETS = {
   tinyRobot: { notes: [[660, 0, 0.07, "square"], [520, 0.09, 0.07, "square"], [780, 0.18, 0.09, "square"]] },
   boing: { notes: [[260, 0, 0.16, "sawtooth"], [180, 0.1, 0.22, "sine"]] },
 };
+const CALIBRATION_PRESETS = {
+  soft: { distanceThreshold: 0.075, holdSeconds: 3, cooldownSeconds: 25 },
+  normal: { distanceThreshold: 0.09, holdSeconds: 2, cooldownSeconds: 15 },
+  precise: { distanceThreshold: 0.115, holdSeconds: 1.2, cooldownSeconds: 10 },
+};
 const NEUTRAL_INTERVENTIONS = [
   ["Mini-Reset", "Zurück zum Fokus"],
   ["Kurze Pause", "Schultern locker"],
@@ -60,7 +65,6 @@ const els = {
   focusStreak: document.querySelector("#focusStreak"),
   focusConfirmed: document.querySelector("#focusConfirmed"),
   pauseButton: document.querySelector("#pauseButton"),
-  focusVideo: document.querySelector("#focusVideo"),
   video: document.querySelector("#video"),
   overlay: document.querySelector("#overlay"),
   warmOverlay: document.querySelector("#warmOverlay"),
@@ -83,8 +87,8 @@ const els = {
   volumeValue: document.querySelector("#volumeValue"),
   testSoundButton: document.querySelector("#testSoundButton"),
   testWarningButton: document.querySelector("#testWarningButton"),
+  presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
-  replacementAction: document.querySelector("#replacementAction"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   confirmBitingButton: document.querySelector("#confirmBitingButton"),
@@ -163,8 +167,14 @@ function bindEvents() {
   for (const input of [els.distanceThreshold, els.holdSeconds, els.cooldownSeconds, els.soundVolume]) {
     input.addEventListener("input", () => {
       settingsFromUi();
+      state.settings.calibrationPreset = "custom";
+      saveSettings();
       renderSettings();
     });
+  }
+
+  for (const button of els.presetButtons) {
+    button.addEventListener("click", () => applyCalibrationPreset(button.dataset.preset));
   }
 
   els.soundPreset.addEventListener("change", settingsFromUi);
@@ -215,7 +225,7 @@ async function startApp() {
     state.running = true;
     state.paused = false;
     switchMode(state.activeMode);
-    updateStatus("Erkennung läuft", "active");
+    updateStatus("Aktiv", "active");
     requestAnimationFrame(detection.loop);
   } catch (error) {
     els.startButton.disabled = false;
@@ -254,12 +264,10 @@ const detection = {
     });
 
     els.video.srcObject = state.stream;
-    els.focusVideo.srcObject = state.stream;
     await new Promise((resolve) => {
       els.video.onloadedmetadata = resolve;
     });
     await els.video.play();
-    await els.focusVideo.play();
     resizeOverlay();
   },
 
@@ -416,9 +424,9 @@ function triggerIntervention(reason, confidence, options = {}) {
 }
 
 function showBrowserIntervention(replacement) {
-  els.alertReplacement.textContent = replacement;
+  els.alertReplacement.textContent = "3 Atemzüge. Zurück zum Fokus.";
   els.alertPanel.hidden = false;
-  updateStatus("Ruhige Unterbrechung", "warning");
+  updateStatus("Mini-Reset", "warning");
 }
 
 function showNeutralIntervention() {
@@ -457,7 +465,7 @@ function resolveIntervention(kind) {
   state.currentIntervention = null;
   setWarmth(0);
   els.alertPanel.hidden = true;
-  updateStatus(state.paused ? "Pausiert" : "Erkennung läuft", state.paused ? "paused" : "active");
+  updateStatus(state.paused ? "Pausiert" : "Aktiv", state.paused ? "paused" : "active");
   saveStats();
   renderStats();
 }
@@ -541,14 +549,14 @@ function renderStats() {
   els.statLongest.textContent = formatDuration(longestQuiet);
   els.statStreak.textContent = formatDuration(streak);
   els.focusStreak.textContent = formatDuration(streak);
-  els.focusConfirmed.textContent = state.stats.confirmed;
+  els.focusConfirmed.textContent = state.stats.warnings;
   els.dailySummary.textContent = dailySummaryText(longestQuiet);
   els.statLastWarning.textContent = state.stats.lastWarningAt
-    ? `Letzte Warnung: ${new Date(state.stats.lastWarningAt).toLocaleTimeString("de-AT", {
+    ? `Letzter Mini-Reset: ${new Date(state.stats.lastWarningAt).toLocaleTimeString("de-AT", {
         hour: "2-digit",
         minute: "2-digit",
       })}`
-    : "Letzte Warnung: keine";
+    : "Letzter Mini-Reset: keiner";
 }
 
 function renderSettings() {
@@ -556,6 +564,7 @@ function renderSettings() {
   els.holdValue.textContent = `${Number(els.holdSeconds.value).toFixed(1)} s`;
   els.cooldownValue.textContent = `${Math.round(Number(els.cooldownSeconds.value))} s`;
   els.volumeValue.textContent = `${Math.round(Number(els.soundVolume.value) * 100)}%`;
+  renderPresetButtons();
 }
 
 function renderAppChrome() {
@@ -564,10 +573,10 @@ function renderAppChrome() {
   els.appTitle.textContent = isNeutral ? "Daily Board" : "Nail Guard";
   els.startTitle.textContent = isNeutral
     ? "Bereit für einen ruhigen Arbeitstag."
-    : "Eine ruhige Unterbrechung, bevor die Hand zu lange am Mund bleibt.";
+    : "Ein ruhiger Coach für fokussierte Momente.";
   els.startBody.textContent = isNeutral
     ? "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen."
-    : "Die Erkennung läuft lokal in deinem Browser. Es werden keine Webcam-Bilder oder Videos gespeichert, hochgeladen oder an einen Server geschickt.";
+    : "Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen. Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.";
   els.startPrivacyNote.textContent = isNeutral
     ? "Externe Bibliothek und Modelle werden geladen. Lokale Daten bleiben auf diesem Gerät."
     : "MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen. Kameradaten bleiben im Browser.";
@@ -577,25 +586,47 @@ function renderAppChrome() {
 function renderPauseState() {
   els.pauseButton.textContent = state.paused ? "Fortsetzen" : "Pause";
   els.pauseButton.classList.toggle("paused", state.paused);
-  els.focusStatus.textContent = state.paused ? "Erkennung pausiert" : "Erkennung läuft";
-  updateStatus(state.paused ? "Pausiert" : "Erkennung läuft", state.paused ? "paused" : "active");
+  els.focusStatus.textContent = state.paused ? "Pausiert" : "Aktiv";
+  updateStatus(state.paused ? "Pausiert" : "Aktiv", state.paused ? "paused" : "active");
   renderAppChrome();
 }
 
 function renderReplacement(replacement) {
-  els.replacementAction.textContent = replacement;
+  if (els.replacementAction) {
+    els.replacementAction.textContent = replacement;
+  }
 }
 
 function dailySummaryText(longestQuiet) {
   if (state.stats.confirmed === 0 && state.stats.warnings === 0) {
-    return "Heute ist noch ruhig. Lass die App im Hintergrund mitlaufen.";
+    return "Heute läuft ruhig. Ein guter Moment, um einfach weiterzumachen.";
   }
 
   if (state.stats.confirmed === 0) {
-    return `${formatDuration(longestQuiet)} ruhige Phase. Gute Selbstbeobachtung heute.`;
+    return `${formatDuration(longestQuiet)} ruhige Phase. Du bleibst aufmerksam, ohne Druck.`;
   }
 
-  return `${state.stats.confirmed} bestätigte Episode${state.stats.confirmed === 1 ? "" : "n"} heute. Der nächste ruhige Abschnitt beginnt jetzt.`;
+  return `${state.stats.confirmed} Treffer heute. Der nächste ruhige Abschnitt beginnt jetzt.`;
+}
+
+function applyCalibrationPreset(presetName) {
+  const preset = CALIBRATION_PRESETS[presetName];
+  if (!preset) return;
+
+  state.settings = {
+    ...state.settings,
+    calibrationPreset: presetName,
+    ...preset,
+  };
+  applySettingsToUi();
+  saveSettings();
+  renderSettings();
+}
+
+function renderPresetButtons() {
+  for (const button of els.presetButtons) {
+    button.classList.toggle("active", button.dataset.preset === state.settings.calibrationPreset);
+  }
 }
 
 function renderNeutralLayout() {
@@ -675,6 +706,7 @@ function loadSettings() {
     distanceThreshold: 0.09,
     holdSeconds: 2,
     cooldownSeconds: 15,
+    calibrationPreset: "normal",
     showOverlay: true,
     warmthFeedback: true,
     sound: false,

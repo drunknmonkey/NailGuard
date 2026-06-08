@@ -25,10 +25,10 @@
 
       <section class="start-panel" id="startPanel">
         <div class="start-copy">
-          <h2 id="startTitle">Eine ruhige Unterbrechung, bevor die Hand zu lange am Mund bleibt.</h2>
+          <h2 id="startTitle">Ein ruhiger Coach für fokussierte Momente.</h2>
           <p id="startBody">
-            Die Erkennung läuft lokal in deinem Browser. Es werden keine Webcam-Bilder
-            oder Videos gespeichert, hochgeladen oder an einen Server geschickt.
+            Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen.
+            Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.
           </p>
           <p class="privacy-note" id="startPrivacyNote">
             MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen.
@@ -41,45 +41,32 @@
       <section class="workspace" id="workspace" hidden>
         <nav class="mode-tabs" aria-label="App-Modus">
           <button class="mode-tab active" type="button" data-mode="focus">Focus</button>
-          <button class="mode-tab" type="button" data-mode="calibration">Calibration</button>
+          <button class="mode-tab" type="button" data-mode="calibration">Einstellungen</button>
           <button class="mode-tab" type="button" data-mode="review">Review</button>
-          <button class="mode-tab" type="button" data-mode="neutral">Neutral</button>
+          <button class="mode-tab" type="button" data-mode="neutral">Office</button>
         </nav>
 
         <section class="mode-view focus-view active" id="focusView" data-view="focus">
           <div class="coach-card hero-card">
-            <p class="eyebrow">Jetzt</p>
-            <h2 id="focusStatus">Erkennung läuft</h2>
-            <p class="quiet-copy">Bleib bei dem, was du gerade tust. Nail Guard meldet sich nur, wenn es nötig wird.</p>
+            <p class="eyebrow">Status</p>
+            <h2 id="focusStatus">Aktiv</h2>
+            <p class="quiet-copy">Ein ruhiger Begleiter im Hintergrund. Du kannst einfach weiterarbeiten.</p>
             <div class="focus-actions">
               <button class="secondary-action" id="pauseButton" type="button">Pause</button>
-              <button class="text-action" type="button" data-mode-link="calibration">Kalibrieren</button>
+              <button class="text-action" type="button" data-mode-link="neutral">Office Mode öffnen</button>
             </div>
           </div>
 
           <div class="focus-metrics">
             <article class="metric-card large">
-              <span>Aktuelle Streak</span>
+              <span>Ruhige Zeit</span>
               <strong id="focusStreak">0 min</strong>
             </article>
             <article class="metric-card">
-              <span>Heute bestätigt</span>
+              <span>Heute unterbrochen</span>
               <strong id="focusConfirmed">0</strong>
             </article>
           </div>
-
-          <article class="coach-card replacement-card">
-            <p class="eyebrow">Ersatzhandlung</p>
-            <h3 id="replacementAction">3 tiefe Atemzüge</h3>
-            <p>Wenn eine Warnung kommt, wähle etwas Kleines und Körpernahes.</p>
-          </article>
-
-          <article class="coach-card focus-camera-card" aria-label="Kleine Kameravorschau">
-            <p class="eyebrow">Kamera</p>
-            <div class="mini-video-frame">
-              <video id="focusVideo" playsinline muted autoplay></video>
-            </div>
-          </article>
         </section>
 
         <section class="mode-view calibration-view" id="calibrationView" data-view="calibration">
@@ -102,50 +89,60 @@
 
           <aside class="settings-card" aria-label="Kalibrierung">
             <div class="section-title-row">
-              <h2>Kalibrierung</h2>
-              <button class="mini-action" id="testWarningButton" type="button">Testwarnung</button>
+              <h2>Erweiterte Einstellungen</h2>
+              <button class="mini-action" id="testWarningButton" type="button">Mini-Reset testen</button>
             </div>
 
-            <label class="control-row">
-              <span>Sensitivität</span>
-              <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.005" value="0.09" />
-              <output id="distanceValue">0.090</output>
-            </label>
-            <label class="control-row">
-              <span>Haltezeit</span>
-              <input id="holdSeconds" type="range" min="0.5" max="6" step="0.5" value="2" />
-              <output id="holdValue">2.0 s</output>
-            </label>
-            <label class="control-row">
-              <span>Cooldown</span>
-              <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" />
-              <output id="cooldownValue">15 s</output>
-            </label>
-
-            <div class="toggle-grid">
-              <label><input id="overlayToggle" type="checkbox" checked /> Overlay</label>
-              <label><input id="warmthToggle" type="checkbox" checked /> Farbwarnung</label>
-              <label><input id="soundToggle" type="checkbox" /> Ton</label>
-              <label><input id="vibrationToggle" type="checkbox" checked /> Vibration</label>
+            <div class="calibration-presets" aria-label="Voreinstellung">
+              <button class="preset-button" type="button" data-preset="soft">Sanft</button>
+              <button class="preset-button active" type="button" data-preset="normal">Normal</button>
+              <button class="preset-button" type="button" data-preset="precise">Präzise</button>
             </div>
 
-            <label class="control-row select-row">
-              <span>Tonwarnung</span>
-              <select id="soundPreset">
-                <option value="softChime">Sanfter Gong</option>
-                <option value="breathBell">Atem-Glocke</option>
-                <option value="doubleTap">Doppel-Klopfen</option>
-                <option value="bubblePop">Bubble Pop</option>
-                <option value="tinyRobot">Mini-Roboter</option>
-                <option value="boing">Boing</option>
-              </select>
-              <button class="mini-action" id="testSoundButton" type="button">Test</button>
-            </label>
-            <label class="control-row">
-              <span>Lautstärke</span>
-              <input id="soundVolume" type="range" min="0" max="1" step="0.05" value="0.35" />
-              <output id="volumeValue">35%</output>
-            </label>
+            <details class="advanced-panel">
+              <summary>Technische Werte anzeigen</summary>
+
+              <label class="control-row">
+                <span>Sensitivität</span>
+                <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.005" value="0.09" />
+                <output id="distanceValue">0.090</output>
+              </label>
+              <label class="control-row">
+                <span>Haltezeit</span>
+                <input id="holdSeconds" type="range" min="0.5" max="6" step="0.5" value="2" />
+                <output id="holdValue">2.0 s</output>
+              </label>
+              <label class="control-row">
+                <span>Cooldown</span>
+                <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" />
+                <output id="cooldownValue">15 s</output>
+              </label>
+
+              <div class="toggle-grid">
+                <label><input id="overlayToggle" type="checkbox" checked /> Overlay</label>
+                <label><input id="warmthToggle" type="checkbox" checked /> Farbwechsel</label>
+                <label><input id="soundToggle" type="checkbox" /> Ton</label>
+                <label><input id="vibrationToggle" type="checkbox" checked /> Vibration</label>
+              </div>
+
+              <label class="control-row select-row">
+                <span>Ton</span>
+                <select id="soundPreset">
+                  <option value="softChime">Sanfter Gong</option>
+                  <option value="breathBell">Atem-Glocke</option>
+                  <option value="doubleTap">Doppel-Klopfen</option>
+                  <option value="bubblePop">Bubble Pop</option>
+                  <option value="tinyRobot">Mini-Roboter</option>
+                  <option value="boing">Boing</option>
+                </select>
+                <button class="mini-action" id="testSoundButton" type="button">Test</button>
+              </label>
+              <label class="control-row">
+                <span>Lautstärke</span>
+                <input id="soundVolume" type="range" min="0" max="1" step="0.05" value="0.35" />
+                <output id="volumeValue">35%</output>
+              </label>
+            </details>
           </aside>
         </section>
 
@@ -153,16 +150,16 @@
           <article class="coach-card summary-card">
             <p class="eyebrow">Heute</p>
             <h2 id="dailySummary">Ein ruhiger Anfang zählt.</h2>
-            <p id="statLastWarning">Letzte Warnung: keine</p>
+            <p id="statLastWarning">Letzter Mini-Reset: keiner</p>
           </article>
 
           <dl class="stats-grid">
-            <div><dt>Warnungen</dt><dd id="statWarnings">0</dd></div>
-            <div><dt>Nägelkauen</dt><dd id="statConfirmed">0</dd></div>
+            <div><dt>Unterbrochene Momente</dt><dd id="statWarnings">0</dd></div>
+            <div><dt>Treffer</dt><dd id="statConfirmed">0</dd></div>
             <div><dt>Fehlalarme</dt><dd id="statFalse">0</dd></div>
             <div><dt>Gesicht berührt</dt><dd id="statFace">0</dd></div>
             <div><dt>Längste ruhige Phase</dt><dd id="statLongest">0 min</dd></div>
-            <div><dt>Aktuelle Streak</dt><dd id="statStreak">0 min</dd></div>
+            <div><dt>Ruhige Zeit</dt><dd id="statStreak">0 min</dd></div>
           </dl>
 
           <button class="text-action reset-action" id="resetStatsButton" type="button">Statistik zurücksetzen</button>
@@ -277,13 +274,13 @@
 
       <section class="alert-panel" id="alertPanel" role="dialog" aria-modal="true" aria-labelledby="alertTitle" hidden>
         <div class="alert-content">
-          <p class="eyebrow">Pattern interrupt</p>
-          <h2 id="alertTitle">Hand runter. Kurz atmen. Wähle eine Ersatzhandlung.</h2>
-          <p id="alertReplacement">Faust 10 Sekunden ballen</p>
+          <p class="eyebrow">Kurzer Moment</p>
+          <h2 id="alertTitle">Mini-Reset</h2>
+          <p id="alertReplacement">3 Atemzüge. Zurück zum Fokus.</p>
           <div class="alert-actions">
-            <button id="confirmBitingButton" type="button">Ja, Nägelkauen</button>
+            <button id="confirmBitingButton" type="button">Treffer</button>
             <button id="falseAlarmButton" type="button">Fehlalarm</button>
-            <button id="faceTouchButton" type="button">Nur Gesicht berührt</button>
+            <button id="faceTouchButton" type="button">Gesicht berührt</button>
           </div>
         </div>
       </section>
