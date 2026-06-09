@@ -123,12 +123,12 @@
 
               <label class="control-row">
                 <span data-i18n="calibration.sensitivity">Sensitivität</span>
-                <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.005" value="0.09" />
+                <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" />
                 <output id="distanceValue">0.090</output>
               </label>
               <label class="control-row">
                 <span data-i18n="calibration.holdTime">Haltezeit</span>
-                <input id="holdSeconds" type="range" min="0.5" max="6" step="0.5" value="2" />
+                <input id="holdSeconds" type="range" min="0.5" max="6" step="0.1" value="2" />
                 <output id="holdValue">2.0 s</output>
               </label>
               <label class="control-row">
@@ -142,7 +142,11 @@
                 <label><input id="warmthToggle" type="checkbox" checked /> <span data-i18n="calibration.warmth">Farbwechsel</span></label>
                 <label><input id="soundToggle" type="checkbox" /> <span data-i18n="calibration.sound">Ton</span></label>
                 <label><input id="vibrationToggle" type="checkbox" checked /> <span data-i18n="calibration.vibration">Vibration</span></label>
+                <label><input id="autoTuneToggle" type="checkbox" checked /> <span data-i18n="calibration.autoTune">Automatisch anpassen</span></label>
               </div>
+              <p class="auto-tune-hint" data-i18n="calibration.autoTuneHint">
+                Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.
+              </p>
 
               <label class="control-row select-row">
                 <span data-i18n="calibration.sound">Ton</span>

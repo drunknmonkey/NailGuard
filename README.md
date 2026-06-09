@@ -112,6 +112,16 @@ Die technische Ansicht ist als `Erweiterte Einstellungen` bewusst sekundär:
 - Tonpresets, Lautstärke und Testton
 - Mini-Reset testen
 
+### Automatische Anpassung (Auto-Tuning)
+
+Jede Intervention wird vom Nutzer als `Treffer`, `Fehlalarm` oder `Gesicht berührt` klassifiziert. Bei aktivierter Option `Automatisch anpassen` (Standard, abschaltbar in den erweiterten Einstellungen) nutzt Nail Guard diese Rückmeldung, um die Erkennung schrittweise zu personalisieren:
+
+- `Fehlalarm`: Empfindlichkeit sinkt (Schwelle × 0.93), Haltezeit steigt (+0.2 s)
+- `Gesicht berührt`: Empfindlichkeit sinkt leicht (Schwelle × 0.97)
+- `Treffer`: Empfindlichkeit steigt leicht (Schwelle × 1.02), Haltezeit sinkt (−0.1 s)
+
+Alle Anpassungen sind begrenzt (Schwelle 0.045–0.14, Haltezeit 0.5–4 s) und werden auf das Raster der Slider gerundet, damit gespeicherte und angezeigte Werte identisch bleiben. Nach einer Anpassung steht das Preset auf `custom`.
+
 ### Review Mode
 
 Die Tagesauswertung beginnt mit einer kurzen, motivierenden Zusammenfassung. Danach folgen die Zahlen:

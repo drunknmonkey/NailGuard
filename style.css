@@ -964,6 +964,13 @@ select {
   margin: 0 0 14px;
 }
 
+.auto-tune-hint {
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .landing-hero {
   margin-bottom: 18px;
 }

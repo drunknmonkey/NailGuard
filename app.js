@@ -43,6 +43,21 @@ const CALIBRATION_PRESETS = {
   normal: { distanceThreshold: 0.09, holdSeconds: 2, cooldownSeconds: 15 },
   precise: { distanceThreshold: 0.115, holdSeconds: 1.2, cooldownSeconds: 10 },
 };
+
+// Small, bounded adjustments derived from the user's feedback on each
+// intervention. False alarms make detection stricter, confirmed hits
+// slightly more eager; face touches sit in between.
+const AUTO_TUNE = {
+  rules: {
+    falseAlarm: { thresholdFactor: 0.93, holdDelta: 0.2 },
+    faceTouch: { thresholdFactor: 0.97, holdDelta: 0 },
+    confirmed: { thresholdFactor: 1.02, holdDelta: -0.1 },
+  },
+  thresholdMin: 0.045,
+  thresholdMax: 0.14,
+  holdMin: 0.5,
+  holdMax: 4,
+};
 const els = {
   startPanel: document.querySelector("#startPanel"),
   workspace: document.querySelector("#workspace"),
@@ -88,6 +103,7 @@ const els = {
   testWarningButton: document.querySelector("#testWarningButton"),
   presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
+  autoTuneToggle: document.querySelector("#autoTuneToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   confirmBitingButton: document.querySelector("#confirmBitingButton"),
@@ -242,7 +258,7 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle]) {
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
       if (!state.settings.showOverlay) clearOverlay();
@@ -520,6 +536,7 @@ function resolveIntervention(kind) {
     } else if (kind === "faceTouch") {
       state.stats.faceTouches += 1;
     }
+    autoTuneFromFeedback(kind);
   }
 
   state.alertOpen = false;
@@ -529,6 +546,38 @@ function resolveIntervention(kind) {
   updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
   saveStats();
   renderStats();
+}
+
+function autoTuneFromFeedback(kind) {
+  if (!state.settings.autoTune) return;
+  const rule = AUTO_TUNE.rules[kind];
+  if (!rule) return;
+
+  const threshold = clamp(
+    state.settings.distanceThreshold * rule.thresholdFactor,
+    AUTO_TUNE.thresholdMin,
+    AUTO_TUNE.thresholdMax,
+  );
+  const hold = clamp(state.settings.holdSeconds + rule.holdDelta, AUTO_TUNE.holdMin, AUTO_TUNE.holdMax);
+
+  state.settings = {
+    ...state.settings,
+    // Quantize to the slider grids so stored and displayed values stay identical
+    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
+    holdSeconds: quantize(hold, Number(els.holdSeconds.step) || 0.1),
+    calibrationPreset: "custom",
+  };
+  applySettingsToUi();
+  saveSettings();
+  renderSettings();
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function quantize(value, step) {
+  return Number((Math.round(value / step) * step).toFixed(4));
 }
 
 function notifyUser() {
@@ -614,13 +663,10 @@ function applyOnboardingCalibration() {
     ONBOARDING.thresholdMax,
     Math.max(ONBOARDING.thresholdMin, touch * ONBOARDING.thresholdFactor),
   );
-  // Quantize to the sensitivity slider's step so stored and displayed values match
-  const sliderStep = Number(els.distanceThreshold.step) || 0.005;
-  const quantized = Math.round(threshold / sliderStep) * sliderStep;
-
   state.settings = {
     ...state.settings,
-    distanceThreshold: Number(quantized.toFixed(3)),
+    // Quantize to the sensitivity slider's step so stored and displayed values match
+    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
     calibrationPreset: "custom",
   };
   applySettingsToUi();
@@ -857,6 +903,7 @@ function settingsFromUi() {
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
+    autoTune: els.autoTuneToggle.checked,
     neutralLayout: els.neutralLayoutSelect.value,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
@@ -875,6 +922,7 @@ function applySettingsToUi() {
     : "softChime";
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
+  els.autoTuneToggle.checked = state.settings.autoTune;
   els.neutralLayoutSelect.value = state.settings.neutralLayout;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
 }
@@ -892,6 +940,7 @@ function loadSettings() {
     soundPreset: "softChime",
     soundVolume: 0.35,
     vibration: true,
+    autoTune: true,
     neutralLayout: "clock",
     neutralSubtleInterventions: true,
   };

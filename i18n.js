@@ -77,6 +77,9 @@ const translations = {
     "calibration.warmth": "Farbwechsel",
     "calibration.sound": "Ton",
     "calibration.vibration": "Vibration",
+    "calibration.autoTune": "Automatisch anpassen",
+    "calibration.autoTuneHint":
+      "Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.",
     "calibration.volume": "Lautstärke",
     "calibration.testSound": "Test",
 
@@ -303,6 +306,9 @@ const translations = {
     "calibration.warmth": "Color cue",
     "calibration.sound": "Sound",
     "calibration.vibration": "Vibration",
+    "calibration.autoTune": "Auto-adjust",
+    "calibration.autoTuneHint":
+      "Nail Guard fine-tunes sensitivity and hold time based on your feedback (hit / false alarm).",
     "calibration.volume": "Volume",
     "calibration.testSound": "Test",
 
