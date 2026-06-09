@@ -131,6 +131,38 @@ h3 {
   background: #8f988f;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 253, 250, 0.84);
+}
+
+.lang-option {
+  min-height: 32px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.lang-option.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .start-panel,
 .workspace,
 .coach-card,
