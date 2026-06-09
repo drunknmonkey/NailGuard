@@ -78,6 +78,16 @@ Die ruhige Nutzungsansicht für den Alltag:
 - Office Mode öffnen
 - keine technischen Slider
 
+### Geführte Kalibrierung (Onboarding)
+
+Beim ersten Start führt ein kurzer Assistent (ca. 30 Sekunden) durch die Einrichtung:
+
+1. Gesicht zeigen, bis es erkannt wird
+2. eine Hand zeigen
+3. einen Finger langsam zum Mund führen und kurz halten
+
+Aus dem dabei gemessenen Abstand leitet Nail Guard eine persönliche Empfindlichkeit ab (begrenzt auf einen sinnvollen Bereich) und speichert sie als Preset `custom`. Der Assistent kann übersprungen und jederzeit über `Einstellungen → Kalibrierung neu starten` wiederholt werden. Während der Kalibrierung werden keine Interventionen ausgelöst.
+
 ### Einstellungen
 
 Die technische Ansicht ist als `Erweiterte Einstellungen` bewusst sekundär:

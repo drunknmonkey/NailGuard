@@ -143,6 +143,29 @@ const translations = {
     "alert.false": "Fehlalarm",
     "alert.face": "Gesicht berührt",
 
+    "onboarding.eyebrow": "Kurze Kalibrierung",
+    "onboarding.skip": "Überspringen",
+    "onboarding.finish": "Los geht's",
+    "onboarding.step1Title": "Schau kurz in die Kamera",
+    "onboarding.step1Body":
+      "Setz dich bequem hin und schau in die Kamera, bis dein Gesicht erkannt wird.",
+    "onboarding.step2Title": "Zeig eine Hand",
+    "onboarding.step2Body": "Heb eine Hand, sodass die Kamera deine Finger sehen kann.",
+    "onboarding.step3Title": "Führe einen Finger zum Mund",
+    "onboarding.step3Body":
+      "Führe einen Finger langsam zum Mund und halte ihn dort einen Moment. So lernt Nail Guard deinen Abstand zur Kamera kennen.",
+    "onboarding.step4Title": "Alles eingestellt",
+    "onboarding.step4Body":
+      "Die Empfindlichkeit ist jetzt auf deine Kamera und Sitzposition abgestimmt. Du kannst sie jederzeit unter Einstellungen ändern.",
+    "onboarding.waitingFace": "Gesicht: wird gesucht …",
+    "onboarding.foundFace": "Gesicht erkannt",
+    "onboarding.waitingHand": "Hand: wird gesucht …",
+    "onboarding.foundHand": "Hand erkannt",
+    "onboarding.moveCloser": "Finger noch näher zum Mund …",
+    "onboarding.holdNearMouth": "Gut, kurz so halten …",
+    "onboarding.captured": "Erfasst!",
+    "calibration.recalibrate": "Kalibrierung neu starten",
+
     replacements: [
       "Faust 10 Sekunden ballen",
       "Hände auf Oberschenkel legen",
@@ -317,6 +340,28 @@ const translations = {
     "alert.hit": "Hit",
     "alert.false": "False alarm",
     "alert.face": "Face touch",
+
+    "onboarding.eyebrow": "Quick calibration",
+    "onboarding.skip": "Skip",
+    "onboarding.finish": "Let's go",
+    "onboarding.step1Title": "Look at the camera",
+    "onboarding.step1Body": "Sit comfortably and look at the camera until your face is detected.",
+    "onboarding.step2Title": "Show one hand",
+    "onboarding.step2Body": "Raise a hand so the camera can see your fingers.",
+    "onboarding.step3Title": "Bring a finger to your mouth",
+    "onboarding.step3Body":
+      "Slowly bring a finger to your mouth and hold it there for a moment. This teaches Nail Guard your distance from the camera.",
+    "onboarding.step4Title": "All set",
+    "onboarding.step4Body":
+      "Sensitivity is now tuned to your camera and seating position. You can change it anytime in Settings.",
+    "onboarding.waitingFace": "Face: searching …",
+    "onboarding.foundFace": "Face detected",
+    "onboarding.waitingHand": "Hand: searching …",
+    "onboarding.foundHand": "Hand detected",
+    "onboarding.moveCloser": "Bring your finger closer to your mouth …",
+    "onboarding.holdNearMouth": "Good, hold it there …",
+    "onboarding.captured": "Got it!",
+    "calibration.recalibrate": "Restart calibration",
 
     replacements: [
       "Make a fist for 10 seconds",

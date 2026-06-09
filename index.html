@@ -113,6 +113,8 @@
               <button class="preset-button" type="button" data-preset="precise" data-i18n="presets.precise">Präzise</button>
             </div>
 
+            <button class="text-action recalibrate-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Kalibrierung neu starten</button>
+
             <details class="advanced-panel">
               <summary data-i18n="calibration.showTechnical">Technische Werte anzeigen</summary>
 
@@ -284,6 +286,25 @@
       <section class="neutral-intervention" id="neutralIntervention" aria-live="polite" hidden>
         <strong id="neutralInterventionTitle">Mini-Reset</strong>
         <span id="neutralInterventionText">Zurück zum Fokus</span>
+      </section>
+
+      <section class="onboarding-panel" id="onboardingPanel" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" hidden>
+        <div class="onboarding-content">
+          <p class="eyebrow" data-i18n="onboarding.eyebrow">Kurze Kalibrierung</p>
+          <h2 id="onboardingTitle">Schau kurz in die Kamera</h2>
+          <p id="onboardingBody">Setz dich bequem hin und schau in die Kamera, bis dein Gesicht erkannt wird.</p>
+          <p class="onboarding-signal" id="onboardingSignal" aria-live="polite"></p>
+          <div class="onboarding-progress" id="onboardingProgress" aria-hidden="true">
+            <span class="dot" data-step="1"></span>
+            <span class="dot" data-step="2"></span>
+            <span class="dot" data-step="3"></span>
+            <span class="dot" data-step="4"></span>
+          </div>
+          <div class="onboarding-actions">
+            <button class="text-action" id="onboardingSkipButton" type="button" data-i18n="onboarding.skip">Überspringen</button>
+            <button class="primary-action" id="onboardingFinishButton" type="button" data-i18n="onboarding.finish" hidden>Los geht's</button>
+          </div>
+        </div>
       </section>
 
       <section class="alert-panel" id="alertPanel" role="dialog" aria-modal="true" aria-labelledby="alertTitle" hidden>

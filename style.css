@@ -902,6 +902,68 @@ select {
   backdrop-filter: blur(10px);
 }
 
+.onboarding-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(34, 40, 32, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.onboarding-content {
+  width: min(560px, 100%);
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: soft-arrive 220ms ease-out;
+}
+
+.onboarding-signal {
+  min-height: 28px;
+  margin: 14px 0 4px;
+  color: var(--accent);
+  font-weight: 850;
+}
+
+.onboarding-progress {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.onboarding-progress .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 200ms ease;
+}
+
+.onboarding-progress .dot.done {
+  background: var(--accent);
+}
+
+.onboarding-progress .dot.current {
+  background: var(--amber);
+}
+
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.recalibrate-action {
+  margin: 0 0 14px;
+}
+
 .alert-content {
   width: min(640px, 100%);
   padding: clamp(24px, 4vw, 38px);

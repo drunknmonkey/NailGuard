@@ -16,6 +16,18 @@ const MEDIAPIPE = {
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
+const ONBOARDING_KEY = "nail-guard.onboarding.v1";
+
+// Guided calibration: how close (normalized) counts as "at the mouth",
+// how long signals must hold, and how the personal threshold is derived.
+const ONBOARDING = {
+  nearDistance: 0.12,
+  signalStableMs: 800,
+  touchHoldMs: 1000,
+  thresholdFactor: 1.35,
+  thresholdMin: 0.045,
+  thresholdMax: 0.13,
+};
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
 const SOUND_PRESETS = {
@@ -105,6 +117,14 @@ const els = {
   neutralInterventionTitle: document.querySelector("#neutralInterventionTitle"),
   neutralInterventionText: document.querySelector("#neutralInterventionText"),
   langButtons: [...document.querySelectorAll(".lang-option")],
+  onboardingPanel: document.querySelector("#onboardingPanel"),
+  onboardingTitle: document.querySelector("#onboardingTitle"),
+  onboardingBody: document.querySelector("#onboardingBody"),
+  onboardingSignal: document.querySelector("#onboardingSignal"),
+  onboardingDots: [...document.querySelectorAll("#onboardingProgress .dot")],
+  onboardingSkipButton: document.querySelector("#onboardingSkipButton"),
+  onboardingFinishButton: document.querySelector("#onboardingFinishButton"),
+  recalibrateButton: document.querySelector("#recalibrateButton"),
 };
 
 const state = {
@@ -127,6 +147,7 @@ const state = {
   neutralInterventionTimer: null,
   statusKey: "status.ready",
   statusTone: "",
+  onboarding: null,
 };
 
 init();
@@ -233,6 +254,9 @@ function bindEvents() {
   els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
   els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
   els.resetStatsButton.addEventListener("click", resetStats);
+  els.onboardingSkipButton.addEventListener("click", finishOnboarding);
+  els.onboardingFinishButton.addEventListener("click", finishOnboarding);
+  els.recalibrateButton.addEventListener("click", startOnboarding);
 }
 
 async function startApp() {
@@ -254,6 +278,10 @@ async function startApp() {
     switchMode(state.activeMode);
     updateStatus("status.active", "active");
     requestAnimationFrame(detection.loop);
+
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+      startOnboarding();
+    }
   } catch (error) {
     els.startButton.disabled = false;
     els.startButton.textContent = t("start.retry");
@@ -322,7 +350,12 @@ const detection = {
     state.minDistance = computeMinMouthDistance(state.mouthCenter, state.fingertips);
 
     renderLiveSignals(faceLandmarks, handLandmarks);
-    detection.evaluateProximity(now);
+
+    if (state.onboarding) {
+      updateOnboarding(now, faceLandmarks, handLandmarks);
+    } else {
+      detection.evaluateProximity(now);
+    }
 
     if (state.settings.showOverlay) {
       drawOverlay();
@@ -508,6 +541,125 @@ function notifyUser() {
   }
 }
 
+function startOnboarding() {
+  state.onboarding = {
+    step: 1,
+    stableSince: null,
+    touchMin: Number.POSITIVE_INFINITY,
+  };
+  state.nearSince = null;
+  setWarmth(0);
+  els.onboardingPanel.hidden = false;
+  renderOnboarding();
+}
+
+function updateOnboarding(now, faceLandmarks, handLandmarks) {
+  const ob = state.onboarding;
+
+  if (ob.step === 1) {
+    setOnboardingSignal(faceLandmarks ? "onboarding.foundFace" : "onboarding.waitingFace");
+    advanceOnboardingWhenStable(now, Boolean(faceLandmarks), 2);
+    return;
+  }
+
+  if (ob.step === 2) {
+    setOnboardingSignal(handLandmarks.length ? "onboarding.foundHand" : "onboarding.waitingHand");
+    advanceOnboardingWhenStable(now, handLandmarks.length > 0, 3);
+    return;
+  }
+
+  if (ob.step === 3) {
+    if (isFinite(state.minDistance)) {
+      ob.touchMin = Math.min(ob.touchMin, state.minDistance);
+    }
+
+    const isNear = state.minDistance <= ONBOARDING.nearDistance;
+    setOnboardingSignal(isNear ? "onboarding.holdNearMouth" : "onboarding.moveCloser");
+
+    if (isNear) {
+      ob.stableSince ??= now;
+      if (now - ob.stableSince >= ONBOARDING.touchHoldMs) {
+        applyOnboardingCalibration();
+        ob.step = 4;
+        ob.stableSince = null;
+        renderOnboarding();
+      }
+    } else {
+      ob.stableSince = null;
+    }
+  }
+}
+
+function advanceOnboardingWhenStable(now, conditionMet, nextStep) {
+  const ob = state.onboarding;
+
+  if (!conditionMet) {
+    ob.stableSince = null;
+    return;
+  }
+
+  ob.stableSince ??= now;
+  if (now - ob.stableSince >= ONBOARDING.signalStableMs) {
+    ob.step = nextStep;
+    ob.stableSince = null;
+    renderOnboarding();
+  }
+}
+
+function applyOnboardingCalibration() {
+  const touch = state.onboarding.touchMin;
+  if (!isFinite(touch)) return;
+
+  const threshold = Math.min(
+    ONBOARDING.thresholdMax,
+    Math.max(ONBOARDING.thresholdMin, touch * ONBOARDING.thresholdFactor),
+  );
+  // Quantize to the sensitivity slider's step so stored and displayed values match
+  const sliderStep = Number(els.distanceThreshold.step) || 0.005;
+  const quantized = Math.round(threshold / sliderStep) * sliderStep;
+
+  state.settings = {
+    ...state.settings,
+    distanceThreshold: Number(quantized.toFixed(3)),
+    calibrationPreset: "custom",
+  };
+  applySettingsToUi();
+  saveSettings();
+  renderSettings();
+}
+
+function finishOnboarding() {
+  localStorage.setItem(ONBOARDING_KEY, "done");
+  state.onboarding = null;
+  state.nearSince = null;
+  els.onboardingPanel.hidden = true;
+}
+
+function renderOnboarding() {
+  if (!state.onboarding) return;
+  const step = state.onboarding.step;
+
+  els.onboardingTitle.textContent = t(`onboarding.step${step}Title`);
+  els.onboardingBody.textContent = t(`onboarding.step${step}Body`);
+  els.onboardingFinishButton.hidden = step !== 4;
+  els.onboardingSkipButton.hidden = step === 4;
+  if (step === 4) {
+    setOnboardingSignal("onboarding.captured");
+  } else {
+    els.onboardingSignal.textContent = "";
+  }
+
+  for (const dot of els.onboardingDots) {
+    const dotStep = Number(dot.dataset.step);
+    dot.classList.toggle("done", dotStep < step || step === 4);
+    dot.classList.toggle("current", dotStep === step && step !== 4);
+  }
+}
+
+function setOnboardingSignal(key) {
+  els.onboardingSignal.textContent = t(key);
+}
+
 function togglePause() {
   state.paused = !state.paused;
   state.nearSince = null;
@@ -546,6 +698,7 @@ function renderAll() {
   renderPauseState();
   renderNeutralLayout();
   renderNeutralInfo();
+  renderOnboarding();
 }
 
 function renderLiveSignals(faceLandmarks, handLandmarks) {
