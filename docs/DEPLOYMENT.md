@@ -36,6 +36,19 @@ Environment variables: keine nötig
 
 Falls Cloudflare im Dashboard ein Build command erzwingt, kann alternativ `exit 0` verwendet werden. Für diese App ist kein Build-Schritt erforderlich.
 
+## Warteliste für die Desktop-App (optional)
+
+Die Landingpage `desktop.html` enthält ein Wartelisten-Formular. Es sendet `POST ./api/waitlist`, das von der Cloudflare Pages Function `functions/api/waitlist.js` beantwortet wird. Pages erkennt den `functions/`-Ordner automatisch — es ist kein zusätzlicher Build nötig.
+
+Damit Einträge gespeichert werden, braucht die Function ein KV-Namespace-Binding:
+
+1. `Workers & Pages → KV` öffnen und ein Namespace anlegen, z. B. `nailguard-waitlist`.
+2. Im Pages-Projekt `Settings → Bindings → Add → KV namespace` wählen.
+3. Variable name: `WAITLIST`, Namespace: das eben angelegte.
+4. Neu deployen.
+
+Ohne Binding antwortet die Function mit `503` und die Landingpage zeigt einen Hinweis, dass die Warteliste noch nicht freigeschaltet ist. Die Einträge lassen sich im KV-Namespace einsehen (Keys im Format `signup:email@example.com`, Wert mit E-Mail, Sprache und Zeitstempel).
+
 ## HTTPS und Kamera
 
 Browser erlauben Kamerazugriff normalerweise nur in sicheren Kontexten:

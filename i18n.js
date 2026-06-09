@@ -37,6 +37,7 @@ const translations = {
       "Externe Bibliothek und Modelle werden geladen. Lokale Daten bleiben auf diesem Gerät.",
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
+    "start.desktopLink": "Desktop-App kommt bald – zur Warteliste",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Einstellungen",
@@ -166,6 +167,33 @@ const translations = {
     "onboarding.captured": "Erfasst!",
     "calibration.recalibrate": "Kalibrierung neu starten",
 
+    "landing.eyebrow": "Nail Guard Desktop",
+    "landing.title": "Nail Guard Desktop",
+    "landing.heroTitle": "Der Ganztags-Begleiter gegen Nägelkauen.",
+    "landing.heroBody":
+      "Die Web-App wirkt, solange der Tab offen ist. Die Desktop-App begleitet dich den ganzen Arbeitstag: Sie startet beim Anmelden, läuft unauffällig in der Menüleiste und erinnert dich mit sanften System-Hinweisen – ohne dass ein einziges Bild deinen Rechner verlässt.",
+    "landing.prop1Title": "Den ganzen Tag",
+    "landing.prop1Body":
+      "Startet automatisch beim Anmelden und wacht im Hintergrund – kein offener Browser-Tab nötig.",
+    "landing.prop2Title": "100 % privat",
+    "landing.prop2Body":
+      "Die Auswertung läuft komplett lokal auf deinem Gerät. Keine Cloud, keine Accounts, kein Tracking.",
+    "landing.prop3Title": "Sanfte Hinweise",
+    "landing.prop3Body":
+      "System-Benachrichtigungen und dezente Bildschirm-Hinweise statt greller Alarme.",
+    "landing.waitlistTitle": "Komm auf die Warteliste",
+    "landing.waitlistBody":
+      "Trag deine E-Mail-Adresse ein und erfahre als Erste:r, wenn die Desktop-App für macOS und Windows bereit ist.",
+    "landing.emailLabel": "E-Mail-Adresse",
+    "landing.emailPlaceholder": "deine@email.de",
+    "landing.submit": "Eintragen",
+    "landing.success": "Danke! Du stehst auf der Liste.",
+    "landing.invalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "landing.error": "Das hat gerade nicht geklappt. Bitte versuch es später noch einmal.",
+    "landing.notConfigured": "Die Warteliste ist noch nicht freigeschaltet. Schau bald wieder vorbei.",
+    "landing.privacy": "Deine E-Mail-Adresse wird nur für die Benachrichtigung zur Desktop-App verwendet.",
+    "landing.tryWeb": "Jetzt im Browser ausprobieren",
+
     replacements: [
       "Faust 10 Sekunden ballen",
       "Hände auf Oberschenkel legen",
@@ -235,6 +263,7 @@ const translations = {
       "An external library and models are loaded. Local data stays on this device.",
     "start.button": "Start camera",
     "start.retry": "Try again",
+    "start.desktopLink": "Desktop app coming soon – join the waitlist",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Settings",
@@ -363,6 +392,33 @@ const translations = {
     "onboarding.captured": "Got it!",
     "calibration.recalibrate": "Restart calibration",
 
+    "landing.eyebrow": "Nail Guard Desktop",
+    "landing.title": "Nail Guard Desktop",
+    "landing.heroTitle": "Your all-day companion against nail biting.",
+    "landing.heroBody":
+      "The web app helps while the tab is open. The desktop app stays with you through the whole workday: it starts at login, sits quietly in the menu bar and nudges you with gentle system notifications – without a single image ever leaving your computer.",
+    "landing.prop1Title": "All day long",
+    "landing.prop1Body":
+      "Launches at login and watches in the background – no open browser tab required.",
+    "landing.prop2Title": "100% private",
+    "landing.prop2Body":
+      "All processing happens locally on your device. No cloud, no accounts, no tracking.",
+    "landing.prop3Title": "Gentle nudges",
+    "landing.prop3Body":
+      "System notifications and subtle on-screen cues instead of loud alarms.",
+    "landing.waitlistTitle": "Join the waitlist",
+    "landing.waitlistBody":
+      "Leave your email and be the first to know when the desktop app for macOS and Windows is ready.",
+    "landing.emailLabel": "Email address",
+    "landing.emailPlaceholder": "you@email.com",
+    "landing.submit": "Join",
+    "landing.success": "Thanks! You're on the list.",
+    "landing.invalid": "Please enter a valid email address.",
+    "landing.error": "That didn't work just now. Please try again later.",
+    "landing.notConfigured": "The waitlist isn't live yet. Please check back soon.",
+    "landing.privacy": "Your email is only used to notify you about the desktop app.",
+    "landing.tryWeb": "Try it in your browser now",
+
     replacements: [
       "Make a fist for 10 seconds",
       "Rest your hands on your thighs",
@@ -446,5 +502,9 @@ export function applyStaticTranslations(root = document) {
 
   for (const el of root.querySelectorAll("[data-i18n-aria-label]")) {
     el.setAttribute("aria-label", t(el.dataset.i18nAriaLabel));
+  }
+
+  for (const el of root.querySelectorAll("[data-i18n-placeholder]")) {
+    el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
   }
 }

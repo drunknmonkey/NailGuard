@@ -17,7 +17,12 @@ NailGuard/
 ├── app.js
 ├── i18n.js
 ├── sw.js
+├── desktop.html
+├── landing.js
 ├── manifest.webmanifest
+├── functions/
+│   └── api/
+│       └── waitlist.js
 ├── icons/
 │   ├── icon.svg
 │   ├── icon-192.png
@@ -34,6 +39,10 @@ NailGuard/
 ```
 
 Die PNG-Icons werden aus demselben Design wie `icons/icon.svg` mit `python3 tools/generate-icons.py` erzeugt (benötigt `pillow`).
+
+## Desktop-Landingpage und Warteliste
+
+`desktop.html` ist eine zweisprachige Landingpage für die geplante Desktop-App (Menüleisten-App für macOS/Windows). Sie erklärt den Mehrwert gegenüber der Web-App und sammelt Wartelisten-Anmeldungen über `POST ./api/waitlist` (Cloudflare Pages Function in `functions/api/waitlist.js`, Speicherung in einem KV-Namespace — Einrichtung siehe `docs/DEPLOYMENT.md`). Solange das KV-Binding fehlt, zeigt die Seite einen „noch nicht freigeschaltet"-Hinweis. Die Web-App verlinkt vom Startpanel auf die Landingpage.
 
 ## Start am Mac
 
