@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="nail"><rect x="166" y="112" width="180" height="306" rx="90"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#1c776f"/>
+  <rect x="166" y="112" width="180" height="306" rx="90" fill="#fffdfa"/>
+  <ellipse cx="256" cy="418" rx="110" ry="78" fill="#9ecfc4" clip-path="url(#nail)"/>
+</svg>

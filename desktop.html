@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';"
+    />
+    <meta
+      name="description"
+      content="Nail Guard Desktop – the all-day companion against nail biting. Der Ganztags-Begleiter gegen Nägelkauen. Join the waitlist."
+    />
+    <meta name="theme-color" content="#1c776f" />
+    <title>Nail Guard Desktop</title>
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell landing">
+      <section class="topbar" aria-label="Seite" data-i18n-aria-label="aria.topbar">
+        <div>
+          <p class="eyebrow" data-i18n="landing.eyebrow">Nail Guard Desktop</p>
+          <h1>Nail Guard</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="lang-switch" id="langSwitch" role="group" aria-label="Sprache" data-i18n-aria-label="aria.languageToggle">
+            <button class="lang-option" type="button" data-locale="de" lang="de">DE</button>
+            <button class="lang-option" type="button" data-locale="en" lang="en">EN</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="start-panel landing-hero">
+        <div class="start-copy">
+          <h2 data-i18n="landing.heroTitle">Der Ganztags-Begleiter gegen Nägelkauen.</h2>
+          <p data-i18n="landing.heroBody">
+            Die Web-App wirkt, solange der Tab offen ist. Die Desktop-App begleitet dich den ganzen
+            Arbeitstag: Sie startet beim Anmelden, läuft unauffällig in der Menüleiste und erinnert
+            dich mit sanften System-Hinweisen – ohne dass ein einziges Bild deinen Rechner verlässt.
+          </p>
+        </div>
+        <a class="primary-action waitlist-jump" href="#waitlist" data-i18n="landing.waitlistTitle">Komm auf die Warteliste</a>
+      </section>
+
+      <section class="landing-grid">
+        <article class="coach-card">
+          <h2 data-i18n="landing.prop1Title">Den ganzen Tag</h2>
+          <p data-i18n="landing.prop1Body">
+            Startet automatisch beim Anmelden und wacht im Hintergrund – kein offener Browser-Tab nötig.
+          </p>
+        </article>
+        <article class="coach-card">
+          <h2 data-i18n="landing.prop2Title">100 % privat</h2>
+          <p data-i18n="landing.prop2Body">
+            Die Auswertung läuft komplett lokal auf deinem Gerät. Keine Cloud, keine Accounts, kein Tracking.
+          </p>
+        </article>
+        <article class="coach-card">
+          <h2 data-i18n="landing.prop3Title">Sanfte Hinweise</h2>
+          <p data-i18n="landing.prop3Body">
+            System-Benachrichtigungen und dezente Bildschirm-Hinweise statt greller Alarme.
+          </p>
+        </article>
+      </section>
+
+      <section class="start-panel waitlist-card" id="waitlist">
+        <div class="start-copy">
+          <h2 data-i18n="landing.waitlistTitle">Komm auf die Warteliste</h2>
+          <p data-i18n="landing.waitlistBody">
+            Trag deine E-Mail-Adresse ein und erfahre als Erste:r, wenn die Desktop-App für macOS
+            und Windows bereit ist.
+          </p>
+          <form class="waitlist-form" id="waitlistForm" novalidate>
+            <label class="visually-hidden" for="waitlistEmail" data-i18n="landing.emailLabel">E-Mail-Adresse</label>
+            <input
+              id="waitlistEmail"
+              type="email"
+              autocomplete="email"
+              required
+              placeholder="deine@email.de"
+              data-i18n-placeholder="landing.emailPlaceholder"
+            />
+            <button class="primary-action" id="waitlistSubmit" type="submit" data-i18n="landing.submit">Eintragen</button>
+          </form>
+          <p class="waitlist-status" id="waitlistStatus" aria-live="polite"></p>
+          <p class="privacy-note" data-i18n="landing.privacy">
+            Deine E-Mail-Adresse wird nur für die Benachrichtigung zur Desktop-App verwendet.
+          </p>
+        </div>
+      </section>
+
+      <p class="landing-footer">
+        <a class="text-action" href="./index.html" data-i18n="landing.tryWeb">Jetzt im Browser ausprobieren</a>
+      </p>
+    </main>
+
+    <script type="module" src="./landing.js"></script>
+  </body>
+</html>

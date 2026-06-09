@@ -3,6 +3,7 @@ import {
   FilesetResolver,
   HandLandmarker,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/+esm";
+import { applyStaticTranslations, dateLocale, getLocale, setLocale, t } from "./i18n.js";
 
 const MEDIAPIPE = {
   wasmBaseUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm",
@@ -15,15 +16,20 @@ const MEDIAPIPE = {
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
+const ONBOARDING_KEY = "nail-guard.onboarding.v1";
+
+// Guided calibration: how close (normalized) counts as "at the mouth",
+// how long signals must hold, and how the personal threshold is derived.
+const ONBOARDING = {
+  nearDistance: 0.12,
+  signalStableMs: 800,
+  touchHoldMs: 1000,
+  thresholdFactor: 1.35,
+  thresholdMin: 0.045,
+  thresholdMax: 0.13,
+};
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
-const REPLACEMENTS = [
-  "Faust 10 Sekunden ballen",
-  "Hände auf Oberschenkel legen",
-  "Stressball nehmen",
-  "3 tiefe Atemzüge",
-  "Wasser trinken",
-];
 const SOUND_PRESETS = {
   softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
   breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
@@ -37,13 +43,21 @@ const CALIBRATION_PRESETS = {
   normal: { distanceThreshold: 0.09, holdSeconds: 2, cooldownSeconds: 15 },
   precise: { distanceThreshold: 0.115, holdSeconds: 1.2, cooldownSeconds: 10 },
 };
-const NEUTRAL_INTERVENTIONS = [
-  ["Mini-Reset", "Zurück zum Fokus"],
-  ["Kurze Pause", "Schultern locker"],
-  ["Atmen", "3 Atemzüge"],
-  ["Zurück zum Fokus", "Ruhig weiter"],
-];
 
+// Small, bounded adjustments derived from the user's feedback on each
+// intervention. False alarms make detection stricter, confirmed hits
+// slightly more eager; face touches sit in between.
+const AUTO_TUNE = {
+  rules: {
+    falseAlarm: { thresholdFactor: 0.93, holdDelta: 0.2 },
+    faceTouch: { thresholdFactor: 0.97, holdDelta: 0 },
+    confirmed: { thresholdFactor: 1.02, holdDelta: -0.1 },
+  },
+  thresholdMin: 0.045,
+  thresholdMax: 0.14,
+  holdMin: 0.5,
+  holdMax: 4,
+};
 const els = {
   startPanel: document.querySelector("#startPanel"),
   workspace: document.querySelector("#workspace"),
@@ -89,6 +103,7 @@ const els = {
   testWarningButton: document.querySelector("#testWarningButton"),
   presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
+  autoTuneToggle: document.querySelector("#autoTuneToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   confirmBitingButton: document.querySelector("#confirmBitingButton"),
@@ -117,6 +132,15 @@ const els = {
   neutralIntervention: document.querySelector("#neutralIntervention"),
   neutralInterventionTitle: document.querySelector("#neutralInterventionTitle"),
   neutralInterventionText: document.querySelector("#neutralInterventionText"),
+  langButtons: [...document.querySelectorAll(".lang-option")],
+  onboardingPanel: document.querySelector("#onboardingPanel"),
+  onboardingTitle: document.querySelector("#onboardingTitle"),
+  onboardingBody: document.querySelector("#onboardingBody"),
+  onboardingSignal: document.querySelector("#onboardingSignal"),
+  onboardingDots: [...document.querySelectorAll("#onboardingProgress .dot")],
+  onboardingSkipButton: document.querySelector("#onboardingSkipButton"),
+  onboardingFinishButton: document.querySelector("#onboardingFinishButton"),
+  recalibrateButton: document.querySelector("#recalibrateButton"),
 };
 
 const state = {
@@ -137,24 +161,64 @@ const state = {
   stats: loadStats(),
   neutralTimerStartedAt: Date.now(),
   neutralInterventionTimer: null,
+  statusKey: "status.ready",
+  statusTone: "",
+  onboarding: null,
 };
 
 init();
 
 function init() {
+  document.documentElement.lang = getLocale();
+  applyStaticTranslations();
+  renderLangSwitch();
   state.activeMode = state.settings.activeMode;
   applySettingsToUi();
   bindEvents();
   switchMode(state.activeMode);
   renderAll();
-  updateStatus("Bereit");
+  updateStatus("status.ready");
   setInterval(renderStats, 15_000);
   setInterval(renderNeutralInfo, 1_000);
+  registerServiceWorker();
+}
+
+function setAppLocale(locale) {
+  if (locale === getLocale()) return;
+
+  setLocale(locale);
+  document.documentElement.lang = locale;
+  applyStaticTranslations();
+  renderLangSwitch();
+
+  const { statusKey, statusTone } = state;
+  renderAll();
+  updateStatus(statusKey, statusTone);
+}
+
+function renderLangSwitch() {
+  for (const button of els.langButtons) {
+    button.classList.toggle("active", button.dataset.locale === getLocale());
+  }
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      // Offline support is progressive enhancement; the app works without it.
+    });
+  });
 }
 
 function bindEvents() {
   els.startButton.addEventListener("click", startApp);
   els.pauseButton.addEventListener("click", togglePause);
+
+  for (const button of els.langButtons) {
+    button.addEventListener("click", () => setAppLocale(button.dataset.locale));
+  }
 
   for (const button of els.modeTabs) {
     button.addEventListener("click", () => switchMode(button.dataset.mode));
@@ -194,7 +258,7 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle]) {
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
       if (!state.settings.showOverlay) clearOverlay();
@@ -206,18 +270,21 @@ function bindEvents() {
   els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
   els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
   els.resetStatsButton.addEventListener("click", resetStats);
+  els.onboardingSkipButton.addEventListener("click", finishOnboarding);
+  els.onboardingFinishButton.addEventListener("click", finishOnboarding);
+  els.recalibrateButton.addEventListener("click", startOnboarding);
 }
 
 async function startApp() {
   hideError();
   els.startButton.disabled = true;
-  els.startButton.textContent = "Kamera starten";
+  els.startButton.textContent = t("start.button");
 
   try {
-    updateStatus("Modell lädt");
+    updateStatus("status.loadingModel");
     await detection.loadModels();
 
-    updateStatus("Kamera wird geöffnet");
+    updateStatus("status.openingCamera");
     await detection.startCamera();
 
     els.startPanel.hidden = true;
@@ -225,12 +292,16 @@ async function startApp() {
     state.running = true;
     state.paused = false;
     switchMode(state.activeMode);
-    updateStatus("Aktiv", "active");
+    updateStatus("status.active", "active");
     requestAnimationFrame(detection.loop);
+
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+      startOnboarding();
+    }
   } catch (error) {
     els.startButton.disabled = false;
-    els.startButton.textContent = "Erneut versuchen";
-    updateStatus("Fehler", "warning");
+    els.startButton.textContent = t("start.retry");
+    updateStatus("status.error", "warning");
     showError(readableError(error));
   }
 }
@@ -295,7 +366,12 @@ const detection = {
     state.minDistance = computeMinMouthDistance(state.mouthCenter, state.fingertips);
 
     renderLiveSignals(faceLandmarks, handLandmarks);
-    detection.evaluateProximity(now);
+
+    if (state.onboarding) {
+      updateOnboarding(now, faceLandmarks, handLandmarks);
+    } else {
+      detection.evaluateProximity(now);
+    }
 
     if (state.settings.showOverlay) {
       drawOverlay();
@@ -424,26 +500,27 @@ function triggerIntervention(reason, confidence, options = {}) {
 }
 
 function showBrowserIntervention(replacement) {
-  els.alertReplacement.textContent = "3 Atemzüge. Zurück zum Fokus.";
+  els.alertReplacement.textContent = t("alert.body");
   els.alertPanel.hidden = false;
-  updateStatus("Mini-Reset", "warning");
+  updateStatus("status.miniReset", "warning");
 }
 
 function showNeutralIntervention() {
-  const [title, text] = NEUTRAL_INTERVENTIONS[Math.floor(Math.random() * NEUTRAL_INTERVENTIONS.length)];
+  const interventions = t("neutralInterventions");
+  const [title, text] = interventions[Math.floor(Math.random() * interventions.length)];
   window.clearTimeout(state.neutralInterventionTimer);
   els.neutralInterventionTitle.textContent = title;
   els.neutralInterventionText.textContent = text;
   els.neutralIntervention.classList.toggle("prominent", !state.settings.neutralSubtleInterventions);
   els.neutralIntervention.hidden = false;
-  updateStatus("Aktiv", "warning");
+  updateStatus("status.active", "warning");
 
   state.neutralInterventionTimer = window.setTimeout(() => {
     els.neutralIntervention.hidden = true;
     state.alertOpen = false;
     state.currentIntervention = null;
     setWarmth(0);
-    updateStatus(state.paused ? "Pausiert" : "Aktiv", state.paused ? "paused" : "active");
+    updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
   }, state.settings.neutralSubtleInterventions ? 3200 : 4600);
 }
 
@@ -459,15 +536,48 @@ function resolveIntervention(kind) {
     } else if (kind === "faceTouch") {
       state.stats.faceTouches += 1;
     }
+    autoTuneFromFeedback(kind);
   }
 
   state.alertOpen = false;
   state.currentIntervention = null;
   setWarmth(0);
   els.alertPanel.hidden = true;
-  updateStatus(state.paused ? "Pausiert" : "Aktiv", state.paused ? "paused" : "active");
+  updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
   saveStats();
   renderStats();
+}
+
+function autoTuneFromFeedback(kind) {
+  if (!state.settings.autoTune) return;
+  const rule = AUTO_TUNE.rules[kind];
+  if (!rule) return;
+
+  const threshold = clamp(
+    state.settings.distanceThreshold * rule.thresholdFactor,
+    AUTO_TUNE.thresholdMin,
+    AUTO_TUNE.thresholdMax,
+  );
+  const hold = clamp(state.settings.holdSeconds + rule.holdDelta, AUTO_TUNE.holdMin, AUTO_TUNE.holdMax);
+
+  state.settings = {
+    ...state.settings,
+    // Quantize to the slider grids so stored and displayed values stay identical
+    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
+    holdSeconds: quantize(hold, Number(els.holdSeconds.step) || 0.1),
+    calibrationPreset: "custom",
+  };
+  applySettingsToUi();
+  saveSettings();
+  renderSettings();
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function quantize(value, step) {
+  return Number((Math.round(value / step) * step).toFixed(4));
 }
 
 function notifyUser() {
@@ -478,6 +588,122 @@ function notifyUser() {
   if (state.settings.sound) {
     playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
   }
+}
+
+function startOnboarding() {
+  state.onboarding = {
+    step: 1,
+    stableSince: null,
+    touchMin: Number.POSITIVE_INFINITY,
+  };
+  state.nearSince = null;
+  setWarmth(0);
+  els.onboardingPanel.hidden = false;
+  renderOnboarding();
+}
+
+function updateOnboarding(now, faceLandmarks, handLandmarks) {
+  const ob = state.onboarding;
+
+  if (ob.step === 1) {
+    setOnboardingSignal(faceLandmarks ? "onboarding.foundFace" : "onboarding.waitingFace");
+    advanceOnboardingWhenStable(now, Boolean(faceLandmarks), 2);
+    return;
+  }
+
+  if (ob.step === 2) {
+    setOnboardingSignal(handLandmarks.length ? "onboarding.foundHand" : "onboarding.waitingHand");
+    advanceOnboardingWhenStable(now, handLandmarks.length > 0, 3);
+    return;
+  }
+
+  if (ob.step === 3) {
+    if (isFinite(state.minDistance)) {
+      ob.touchMin = Math.min(ob.touchMin, state.minDistance);
+    }
+
+    const isNear = state.minDistance <= ONBOARDING.nearDistance;
+    setOnboardingSignal(isNear ? "onboarding.holdNearMouth" : "onboarding.moveCloser");
+
+    if (isNear) {
+      ob.stableSince ??= now;
+      if (now - ob.stableSince >= ONBOARDING.touchHoldMs) {
+        applyOnboardingCalibration();
+        ob.step = 4;
+        ob.stableSince = null;
+        renderOnboarding();
+      }
+    } else {
+      ob.stableSince = null;
+    }
+  }
+}
+
+function advanceOnboardingWhenStable(now, conditionMet, nextStep) {
+  const ob = state.onboarding;
+
+  if (!conditionMet) {
+    ob.stableSince = null;
+    return;
+  }
+
+  ob.stableSince ??= now;
+  if (now - ob.stableSince >= ONBOARDING.signalStableMs) {
+    ob.step = nextStep;
+    ob.stableSince = null;
+    renderOnboarding();
+  }
+}
+
+function applyOnboardingCalibration() {
+  const touch = state.onboarding.touchMin;
+  if (!isFinite(touch)) return;
+
+  const threshold = Math.min(
+    ONBOARDING.thresholdMax,
+    Math.max(ONBOARDING.thresholdMin, touch * ONBOARDING.thresholdFactor),
+  );
+  state.settings = {
+    ...state.settings,
+    // Quantize to the sensitivity slider's step so stored and displayed values match
+    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
+    calibrationPreset: "custom",
+  };
+  applySettingsToUi();
+  saveSettings();
+  renderSettings();
+}
+
+function finishOnboarding() {
+  localStorage.setItem(ONBOARDING_KEY, "done");
+  state.onboarding = null;
+  state.nearSince = null;
+  els.onboardingPanel.hidden = true;
+}
+
+function renderOnboarding() {
+  if (!state.onboarding) return;
+  const step = state.onboarding.step;
+
+  els.onboardingTitle.textContent = t(`onboarding.step${step}Title`);
+  els.onboardingBody.textContent = t(`onboarding.step${step}Body`);
+  els.onboardingFinishButton.hidden = step !== 4;
+  els.onboardingSkipButton.hidden = step === 4;
+  if (step === 4) {
+    setOnboardingSignal("onboarding.captured");
+  } else {
+    els.onboardingSignal.textContent = "";
+  }
+
+  for (const dot of els.onboardingDots) {
+    const dotStep = Number(dot.dataset.step);
+    dot.classList.toggle("done", dotStep < step || step === 4);
+    dot.classList.toggle("current", dotStep === step && step !== 4);
+  }
+}
+
+function setOnboardingSignal(key) {
+  els.onboardingSignal.textContent = t(key);
 }
 
 function togglePause() {
@@ -492,6 +718,7 @@ function switchMode(mode) {
   state.settings.activeMode = state.activeMode;
   saveSettings();
   renderAppChrome();
+  updateStatus(state.statusKey, state.statusTone);
 
   for (const tab of els.modeTabs) {
     tab.classList.toggle("active", tab.dataset.mode === state.activeMode);
@@ -517,21 +744,24 @@ function renderAll() {
   renderPauseState();
   renderNeutralLayout();
   renderNeutralInfo();
+  renderOnboarding();
 }
 
 function renderLiveSignals(faceLandmarks, handLandmarks) {
-  els.faceSignal.textContent = faceLandmarks ? "Gesicht: erkannt" : "Gesicht: sucht";
-  els.handSignal.textContent = handLandmarks.length ? `Hand: ${handLandmarks.length} erkannt` : "Hand: sucht";
+  els.faceSignal.textContent = faceLandmarks ? t("signals.faceDetected") : t("signals.faceSearching");
+  els.handSignal.textContent = handLandmarks.length
+    ? t("signals.handDetected", { count: handLandmarks.length })
+    : t("signals.handSearching");
 
   if (!isFinite(state.minDistance)) {
-    els.nearSignal.textContent = "Nähe: wartet";
-    els.distanceSignal.textContent = "Distanz: --";
+    els.nearSignal.textContent = t("signals.nearWaiting");
+    els.distanceSignal.textContent = t("signals.distanceEmpty");
     return;
   }
 
   const isNear = state.minDistance <= state.settings.distanceThreshold;
-  els.nearSignal.textContent = `Nähe: ${isNear ? "nahe" : "ruhig"}`;
-  els.distanceSignal.textContent = `Distanz: ${state.minDistance.toFixed(3)}`;
+  els.nearSignal.textContent = isNear ? t("signals.nearClose") : t("signals.nearCalm");
+  els.distanceSignal.textContent = t("signals.distance", { value: state.minDistance.toFixed(3) });
 }
 
 function renderStats() {
@@ -552,11 +782,13 @@ function renderStats() {
   els.focusConfirmed.textContent = state.stats.warnings;
   els.dailySummary.textContent = dailySummaryText(longestQuiet);
   els.statLastWarning.textContent = state.stats.lastWarningAt
-    ? `Letzter Mini-Reset: ${new Date(state.stats.lastWarningAt).toLocaleTimeString("de-AT", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`
-    : "Letzter Mini-Reset: keiner";
+    ? t("review.lastWarningAt", {
+        time: new Date(state.stats.lastWarningAt).toLocaleTimeString(dateLocale(), {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      })
+    : t("review.lastWarningNone");
 }
 
 function renderSettings() {
@@ -569,25 +801,18 @@ function renderSettings() {
 
 function renderAppChrome() {
   const isNeutral = state.activeMode === "neutral";
-  els.appEyebrow.textContent = isNeutral ? "Workspace" : "Calm habit coach";
-  els.appTitle.textContent = isNeutral ? "Daily Board" : "Nail Guard";
-  els.startTitle.textContent = isNeutral
-    ? "Bereit für einen ruhigen Arbeitstag."
-    : "Ein ruhiger Coach für fokussierte Momente.";
-  els.startBody.textContent = isNeutral
-    ? "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen."
-    : "Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen. Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.";
-  els.startPrivacyNote.textContent = isNeutral
-    ? "Externe Bibliothek und Modelle werden geladen. Lokale Daten bleiben auf diesem Gerät."
-    : "MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen. Kameradaten bleiben im Browser.";
-  els.statusText.textContent = isNeutral && state.running ? "Aktiv" : els.statusText.textContent;
+  els.appEyebrow.textContent = isNeutral ? t("neutral.eyebrow") : t("app.eyebrow");
+  els.appTitle.textContent = isNeutral ? t("neutral.title") : t("app.title");
+  els.startTitle.textContent = isNeutral ? t("start.titleNeutral") : t("start.title");
+  els.startBody.textContent = isNeutral ? t("start.bodyNeutral") : t("start.body");
+  els.startPrivacyNote.textContent = isNeutral ? t("start.privacyNeutral") : t("start.privacy");
 }
 
 function renderPauseState() {
-  els.pauseButton.textContent = state.paused ? "Fortsetzen" : "Pause";
+  els.pauseButton.textContent = state.paused ? t("focus.resume") : t("focus.pause");
   els.pauseButton.classList.toggle("paused", state.paused);
-  els.focusStatus.textContent = state.paused ? "Pausiert" : "Aktiv";
-  updateStatus(state.paused ? "Pausiert" : "Aktiv", state.paused ? "paused" : "active");
+  els.focusStatus.textContent = state.paused ? t("status.paused") : t("status.active");
+  updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
   renderAppChrome();
 }
 
@@ -599,14 +824,14 @@ function renderReplacement(replacement) {
 
 function dailySummaryText(longestQuiet) {
   if (state.stats.confirmed === 0 && state.stats.warnings === 0) {
-    return "Heute läuft ruhig. Ein guter Moment, um einfach weiterzumachen.";
+    return t("review.summaryQuiet");
   }
 
   if (state.stats.confirmed === 0) {
-    return `${formatDuration(longestQuiet)} ruhige Phase. Du bleibst aufmerksam, ohne Druck.`;
+    return t("review.summaryNoConfirmed", { duration: formatDuration(longestQuiet) });
   }
 
-  return `${state.stats.confirmed} Treffer heute. Der nächste ruhige Abschnitt beginnt jetzt.`;
+  return t("review.summaryConfirmed", { count: state.stats.confirmed });
 }
 
 function applyCalibrationPreset(presetName) {
@@ -636,7 +861,7 @@ function renderNeutralLayout() {
   state.settings.neutralLayout = selectedLayout;
   els.neutralLayoutSelect.value = selectedLayout;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
-  els.neutralNotes.value = localStorage.getItem(NEUTRAL_NOTES_KEY) ?? els.neutralNotes.value;
+  els.neutralNotes.value = localStorage.getItem(NEUTRAL_NOTES_KEY) ?? t("neutral.notesKicker");
 
   for (const layout of els.neutralLayouts) {
     layout.classList.toggle("active", layout.dataset.neutralLayout === selectedLayout);
@@ -645,8 +870,8 @@ function renderNeutralLayout() {
 
 function renderNeutralInfo() {
   const now = new Date();
-  const time = now.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
-  const date = now.toLocaleDateString("de-AT", {
+  const time = now.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString(dateLocale(), {
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -655,7 +880,7 @@ function renderNeutralInfo() {
   const timerMinutes = Math.floor(timerMs / 60_000);
   const timerSeconds = Math.floor((timerMs % 60_000) / 1000);
   const timer = `${String(timerMinutes).padStart(2, "0")}:${String(timerSeconds).padStart(2, "0")}`;
-  const breathPhase = Math.floor((Date.now() / 3500) % 2) === 0 ? "Einatmen" : "Ausatmen";
+  const breathPhase = Math.floor((Date.now() / 3500) % 2) === 0 ? t("neutral.breatheIn") : t("neutral.breatheOut");
 
   els.neutralClockTime.textContent = time;
   els.neutralClockDate.textContent = date;
@@ -678,6 +903,7 @@ function settingsFromUi() {
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
+    autoTune: els.autoTuneToggle.checked,
     neutralLayout: els.neutralLayoutSelect.value,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
@@ -696,6 +922,7 @@ function applySettingsToUi() {
     : "softChime";
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
+  els.autoTuneToggle.checked = state.settings.autoTune;
   els.neutralLayoutSelect.value = state.settings.neutralLayout;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
 }
@@ -713,6 +940,7 @@ function loadSettings() {
     soundPreset: "softChime",
     soundVolume: 0.35,
     vibration: true,
+    autoTune: true,
     neutralLayout: "clock",
     neutralSubtleInterventions: true,
   };
@@ -871,7 +1099,8 @@ function setWarmth(value) {
 }
 
 function randomReplacement() {
-  return REPLACEMENTS[Math.floor(Math.random() * REPLACEMENTS.length)];
+  const replacements = t("replacements");
+  return replacements[Math.floor(Math.random() * replacements.length)];
 }
 
 function playSoundPreset(presetKey, volume) {
@@ -923,11 +1152,13 @@ function formatDuration(ms) {
   return minutes ? `${hours} h ${minutes} min` : `${hours} h`;
 }
 
-function updateStatus(text, tone = "") {
-  const visibleText = state.activeMode === "neutral" && text !== "Bereit" && text !== "Fehler"
-    ? (state.paused ? "Pausiert" : "Aktiv")
-    : text;
-  els.statusText.textContent = visibleText;
+function updateStatus(key, tone = "") {
+  state.statusKey = key;
+  state.statusTone = tone;
+  const visibleKey = state.activeMode === "neutral" && key !== "status.ready" && key !== "status.error"
+    ? (state.paused ? "status.paused" : "status.active")
+    : key;
+  els.statusText.textContent = t(visibleKey);
   els.statusPill.classList.toggle("active", tone === "active");
   els.statusPill.classList.toggle("warning", tone === "warning");
   els.statusPill.classList.toggle("paused", tone === "paused");
@@ -952,42 +1183,31 @@ function hideError() {
 function readableError(error) {
   if (error?.name === "NotAllowedError") {
     return {
-      message: "Kamerazugriff wurde blockiert.",
+      message: t("errors.cameraBlocked"),
       hints: [
-        "Im in-app Browser kann die Kamera je nach Berechtigungssituation blockiert sein.",
-        `Öffne ${window.location.origin} in Chrome oder Safari und erlaube die Kamera in der Adressleiste.`,
-        "Falls du zuvor blockiert hast: Website-Einstellungen öffnen, Kamera auf Erlauben setzen und Seite neu laden.",
+        t("errors.cameraBlockedHint1"),
+        t("errors.cameraBlockedHint2", { origin: window.location.origin }),
+        t("errors.cameraBlockedHint3"),
       ],
     };
   }
 
   if (error?.name === "NotFoundError") {
     return {
-      message: "Keine Kamera gefunden.",
-      hints: [
-        "Prüfe, ob eine Webcam angeschlossen ist.",
-        "Schließe Apps, die die Kamera bereits verwenden.",
-        "Lade die Seite neu und versuche es erneut.",
-      ],
+      message: t("errors.noCamera"),
+      hints: [t("errors.noCameraHint1"), t("errors.noCameraHint2"), t("errors.noCameraHint3")],
     };
   }
 
   if (error?.message === "getUserMedia-unavailable") {
     return {
-      message: "Dieser Browser unterstützt keinen direkten Kamerazugriff.",
-      hints: [
-        "Nutze Chrome, Safari oder Edge.",
-        "Öffne die App über HTTPS oder lokal über http://localhost, nicht direkt als Datei.",
-      ],
+      message: t("errors.noGetUserMedia"),
+      hints: [t("errors.noGetUserMediaHint1"), t("errors.noGetUserMediaHint2")],
     };
   }
 
   return {
-    message: "Die App konnte nicht starten.",
-    hints: [
-      "Prüfe die Internetverbindung für den ersten MediaPipe-Download.",
-      "Prüfe die Browser-Kamerafreigabe.",
-      "Lade die Seite neu und versuche es erneut.",
-    ],
+    message: t("errors.generic"),
+    hints: [t("errors.genericHint1"), t("errors.genericHint2"), t("errors.genericHint3")],
   };
 }

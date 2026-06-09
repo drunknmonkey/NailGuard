@@ -4,6 +4,10 @@ Nail Guard ist ein lokaler Browser-Coach gegen Nägelkauen. Die App nutzt die We
 
 Die App ist als statische Web-App vorbereitet und kann per HTTPS auf Cloudflare Pages gehostet werden. Die Kameraauswertung bleibt auch im Deployment lokal im Browser.
 
+Die Oberfläche ist zweisprachig (Deutsch und Englisch). Die Sprache wird automatisch aus der Browser-Sprache erkannt und kann oben rechts mit `DE | EN` umgeschaltet werden; die Wahl wird lokal gespeichert.
+
+Die App ist eine installierbare PWA: Manifest, Icons und ein Service Worker sind enthalten. Nach dem ersten Besuch wird die App-Shell gecacht, MediaPipe-Dateien und Modelle werden beim ersten Lauf in den Cache übernommen — danach startet die App auch offline.
+
 ## Projektstruktur
 
 ```text
@@ -11,12 +15,34 @@ NailGuard/
 ├── index.html
 ├── style.css
 ├── app.js
+├── i18n.js
+├── sw.js
+├── desktop.html
+├── landing.js
+├── manifest.webmanifest
+├── functions/
+│   └── api/
+│       └── waitlist.js
+├── icons/
+│   ├── icon.svg
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   ├── icon-maskable-512.png
+│   └── apple-touch-icon.png
+├── tools/
+│   └── generate-icons.py
 ├── robots.txt
 ├── README.md
 ├── .gitignore
 └── docs/
     └── DEPLOYMENT.md
 ```
+
+Die PNG-Icons werden aus demselben Design wie `icons/icon.svg` mit `python3 tools/generate-icons.py` erzeugt (benötigt `pillow`).
+
+## Desktop-Landingpage und Warteliste
+
+`desktop.html` ist eine zweisprachige Landingpage für die geplante Desktop-App (Menüleisten-App für macOS/Windows). Sie erklärt den Mehrwert gegenüber der Web-App und sammelt Wartelisten-Anmeldungen über `POST ./api/waitlist` (Cloudflare Pages Function in `functions/api/waitlist.js`, Speicherung in einem KV-Namespace — Einrichtung siehe `docs/DEPLOYMENT.md`). Solange das KV-Binding fehlt, zeigt die Seite einen „noch nicht freigeschaltet"-Hinweis. Die Web-App verlinkt vom Startpanel auf die Landingpage.
 
 ## Start am Mac
 
@@ -61,6 +87,16 @@ Die ruhige Nutzungsansicht für den Alltag:
 - Office Mode öffnen
 - keine technischen Slider
 
+### Geführte Kalibrierung (Onboarding)
+
+Beim ersten Start führt ein kurzer Assistent (ca. 30 Sekunden) durch die Einrichtung:
+
+1. Gesicht zeigen, bis es erkannt wird
+2. eine Hand zeigen
+3. einen Finger langsam zum Mund führen und kurz halten
+
+Aus dem dabei gemessenen Abstand leitet Nail Guard eine persönliche Empfindlichkeit ab (begrenzt auf einen sinnvollen Bereich) und speichert sie als Preset `custom`. Der Assistent kann übersprungen und jederzeit über `Einstellungen → Kalibrierung neu starten` wiederholt werden. Während der Kalibrierung werden keine Interventionen ausgelöst.
+
 ### Einstellungen
 
 Die technische Ansicht ist als `Erweiterte Einstellungen` bewusst sekundär:
@@ -75,6 +111,16 @@ Die technische Ansicht ist als `Erweiterte Einstellungen` bewusst sekundär:
 - Farbwarnung, Ton und Vibration
 - Tonpresets, Lautstärke und Testton
 - Mini-Reset testen
+
+### Automatische Anpassung (Auto-Tuning)
+
+Jede Intervention wird vom Nutzer als `Treffer`, `Fehlalarm` oder `Gesicht berührt` klassifiziert. Bei aktivierter Option `Automatisch anpassen` (Standard, abschaltbar in den erweiterten Einstellungen) nutzt Nail Guard diese Rückmeldung, um die Erkennung schrittweise zu personalisieren:
+
+- `Fehlalarm`: Empfindlichkeit sinkt (Schwelle × 0.93), Haltezeit steigt (+0.2 s)
+- `Gesicht berührt`: Empfindlichkeit sinkt leicht (Schwelle × 0.97)
+- `Treffer`: Empfindlichkeit steigt leicht (Schwelle × 1.02), Haltezeit sinkt (−0.1 s)
+
+Alle Anpassungen sind begrenzt (Schwelle 0.045–0.14, Haltezeit 0.5–4 s) und werden auf das Raster der Slider gerundet, damit gespeicherte und angezeigte Werte identisch bleiben. Nach einer Anpassung steht das Preset auf `custom`.
 
 ### Review Mode
 
@@ -120,7 +166,17 @@ Extern geladen werden aktuell:
 - FaceLandmarker-Modell von `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`
 - HandLandmarker-Modell von `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`
 
-Für einen späteren vollständigen Offline-Modus können diese Dateien lokal gespiegelt und die URLs in `app.js` im Objekt `MEDIAPIPE` auf lokale Pfade geändert werden.
+Der Service Worker (`sw.js`) cacht diese Dateien nach dem ersten erfolgreichen Laden lokal (Cache-First, die URLs sind versioniert). Damit funktioniert die App nach dem ersten Lauf auch offline. Alternativ können die Dateien weiterhin lokal gespiegelt und die URLs in `app.js` im Objekt `MEDIAPIPE` auf lokale Pfade geändert werden.
+
+## Sprachen (i18n)
+
+- Alle UI-Texte liegen in `i18n.js` in einem Wörterbuch für `de` und `en`.
+- Statische Texte in `index.html` sind mit `data-i18n`-Attributen (bzw. `data-i18n-aria-label` für ARIA-Labels) markiert.
+- Dynamische Texte in `app.js` laufen über die Funktion `t(key, params)`.
+- Die Spracherkennung folgt `navigator.language`; die manuelle Wahl wird unter `nail-guard.locale.v1` in `localStorage` gespeichert.
+- Datum und Uhrzeit werden passend zur Sprache formatiert (`de-AT` bzw. `en-US`).
+
+Eine weitere Sprache hinzuzufügen heißt: in `i18n.js` einen neuen Eintrag im `translations`-Objekt anlegen und den Code in `SUPPORTED_LOCALES` ergänzen.
 
 ## Architektur
 
@@ -160,3 +216,6 @@ Die zentrale Intervention ist vorbereitet, damit eine spätere Mac-App statt des
 10. In `Review` prüfen, dass Statistik und Tageszusammenfassung aktualisiert werden.
 11. Seite neu laden und prüfen, dass Settings und Statistik erhalten bleiben.
 12. Statistik mit `Statistik zurücksetzen` löschen.
+13. Oben rechts auf `EN` umschalten und prüfen, dass alle Texte (inkl. Status, Tabs, Statistik) wechseln; Seite neu laden — die Sprache soll erhalten bleiben.
+14. Über das Browser-Menü „App installieren" wählen; die App soll mit eigenem Icon als Standalone-Fenster starten.
+15. Nach einem vollständigen ersten Lauf die Netzwerkverbindung trennen und die Seite neu laden; die App-Shell soll aus dem Cache laden.
