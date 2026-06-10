@@ -812,41 +812,6 @@ canvas {
   min-height: min(72vh, 780px);
 }
 
-.neutral-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid #E3E6EA;
-  border-radius: 0.5rem;
-  background: #fff;
-}
-
-.neutral-picker {
-  display: grid;
-  grid-template-columns: auto minmax(180px, 260px);
-  align-items: center;
-  gap: 0.6rem;
-  color: #8A929B;
-  font-size: 0.85rem;
-}
-
-.neutral-picker select {
-  border-radius: 0.4rem;
-  border-color: #E3E6EA;
-  color: #3A4149;
-  background: #fff;
-}
-
-.neutral-subtle-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #8A929B;
-  font-size: 0.85rem;
-}
-
 .neutral-canvas {
   position: relative;
   min-height: min(62vh, 680px);
@@ -936,6 +901,12 @@ body[data-state="ember"] .neutral-dashboard-row i {
 body[data-state="paused"] .neutral-status i,
 body[data-state="paused"] .neutral-dashboard-row i {
   background: #B9C0C7;
+}
+
+/* Status-Punkt lässt sich in den Einstellungen abschalten */
+body[data-office-dot="off"] .neutral-status i,
+body[data-office-dot="off"] .neutral-dashboard-row i {
+  display: none;
 }
 
 .neutral-faux-button {
@@ -1491,13 +1462,6 @@ body[data-state="paused"] .neutral-dashboard-row i {
 
   .stats {
     gap: 2rem;
-  }
-
-  .neutral-toolbar,
-  .neutral-picker {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .neutral-view.active {

@@ -188,6 +188,14 @@
 
               <div class="set-row">
                 <div class="txt">
+                  <div class="name" data-i18n="calibration.faceTouch">Gesichtsberührung melden</div>
+                  <div class="desc" data-i18n="settings.faceTouchDesc">Reagiert auf jede Berührung des Gesichts, nicht nur am Mund</div>
+                </div>
+                <input id="faceTouchToggle" class="switch" type="checkbox" aria-label="Gesichtsberührung melden" data-i18n-aria-label="calibration.faceTouch" />
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
                   <div class="name" data-i18n="calibration.autoTune">Automatisch anpassen</div>
                   <div class="desc" data-i18n="calibration.autoTuneHint">Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.</div>
                 </div>
@@ -272,32 +280,49 @@
                 <span data-i18n="settings.privacyBody">Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen.</span>
               </div>
             </div>
+
+            <div class="card">
+              <h3 data-i18n="settings.officeTitle">Office Mode</h3>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.officeDot">Status-Punkt anzeigen</div>
+                  <div class="desc" data-i18n="settings.officeDotDesc">Kleiner Punkt zeigt den Erkennungszustand in der Tarnansicht</div>
+                </div>
+                <input id="officeDotToggle" class="switch" type="checkbox" checked aria-label="Status-Punkt anzeigen" data-i18n-aria-label="settings.officeDot" />
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.officeLayout">Tarn-Layout</div>
+                  <div class="desc" data-i18n="settings.officeLayoutDesc">Erscheinungsbild der neutralen Ansicht</div>
+                </div>
+                <select id="neutralLayoutSelect" aria-label="Tarn-Layout" data-i18n-aria-label="settings.officeLayout">
+                  <option value="clock" data-i18n="neutral.layout.clock">Uhr & Datum</option>
+                  <option value="timer" data-i18n="neutral.layout.timer">Fokus-Timer</option>
+                  <option value="notes" data-i18n="neutral.layout.notes">Notizseite</option>
+                  <option value="plan" data-i18n="neutral.layout.plan">Tagesplan</option>
+                  <option value="breathing" data-i18n="neutral.layout.breathing">Atemübung</option>
+                  <option value="water" data-i18n="neutral.layout.water">Wasser-Reminder</option>
+                  <option value="calendar" data-i18n="neutral.layout.calendar">Kalender-Look</option>
+                  <option value="dashboard" data-i18n="neutral.layout.dashboard">Minimal Dashboard</option>
+                  <option value="reading" data-i18n="neutral.layout.reading">Lesemodus</option>
+                  <option value="blank" data-i18n="neutral.layout.blank">Blank Screen</option>
+                </select>
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="neutral.subtle">Sehr dezente Einblendung</div>
+                  <div class="desc" data-i18n="settings.officeSubtleDesc">Interventionen erscheinen nur als kleine Notiz am Rand</div>
+                </div>
+                <input id="neutralSubtleToggle" class="switch" type="checkbox" checked aria-label="Sehr dezente Einblendung" data-i18n-aria-label="neutral.subtle" />
+              </div>
+            </div>
           </div>
         </section>
 
         <section class="mode-view neutral-view" id="neutralView" data-view="neutral">
-          <div class="neutral-toolbar" aria-label="Neutrale Ansicht" data-i18n-aria-label="aria.neutralToolbar">
-            <label class="neutral-picker">
-              <span data-i18n="neutral.view">Ansicht</span>
-              <select id="neutralLayoutSelect">
-                <option value="clock" data-i18n="neutral.layout.clock">Uhr & Datum</option>
-                <option value="timer" data-i18n="neutral.layout.timer">Fokus-Timer</option>
-                <option value="notes" data-i18n="neutral.layout.notes">Notizseite</option>
-                <option value="plan" data-i18n="neutral.layout.plan">Tagesplan</option>
-                <option value="breathing" data-i18n="neutral.layout.breathing">Atemübung</option>
-                <option value="water" data-i18n="neutral.layout.water">Wasser-Reminder</option>
-                <option value="calendar" data-i18n="neutral.layout.calendar">Kalender-Look</option>
-                <option value="dashboard" data-i18n="neutral.layout.dashboard">Minimal Dashboard</option>
-                <option value="reading" data-i18n="neutral.layout.reading">Lesemodus</option>
-                <option value="blank" data-i18n="neutral.layout.blank">Blank Screen</option>
-              </select>
-            </label>
-            <label class="neutral-subtle-toggle">
-              <input id="neutralSubtleToggle" type="checkbox" checked />
-              <span data-i18n="neutral.subtle">Sehr dezente Einblendung</span>
-            </label>
-          </div>
-
           <div class="neutral-canvas" id="neutralCanvas">
             <section class="neutral-layout neutral-clock active" data-neutral-layout="clock">
               <p class="neutral-kicker" data-i18n="neutral.kickerWorkspace">Workspace</p>

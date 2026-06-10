@@ -30,6 +30,9 @@ const ONBOARDING = {
 };
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
+// Sparse Abtastpunkte über das ganze Gesicht (Stirn, Wangen, Kinn,
+// Gesichtsränder, Nase) für den Schalter „Gesichtsberührung melden".
+const FACE_TOUCH_INDICES = [10, 67, 297, 50, 280, 205, 425, 152, 234, 454, 1, 168];
 const SOUND_PRESETS = {
   softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
   breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
@@ -102,6 +105,8 @@ const els = {
   presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
   autoTuneToggle: document.querySelector("#autoTuneToggle"),
+  faceTouchToggle: document.querySelector("#faceTouchToggle"),
+  officeDotToggle: document.querySelector("#officeDotToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   confirmBitingButton: document.querySelector("#confirmBitingButton"),
@@ -257,11 +262,12 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle]) {
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle, els.faceTouchToggle, els.officeDotToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
       if (!state.settings.showOverlay) clearOverlay();
       if (!state.settings.warmthFeedback) setWarmth(0);
+      renderOfficeDot();
     });
   }
 
@@ -361,6 +367,15 @@ const detection = {
     state.mouthCenter = faceLandmarks ? averageLandmarks(faceLandmarks, MOUTH_INDICES) : null;
     state.fingertips = handLandmarks.flatMap((hand) => FINGERTIP_INDICES.map((index) => hand[index]));
     state.minDistance = computeMinMouthDistance(state.mouthCenter, state.fingertips);
+
+    // „Gesichtsberührung melden": ganzes Gesicht statt nur Mund.
+    // Während der Kalibrierung zählt weiterhin nur der Mundabstand.
+    if (state.settings.faceTouchAlert && !state.onboarding && faceLandmarks) {
+      state.minDistance = Math.min(
+        state.minDistance,
+        computeMinFaceDistance(faceLandmarks, state.fingertips),
+      );
+    }
 
     renderLiveSignals(faceLandmarks, handLandmarks);
 
@@ -994,6 +1009,8 @@ function settingsFromUi() {
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
     autoTune: els.autoTuneToggle.checked,
+    faceTouchAlert: els.faceTouchToggle.checked,
+    officeStatusDot: els.officeDotToggle.checked,
     neutralLayout: els.neutralLayoutSelect.value,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
@@ -1013,8 +1030,15 @@ function applySettingsToUi() {
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
   els.autoTuneToggle.checked = state.settings.autoTune;
+  els.faceTouchToggle.checked = state.settings.faceTouchAlert;
+  els.officeDotToggle.checked = state.settings.officeStatusDot;
   els.neutralLayoutSelect.value = state.settings.neutralLayout;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
+  renderOfficeDot();
+}
+
+function renderOfficeDot() {
+  document.body.dataset.officeDot = state.settings.officeStatusDot ? "on" : "off";
 }
 
 function loadSettings() {
@@ -1031,6 +1055,8 @@ function loadSettings() {
     soundVolume: 0.35,
     vibration: true,
     autoTune: true,
+    faceTouchAlert: false,
+    officeStatusDot: true,
     neutralLayout: "clock",
     neutralSubtleInterventions: true,
   };
@@ -1149,6 +1175,19 @@ function computeMinMouthDistance(mouthCenter, fingertips) {
     const dy = mouthCenter.y - fingertip.y;
     return Math.min(min, Math.hypot(dx, dy));
   }, Number.POSITIVE_INFINITY);
+}
+
+function computeMinFaceDistance(faceLandmarks, fingertips) {
+  if (fingertips.length === 0) return Number.POSITIVE_INFINITY;
+
+  let min = Number.POSITIVE_INFINITY;
+  for (const index of FACE_TOUCH_INDICES) {
+    const point = faceLandmarks[index];
+    for (const fingertip of fingertips) {
+      min = Math.min(min, Math.hypot(point.x - fingertip.x, point.y - fingertip.y));
+    }
+  }
+  return min;
 }
 
 function drawOverlay() {
