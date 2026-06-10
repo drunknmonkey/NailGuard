@@ -119,6 +119,14 @@ ausbleibender Prompt wäre ein Blocker im Sinne des Abbruchkriteriums.
   - `__nailguardSetLoopMode("raf")` — `requestAnimationFrame` (Standard, wie Web-App)
   - `__nailguardSetLoopMode("interval")` — `setTimeout`-Kette (33 ms)
   - `__nailguardSetLoopMode("worker")` — Web-Worker-Ticks (33 ms), Verarbeitung weiter im Main Thread
+- **Automatisierter Lauf ohne DevTools** (für skriptgesteuerte Tests, z.B. durch
+  eine Claude-Code-Session): Umgebungsvariablen beim Start setzen —
+  `NAILGUARD_AUTOSTART=1` klickt „Kamera starten“ automatisch,
+  `NAILGUARD_LOOP_MODE=raf|interval|worker` setzt den Schleifentreiber für
+  diesen Lauf (ohne ihn zu persistieren). Beispiel:
+  `NAILGUARD_AUTOSTART=1 NAILGUARD_LOOP_MODE=worker npm run tauri dev`.
+  Die Fensterzustände lassen sich von außen per `osascript`/System Events
+  steuern; die Rust-Commands unten sind die Alternative aus der App heraus.
 - Rust-Commands für reproduzierbare Fensterzustände (DevTools-Konsole):
   - `__TAURI__.core.invoke("minimize_for_secs", { secs: 30 })` — Test (a)
   - `__TAURI__.core.invoke("hide_for_secs", { secs: 30 })` — Test (c)

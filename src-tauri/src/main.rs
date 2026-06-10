@@ -16,6 +16,25 @@ fn log_fps(line: String) {
     println!("[{}] {}", unix_secs(), line);
 }
 
+/// Testkonfiguration über Umgebungsvariablen, damit eine automatisierte
+/// Session den Throttling-Test ohne DevTools-Konsole fahren kann:
+///   NAILGUARD_LOOP_MODE=raf|interval|worker  (Schleifentreiber für diesen Lauf)
+///   NAILGUARD_AUTOSTART=1                    (Kamera-Start automatisch klicken)
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TestConfig {
+    loop_mode: Option<String>,
+    autostart: bool,
+}
+
+#[tauri::command]
+fn test_config() -> TestConfig {
+    TestConfig {
+        loop_mode: std::env::var("NAILGUARD_LOOP_MODE").ok(),
+        autostart: std::env::var("NAILGUARD_AUTOSTART").map(|v| v == "1").unwrap_or(false),
+    }
+}
+
 /// Throttling-Test (c): Fenster per hide() verstecken und nach `secs`
 /// Sekunden automatisch wieder anzeigen. Aufruf aus der DevTools-Konsole:
 ///   __TAURI__.core.invoke("hide_for_secs", { secs: 30 })
@@ -74,6 +93,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             log_fps,
+            test_config,
             hide_for_secs,
             minimize_for_secs,
             offscreen_for_secs

@@ -1387,3 +1387,26 @@ function scheduleDetectionTick(callback) {
       requestAnimationFrame(run);
   }
 }
+
+// Automatisierter Testlauf ohne DevTools: Loop-Modus und Kamera-Autostart
+// kommen aus Umgebungsvariablen (NAILGUARD_LOOP_MODE, NAILGUARD_AUTOSTART),
+// die das Rust-Command test_config durchreicht. Der Env-Modus gilt bewusst
+// nur für diesen Lauf und wird nicht in localStorage persistiert.
+window.__TAURI__?.core
+  ?.invoke("test_config")
+  .then((config) => {
+    if (config?.loopMode) {
+      if (LOOP_MODES.includes(config.loopMode)) {
+        window.__nailguardLoopMode = config.loopMode;
+        console.log(`[nailguard] Loop-Modus aus NAILGUARD_LOOP_MODE -> ${config.loopMode}`);
+      } else {
+        console.warn(`[nailguard] NAILGUARD_LOOP_MODE ungültig: ${config.loopMode}`);
+      }
+    }
+    if (config?.autostart) {
+      console.log("[nailguard] NAILGUARD_AUTOSTART=1 -> Kamera wird automatisch gestartet");
+      const button = document.querySelector("#startButton");
+      if (button && !button.disabled) button.click();
+    }
+  })
+  .catch(() => {});
