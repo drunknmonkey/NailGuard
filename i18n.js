@@ -30,12 +30,12 @@ const translations = {
     "start.body":
       "Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen. Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.",
     "start.privacy":
-      "MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen. Kameradaten bleiben im Browser.",
+      "MediaPipe Bibliothek, WASM und Modelle werden lokal von dieser Website geladen. Kameradaten bleiben im Browser.",
     "start.titleNeutral": "Bereit für einen ruhigen Arbeitstag.",
     "start.bodyNeutral":
       "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen.",
     "start.privacyNeutral":
-      "Externe Bibliothek und Modelle werden geladen. Lokale Daten bleiben auf diesem Gerät.",
+      "Bibliothek und Modelle werden lokal von dieser Website geladen. Lokale Daten bleiben auf diesem Gerät.",
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
     "start.desktopLink": "Desktop-App kommt bald – zur Warteliste",
@@ -281,12 +281,12 @@ const translations = {
     "start.body":
       "Start the camera, pick your mode and let Nail Guard run quietly in the background. No webcam images or videos are stored or uploaded.",
     "start.privacy":
-      "The MediaPipe library, WASM and models are currently loaded from external CDNs. Camera data stays in your browser.",
+      "The MediaPipe library, WASM and models are served locally by this website. Camera data stays in your browser.",
     "start.titleNeutral": "Ready for a calm workday.",
     "start.bodyNeutral":
       "This page runs locally in your browser. No images or videos are stored or uploaded.",
     "start.privacyNeutral":
-      "An external library and models are loaded. Local data stays on this device.",
+      "The library and models are served locally by this website. Local data stays on this device.",
     "start.button": "Start camera",
     "start.retry": "Try again",
     "start.desktopLink": "Desktop app coming soon – join the waitlist",

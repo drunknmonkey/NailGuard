@@ -2,15 +2,15 @@ import {
   FaceLandmarker,
   FilesetResolver,
   HandLandmarker,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/+esm";
+} from "./vendor/mediapipe/tasks-vision/vision_bundle.mjs";
 import { applyStaticTranslations, dateLocale, getLocale, setLocale, t } from "./i18n.js";
 
+// MediaPipe wird vollständig self-hosted ausgeliefert (vendor/ + models/),
+// es werden keine externen CDNs mehr angefragt.
 const MEDIAPIPE = {
-  wasmBaseUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm",
-  faceModelUrl:
-    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-  handModelUrl:
-    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+  wasmBaseUrl: "./vendor/mediapipe/tasks-vision/wasm",
+  faceModelUrl: "./models/face_landmarker.task",
+  handModelUrl: "./models/hand_landmarker.task",
 };
 
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
