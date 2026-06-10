@@ -11,7 +11,14 @@
              · Spline Sans Mono (Zahlen, tabular-nums)
 
    Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
+   Navigation: NUR drei Reiter (Focus, Review, Einstellungen).
+   Office Mode ist ein ZUSTAND, kein Reiter: Aktivierung über Button im
+   Focus Mode; läuft vollflächig OHNE Header/Navigation (Tarnung!);
+   Verlassen per Klick auf den Status-Punkt oder per Esc.
+   Office-Optionen liegen in den Einstellungen, nie auf der Office-Seite.
+   Flow: Nach der Kalibrierung landet der Nutzer im FOCUS MODE.
    Der Office Mode verwendet dieses Design BEWUSST NICHT (Tarnung).
+   Referenz: docs/nailguard-design-referenz.html
    ════════════════════════════════════════════════════════════ */
 
 :root {
@@ -293,7 +300,7 @@ body.office-mode .wordmark {
 
 .stage {
   position: relative;
-  width: min(58vw, 250px);
+  width: min(66vw, 270px);
   aspect-ratio: 1;
 }
 
@@ -353,7 +360,7 @@ body[data-state="paused"] .ring {
 .state-hint {
   font-size: 0.86rem;
   color: var(--moss);
-  max-width: 20em;
+  max-width: 18em;
   line-height: 1.5;
   margin: 0;
   min-height: 1.3em;
@@ -788,9 +795,41 @@ canvas {
 }
 
 /* ═══ OFFICE (Tarnung — bewusst NICHT im Markendesign) ═══ */
+/* Office Mode ist ein Zustand, kein Reiter: er läuft vollflächig
+   ohne Kopfzeile und Navigation. Verlassen per Klick auf den
+   Status-Punkt oder per Esc-Taste. */
+body[data-view="office"] .topbar,
+body[data-view="office"] .mode-tabs {
+  display: none;
+}
+
+body[data-view="office"] {
+  background: #F5F6F8;
+}
+
+body[data-view="office"] .app-shell {
+  width: 100%;
+  padding: 0;
+}
+
 .neutral-view {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #3A4149;
+}
+
+body[data-view="office"] .neutral-view.active {
+  margin: 0;
+  border-radius: 0;
+  min-height: 100dvh;
+  padding: 1.5rem 1.4rem 2.5rem;
+}
+
+body[data-view="office"] .neutral-canvas {
+  flex: 1;
+}
+
+.office-exit {
+  cursor: pointer;
 }
 
 .neutral-view.active {
@@ -803,41 +842,6 @@ canvas {
   background: #F5F6F8;
   border-radius: 0.5rem;
   min-height: min(72vh, 780px);
-}
-
-.neutral-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid #E3E6EA;
-  border-radius: 0.5rem;
-  background: #fff;
-}
-
-.neutral-picker {
-  display: grid;
-  grid-template-columns: auto minmax(180px, 260px);
-  align-items: center;
-  gap: 0.6rem;
-  color: #8A929B;
-  font-size: 0.85rem;
-}
-
-.neutral-picker select {
-  border-radius: 0.4rem;
-  border-color: #E3E6EA;
-  color: #3A4149;
-  background: #fff;
-}
-
-.neutral-subtle-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #8A929B;
-  font-size: 0.85rem;
 }
 
 .neutral-canvas {
@@ -929,6 +933,12 @@ body[data-state="ember"] .neutral-dashboard-row i {
 body[data-state="paused"] .neutral-status i,
 body[data-state="paused"] .neutral-dashboard-row i {
   background: #B9C0C7;
+}
+
+/* Status-Punkt lässt sich in den Einstellungen abschalten */
+body[data-office-dot="off"] .neutral-status i,
+body[data-office-dot="off"] .neutral-dashboard-row i {
+  display: none;
 }
 
 .neutral-faux-button {
@@ -1484,13 +1494,6 @@ body[data-state="paused"] .neutral-dashboard-row i {
 
   .stats {
     gap: 2rem;
-  }
-
-  .neutral-toolbar,
-  .neutral-picker {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .neutral-view.active {

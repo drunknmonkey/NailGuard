@@ -23,7 +23,6 @@ const translations = {
     "aria.modeTabs": "App-Modus",
     "aria.proximity": "Nähe zum Mund",
     "aria.presets": "Voreinstellung",
-    "aria.neutralToolbar": "Neutrale Ansicht",
     "aria.languageToggle": "Sprache",
     "aria.hourBars": "Momente pro Stunde",
 
@@ -31,12 +30,12 @@ const translations = {
     "start.body":
       "Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen. Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.",
     "start.privacy":
-      "MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen. Kameradaten bleiben im Browser.",
+      "MediaPipe Bibliothek, WASM und Modelle werden lokal von dieser Website geladen. Kameradaten bleiben im Browser.",
     "start.titleNeutral": "Bereit für einen ruhigen Arbeitstag.",
     "start.bodyNeutral":
       "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen.",
     "start.privacyNeutral":
-      "Externe Bibliothek und Modelle werden geladen. Lokale Daten bleiben auf diesem Gerät.",
+      "Bibliothek und Modelle werden lokal von dieser Website geladen. Lokale Daten bleiben auf diesem Gerät.",
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
     "start.desktopLink": "Desktop-App kommt bald – zur Warteliste",
@@ -44,7 +43,6 @@ const translations = {
     "tabs.focus": "Focus",
     "tabs.calibration": "Einstellungen",
     "tabs.review": "Review",
-    "tabs.neutral": "Office",
 
     "focus.openOffice": "Office Mode",
     "focus.pause": "Pausieren",
@@ -79,6 +77,18 @@ const translations = {
     "settings.soundDesc": "Leiser Klang bei Intervention",
     "settings.vibrationDesc": "Kurzes Vibrieren bei Intervention",
     "settings.soundChoice": "Klang",
+    "settings.faceTouchDesc": "Reagiert auf jede Berührung des Gesichts, nicht nur am Mund",
+    "settings.officeTitle": "Office Mode",
+    "settings.officeDot": "Status-Punkt anzeigen",
+    "settings.officeDotDesc": "Kleiner Punkt zeigt den Erkennungszustand in der Tarnansicht",
+    "settings.officeLayout": "Tarn-Layout",
+    "settings.officeLayoutDesc": "Erscheinungsbild der neutralen Ansicht",
+    "settings.officeSubtleDesc": "Interventionen erscheinen nur als kleine Notiz am Rand",
+    "settings.dataTitle": "Daten",
+    "settings.dataExport": "Exportieren",
+    "settings.dataExportDesc": "Statistiken, Streak und Einstellungen als JSON-Datei sichern",
+    "settings.dataImport": "Importieren",
+    "settings.dataImportDesc": "Backup-Datei einlesen; vorhandene Daten werden ersetzt",
 
     "calibration.testWarning": "Mini-Reset testen",
     "presets.soft": "Sanft",
@@ -87,6 +97,7 @@ const translations = {
     "calibration.sensitivity": "Sensitivität",
     "calibration.holdTime": "Haltezeit",
     "calibration.cooldown": "Cooldown",
+    "calibration.faceTouch": "Gesichtsberührung melden",
     "calibration.overlay": "Overlay",
     "calibration.warmth": "Farbwarnung",
     "calibration.sound": "Ton",
@@ -122,7 +133,6 @@ const translations = {
     "review.streakZero": "Jeder ruhige Tag zählt. Heute ist ein guter Start.",
     "review.reset": "Statistik zurücksetzen",
 
-    "neutral.view": "Ansicht",
     "neutral.layout.clock": "Uhr & Datum",
     "neutral.layout.timer": "Fokus-Timer",
     "neutral.layout.notes": "Notizseite",
@@ -134,6 +144,7 @@ const translations = {
     "neutral.layout.reading": "Lesemodus",
     "neutral.layout.blank": "Blank Screen",
     "neutral.subtle": "Sehr dezente Einblendung",
+    "neutral.exitTitle": "Office Mode beenden",
     "neutral.kickerWorkspace": "Workspace",
     "neutral.today": "Heute",
     "neutral.active": "Aktiv",
@@ -242,6 +253,9 @@ const translations = {
     "errors.noGetUserMediaHint1": "Nutze Chrome, Safari oder Edge.",
     "errors.noGetUserMediaHint2":
       "Öffne die App über HTTPS oder lokal über http://localhost, nicht direkt als Datei.",
+    "errors.importFailed": "Die Backup-Datei konnte nicht importiert werden.",
+    "errors.importFailedHint1":
+      "Bitte eine unveränderte nailguard-backup-….json Datei aus dem Export verwenden.",
     "errors.generic": "Die App konnte nicht starten.",
     "errors.genericHint1": "Prüfe die Internetverbindung für den ersten MediaPipe-Download.",
     "errors.genericHint2": "Prüfe die Browser-Kamerafreigabe.",
@@ -268,7 +282,6 @@ const translations = {
     "aria.modeTabs": "App mode",
     "aria.proximity": "Proximity to mouth",
     "aria.presets": "Preset",
-    "aria.neutralToolbar": "Neutral view",
     "aria.languageToggle": "Language",
     "aria.hourBars": "Moments per hour",
 
@@ -276,12 +289,12 @@ const translations = {
     "start.body":
       "Start the camera, pick your mode and let Nail Guard run quietly in the background. No webcam images or videos are stored or uploaded.",
     "start.privacy":
-      "The MediaPipe library, WASM and models are currently loaded from external CDNs. Camera data stays in your browser.",
+      "The MediaPipe library, WASM and models are served locally by this website. Camera data stays in your browser.",
     "start.titleNeutral": "Ready for a calm workday.",
     "start.bodyNeutral":
       "This page runs locally in your browser. No images or videos are stored or uploaded.",
     "start.privacyNeutral":
-      "An external library and models are loaded. Local data stays on this device.",
+      "The library and models are served locally by this website. Local data stays on this device.",
     "start.button": "Start camera",
     "start.retry": "Try again",
     "start.desktopLink": "Desktop app coming soon – join the waitlist",
@@ -289,7 +302,6 @@ const translations = {
     "tabs.focus": "Focus",
     "tabs.calibration": "Settings",
     "tabs.review": "Review",
-    "tabs.neutral": "Office",
 
     "focus.openOffice": "Office Mode",
     "focus.pause": "Pause",
@@ -324,6 +336,18 @@ const translations = {
     "settings.soundDesc": "A quiet sound on intervention",
     "settings.vibrationDesc": "A short vibration on intervention",
     "settings.soundChoice": "Sound",
+    "settings.faceTouchDesc": "Reacts to any touch of the face, not just near the mouth",
+    "settings.officeTitle": "Office Mode",
+    "settings.officeDot": "Show status dot",
+    "settings.officeDotDesc": "A small dot shows the detection state in the disguised view",
+    "settings.officeLayout": "Disguise layout",
+    "settings.officeLayoutDesc": "Appearance of the neutral view",
+    "settings.officeSubtleDesc": "Interventions appear only as a small note at the edge",
+    "settings.dataTitle": "Data",
+    "settings.dataExport": "Export",
+    "settings.dataExportDesc": "Save statistics, streak and settings as a JSON file",
+    "settings.dataImport": "Import",
+    "settings.dataImportDesc": "Read a backup file; existing data will be replaced",
 
     "calibration.testWarning": "Test mini reset",
     "presets.soft": "Gentle",
@@ -332,6 +356,7 @@ const translations = {
     "calibration.sensitivity": "Sensitivity",
     "calibration.holdTime": "Hold time",
     "calibration.cooldown": "Cooldown",
+    "calibration.faceTouch": "Report face touches",
     "calibration.overlay": "Overlay",
     "calibration.warmth": "Color cue",
     "calibration.sound": "Sound",
@@ -367,7 +392,6 @@ const translations = {
     "review.streakZero": "Every calm day counts. Today is a good start.",
     "review.reset": "Reset statistics",
 
-    "neutral.view": "View",
     "neutral.layout.clock": "Clock & date",
     "neutral.layout.timer": "Focus timer",
     "neutral.layout.notes": "Notes page",
@@ -379,6 +403,7 @@ const translations = {
     "neutral.layout.reading": "Reading mode",
     "neutral.layout.blank": "Blank screen",
     "neutral.subtle": "Very subtle notifications",
+    "neutral.exitTitle": "Exit Office Mode",
     "neutral.kickerWorkspace": "Workspace",
     "neutral.today": "Today",
     "neutral.active": "Active",
@@ -486,6 +511,9 @@ const translations = {
     "errors.noGetUserMediaHint1": "Use Chrome, Safari or Edge.",
     "errors.noGetUserMediaHint2":
       "Open the app via HTTPS or locally via http://localhost, not directly as a file.",
+    "errors.importFailed": "The backup file could not be imported.",
+    "errors.importFailedHint1":
+      "Please use an unmodified nailguard-backup-….json file from the export.",
     "errors.generic": "The app could not start.",
     "errors.genericHint1": "Check your internet connection for the first MediaPipe download.",
     "errors.genericHint2": "Check the browser's camera permission.",
@@ -544,5 +572,9 @@ export function applyStaticTranslations(root = document) {
 
   for (const el of root.querySelectorAll("[data-i18n-placeholder]")) {
     el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
+  }
+
+  for (const el of root.querySelectorAll("[data-i18n-title]")) {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
   }
 }

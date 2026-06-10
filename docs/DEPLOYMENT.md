@@ -89,7 +89,6 @@ Diese externen Dateien sind Programmcode/Modelle. Die Webcam-Frames werden nur l
 
 ## Bekannte Grenzen
 
-- Firmen-PCs können Kamera, WebAssembly, WebGL/GPU oder externe Modell-CDNs per Policy blockieren.
-- Manche Browser-Erweiterungen blockieren `cdn.jsdelivr.net` oder `storage.googleapis.com`.
-- Vollständiger Offline-Betrieb erfordert lokale Kopien der MediaPipe-Bibliothek, WASM-Dateien und Modelle.
+- Firmen-PCs können Kamera, WebAssembly oder WebGL/GPU per Policy blockieren.
+- MediaPipe-Bibliothek, WASM-Dateien und Modelle werden self-hosted mit ausgeliefert (`vendor/`, `models/`); nur die Google-Fonts-Schriften werden extern geladen.
 - Systemweites Abdunkeln oder ein Mac-Desktop-Overlay ist in der Browser-Version nicht möglich. Dafür braucht es eine Mac-App, z. B. mit Electron, Tauri oder Swift.

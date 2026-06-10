@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nail Guard — Design-Referenz „Atem &amp; Ruhe“</title>
+<!--
+  ════════════════════════════════════════════════════════════
+  DESIGN-REFERENZ FÜR CLAUDE CODE
+  ════════════════════════════════════════════════════════════
+  Richtung: „Atem & Ruhe“ — ruhiger Begleiter statt Überwachungs-Tool.
+
+  Token-Set (siehe :root):
+    Flächen   --mist (Hintergrund), --paper (Karten)
+    Text      --pine (primär), --moss (sekundär, AA-Kontrast auf mist)
+    Zustände  --breath (ruhig) / --warm (Hand nähert sich) / --ember (Intervention)
+              Für TEXT in Warnzuständen immer die dunklen Varianten
+              --warm-text / --ember-text verwenden (Lesbarkeit!).
+    Schriften Fraunces (Display) · Atkinson Hyperlegible (Body)
+              · Spline Sans Mono (Zahlen, tabular-nums)
+
+  Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
+  Navigation: NUR drei Reiter (Focus, Review, Einstellungen).
+  Office Mode ist ein ZUSTAND, kein Reiter: Aktivierung über Button im
+  Focus Mode; läuft vollflächig OHNE Header/Navigation (Tarnung!);
+  Verlassen per Klick auf den Status-Punkt. Office-Optionen liegen in
+  den Einstellungen, nie auf der Office-Seite selbst.
+  Flow: Nach der Kalibrierung landet der Nutzer im FOCUS MODE,
+  nicht in den Einstellungen.
+  Der Office Mode verwendet dieses Design BEWUSST NICHT (Tarnung).
+  ════════════════════════════════════════════════════════════
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Atkinson+Hyperlegible:wght@400;700&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* — Flächen — */
+  --mist:#EDF2ED; --paper:#FAFCFA;
+  /* — Text — */
+  --pine:#1E3B34;          /* primär */
+  --moss:#5E7C6C;          /* sekundär — dunkler als vorher, bessere Lesbarkeit */
+  /* — Zustandsfarben (Ring/Flächen) — */
+  --breath:#A8C7B4; --warm:#D9914F; --ember:#C46A4A; --still:#B8C2BC;
+  /* — Zustandsfarben (Text, dunkel = lesbar) — */
+  --warm-text:#8F4F14; --ember-text:#8F3B22;
+  /* — Linien — */
+  --line:#D5E0D8;
+
+  --font-display:'Fraunces',serif;
+  --font-body:'Atkinson Hyperlegible',sans-serif;
+  --font-data:'Spline Sans Mono',monospace;
+
+  --ring-color:var(--breath);
+  --breath-dur:4.6s;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:var(--mist);color:var(--pine);
+  font-family:var(--font-body);
+  display:flex;flex-direction:column;min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ═══ Kopfzeile ═══ */
+header{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem}
+.wordmark{font-family:var(--font-display);font-weight:500;font-size:1.05rem}
+.wordmark span{color:var(--moss);font-weight:300}
+.lang{font-size:.8rem;color:var(--moss);letter-spacing:.08em;display:flex;gap:.5rem}
+.lang b{color:var(--pine)}
+.lang i{font-style:normal;cursor:pointer}
+
+/* ═══ Views ═══ */
+main{flex:1;display:flex;flex-direction:column;overflow-y:auto}
+.view{display:none;flex:1;flex-direction:column;align-items:center;padding:.5rem 1.4rem 2rem;gap:2rem}
+.view.active{display:flex}
+.view-inner{width:100%;max-width:30rem;display:flex;flex-direction:column;gap:1rem}
+
+/* ═══ FOCUS ═══ */
+#view-focus{justify-content:center;gap:1.8rem}
+.stage{position:relative;width:min(66vw,270px);aspect-ratio:1}
+.halo,.ring{position:absolute;inset:0;border-radius:50%}
+.halo{
+  background:radial-gradient(circle,color-mix(in srgb,var(--ring-color) 26%,transparent) 0%,transparent 68%);
+  animation:breathe var(--breath-dur) ease-in-out infinite;scale:1.32;
+}
+.ring{border:1.5px solid var(--ring-color);animation:breathe var(--breath-dur) ease-in-out infinite;transition:border-color 1.2s ease}
+.ring.inner{inset:8%;border-width:1px;opacity:.55;animation-delay:calc(var(--breath-dur) * -.12)}
+@keyframes breathe{0%,100%{transform:scale(.965)}50%{transform:scale(1.035)}}
+
+/* Zustandstext: UNTER dem Ring, auf ruhiger Fläche — gut lesbar */
+.state-block{text-align:center;display:flex;flex-direction:column;gap:.4rem;align-items:center}
+.state-word{font-family:var(--font-display);font-weight:400;font-size:1.65rem;transition:color .9s ease}
+.state-hint{font-size:.86rem;color:var(--moss);max-width:18em;line-height:1.5}
+body[data-state="warm"]  .state-word{color:var(--warm-text)}
+body[data-state="ember"] .state-word{color:var(--ember-text)}
+body[data-state="paused"] .state-word{color:var(--moss)}
+body[data-state="warm"]{--ring-color:var(--warm);--breath-dur:2.6s}
+body[data-state="ember"]{--ring-color:var(--ember);--breath-dur:1.6s}
+body[data-state="paused"]{--ring-color:var(--still)}
+body[data-state="paused"] .halo,body[data-state="paused"] .ring{animation-play-state:paused}
+
+.stats{display:flex;gap:3rem;text-align:center}
+.stat .value{font-family:var(--font-data);font-weight:400;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.stat .label{margin-top:.3rem;font-size:.72rem;color:var(--moss);letter-spacing:.1em;text-transform:uppercase}
+
+.actions{display:flex;gap:.8rem}
+button{font-family:var(--font-body);font-size:.9rem;padding:.7rem 1.5rem;border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--moss) 60%,transparent);
+  background:var(--paper);color:var(--pine);cursor:pointer;
+  transition:background .25s,border-color .25s}
+button:hover{border-color:var(--pine)}
+button:focus-visible{outline:2px solid var(--pine);outline-offset:3px}
+button.primary{background:var(--pine);border-color:var(--pine);color:#FAFCFA}
+
+/* ═══ Karten (Review & Einstellungen) ═══ */
+h2{font-family:var(--font-display);font-weight:400;font-size:1.45rem;margin:.4rem 0 .2rem}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:1.1rem;padding:1.15rem 1.25rem}
+.card h3{font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--moss);margin-bottom:.9rem}
+
+/* Review */
+.big-row{display:flex;justify-content:space-between;align-items:baseline}
+.big-row .value{font-family:var(--font-data);font-size:1.8rem;font-variant-numeric:tabular-nums}
+.big-row .label{font-size:.8rem;color:var(--moss)}
+.delta{font-size:.8rem;color:var(--moss)}
+.delta b{color:var(--pine);font-weight:700}
+.bars{display:flex;align-items:flex-end;gap:5px;height:72px;margin-top:.9rem}
+.bars .bar{flex:1;border-radius:3px 3px 0 0;background:var(--breath);min-height:3px}
+.bars .bar.peak{background:var(--warm)}
+.bar-x{display:flex;justify-content:space-between;font-size:.68rem;color:var(--moss);margin-top:.4rem;font-family:var(--font-data)}
+.legend{display:flex;gap:1.1rem;margin-top:.8rem;font-size:.76rem;color:var(--moss);flex-wrap:wrap}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:.35rem;vertical-align:-1px;font-style:normal}
+.fb-row{display:flex;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.fb-row:last-child{border-bottom:none}
+.fb-row .n{font-family:var(--font-data)}
+.streak{display:flex;align-items:center;gap:1rem}
+.streak .ring-mini{width:54px;height:54px;border-radius:50%;border:1.5px solid var(--breath);
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-data);font-size:1.1rem}
+.streak p{font-size:.86rem;color:var(--moss);line-height:1.45}
+.streak p b{color:var(--pine)}
+
+/* Einstellungen */
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.7rem 0;border-bottom:1px solid var(--line)}
+.set-row:last-child{border-bottom:none}
+.set-row .txt{flex:1}
+.set-row .name{font-size:.92rem}
+.set-row .desc{font-size:.76rem;color:var(--moss);margin-top:.15rem;line-height:1.4}
+.toggle{position:relative;width:44px;height:25px;border-radius:999px;background:var(--line);
+  border:none;cursor:pointer;flex-shrink:0;transition:background .25s;padding:0}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;
+  background:var(--paper);transition:transform .25s;box-shadow:0 1px 2px rgba(30,59,52,.25)}
+.toggle[aria-checked="true"]{background:var(--pine)}
+.toggle[aria-checked="true"]::after{transform:translateX(19px)}
+.slider{appearance:none;width:130px;height:3px;border-radius:99px;background:var(--line);outline:none}
+.slider::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--pine);cursor:pointer}
+.slider::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--pine);cursor:pointer}
+.privacy-note{display:flex;gap:.6rem;align-items:flex-start;font-size:.78rem;color:var(--moss);line-height:1.5;
+  background:color-mix(in srgb,var(--breath) 18%,var(--paper));border-radius:.8rem;padding:.8rem .9rem}
+.privacy-note svg{flex-shrink:0;margin-top:1px}
+
+/* ═══ OFFICE (bewusst NICHT im Markendesign) ═══ */
+body[data-view="office"] header,
+body[data-view="office"] nav{display:none}
+#view-office{background:#F5F6F8;color:#3A4149;font-family:system-ui,sans-serif;
+  padding:1.5rem 1.4rem 2.5rem;min-height:100dvh;justify-content:flex-start}
+.office-card{background:#fff;border:1px solid #E3E6EA;border-radius:.5rem;padding:1rem 1.1rem;width:100%;max-width:30rem}
+.office-card h4{font-size:.85rem;font-weight:600;color:#3A4149;margin-bottom:.6rem}
+.office-line{height:8px;border-radius:4px;background:#EDEFF2;margin:.45rem 0}
+.office-line.w60{width:60%}.office-line.w80{width:80%}.office-line.w40{width:40%}
+.office-status{display:flex;align-items:center;gap:.45rem;font-size:.74rem;color:#8A929B;margin-top:.4rem}
+.office-dot{width:7px;height:7px;border-radius:50%;background:#9CB8A8;transition:background .8s}
+body[data-state="warm"] .office-dot{background:#D9914F}
+body[data-state="ember"] .office-dot{background:#C46A4A}
+.office-note{font-size:.74rem;color:#8A929B;max-width:30rem;line-height:1.5}
+
+/* ═══ Intervention: voller Kontrast ═══ */
+.reset-veil{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--pine);opacity:0;pointer-events:none;transition:opacity .7s ease;z-index:50}
+body[data-state="ember"] .reset-veil{opacity:1;pointer-events:auto}
+.reset-card{text-align:center;max-width:23rem;padding:2rem}
+.reset-card .word{font-family:var(--font-display);font-weight:300;font-size:2.1rem;color:#FAFCFA;margin-bottom:.7rem}
+.reset-card p{color:#D7E2DA;font-size:.95rem;line-height:1.55;margin-bottom:1.7rem}
+.reset-card .choices{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}
+.reset-card button{background:transparent;color:#FAFCFA;border:1.5px solid #6E8B7D}
+.reset-card button:hover{border-color:#FAFCFA;background:rgba(250,252,250,.07)}
+
+/* ═══ Navigation ═══ */
+nav{display:flex;justify-content:center;gap:2rem;padding:1rem 0 1.35rem;background:var(--mist)}
+nav a{text-decoration:none;font-size:.8rem;letter-spacing:.05em;color:var(--moss);padding:.3rem .1rem;position:relative;cursor:pointer}
+nav a.active{color:var(--pine);font-weight:700}
+nav a.active::after{content:"";position:absolute;left:50%;bottom:-.3rem;width:4px;height:4px;border-radius:50%;background:var(--pine);transform:translateX(-50%)}
+
+/* Demo-Leiste (nur Mockup) */
+.demo{position:fixed;left:50%;bottom:4.7rem;transform:translateX(-50%);
+  display:none;gap:.4rem;align-items:center;background:var(--paper);
+  border:1px dashed var(--moss);border-radius:999px;padding:.35rem .6rem;
+  font-size:.7rem;color:var(--moss);z-index:40}
+.demo.show{display:flex}
+.demo button{font-size:.7rem;padding:.35rem .7rem;border-style:dashed}
+
+@media (prefers-reduced-motion:reduce){.halo,.ring{animation:none}}
+</style>
+</head>
+<body data-state="calm">
+
+<header>
+  <div class="wordmark">Nail<span>Guard</span></div>
+  <div class="lang"><b>DE</b><i>EN</i></div>
+</header>
+
+<main>
+
+<!-- ════════ FOCUS ════════ -->
+<section class="view active" id="view-focus">
+  <div class="stage" aria-live="polite">
+    <div class="halo"></div>
+    <div class="ring"></div>
+    <div class="ring inner"></div>
+  </div>
+
+  <div class="state-block">
+    <div class="state-word" id="stateWord">Ruhig</div>
+    <div class="state-hint" id="stateHint">Nail Guard begleitet dich im Hintergrund — alles bleibt auf deinem Gerät</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="value" id="calmTime">02:47:13</div><div class="label">Ruhige Zeit</div></div>
+    <div class="stat"><div class="value">3</div><div class="label">Momente heute</div></div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="pauseBtn">Pausieren</button>
+    <button onclick="show('office')">Office Mode</button>
+  </div>
+</section>
+
+<!-- ════════ REVIEW ════════ -->
+<section class="view" id="view-review">
+  <div class="view-inner">
+    <h2>Heute, 10. Juni</h2>
+
+    <div class="card">
+      <h3>Ruhige Zeit</h3>
+      <div class="big-row">
+        <span class="value">6:12 h</span>
+        <span class="delta"><b>+48 min</b> vs. gestern</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Momente im Tagesverlauf</h3>
+      <div class="bars" aria-label="Momente pro Stunde">
+        <div class="bar" style="height:18%"></div><div class="bar" style="height:8%"></div>
+        <div class="bar" style="height:30%"></div><div class="bar peak" style="height:92%"></div>
+        <div class="bar" style="height:46%"></div><div class="bar" style="height:12%"></div>
+        <div class="bar" style="height:8%"></div><div class="bar peak" style="height:66%"></div>
+        <div class="bar" style="height:24%"></div><div class="bar" style="height:8%"></div>
+      </div>
+      <div class="bar-x"><span>8:00</span><span>12:00</span><span>16:00</span><span>18:00</span></div>
+      <div class="legend">
+        <span><i style="background:var(--breath)"></i>ruhig</span>
+        <span><i style="background:var(--warm)"></i>häufige Momente</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Dein Feedback</h3>
+      <div class="fb-row"><span>Treffer</span><span class="n">2</span></div>
+      <div class="fb-row"><span>Gesicht berührt</span><span class="n">5</span></div>
+      <div class="fb-row"><span>Fehlalarm</span><span class="n">1</span></div>
+    </div>
+
+    <div class="card streak">
+      <div class="ring-mini">12</div>
+      <p><b>12 Tage in Folge</b> mit weniger als fünf Momenten.<br>Dein ruhigster Lauf bisher.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ EINSTELLUNGEN ════════ -->
+<section class="view" id="view-settings">
+  <div class="view-inner">
+    <h2>Einstellungen</h2>
+
+    <div class="card">
+      <h3>Erkennung</h3>
+      <div class="set-row">
+        <div class="txt"><div class="name">Empfindlichkeit</div><div class="desc">Wie nah die Hand dem Mund kommen darf</div></div>
+        <input type="range" class="slider" min="1" max="10" value="6" aria-label="Empfindlichkeit">
+      </div>
+      <div class="set-row">
+        <div class="txt"><div class="name">Haltezeit</div><div class="desc">Dauer bis zur Intervention</div></div>
+        <input type="range" class="slider" min="1" max="10" value="4" aria-label="Haltezeit">
+      </div>
+      <div class="set-row">
+        <div class="txt"><div class="name">Gesichtsberührung melden</div><div class="desc">Reagiert auf jede Berührung des Gesichts, nicht nur am Mund</div></div>
+        <button class="toggle" role="switch" aria-checked="false" onclick="flip(this)" aria-label="Gesichtsberührung melden"></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Hinweise</h3>
+      <div class="set-row">
+        <div class="txt"><div class="name">Farbwarnung</div><div class="desc">Ring wärmt sich auf, wenn die Hand näher kommt</div></div>
+        <button class="toggle" role="switch" aria-checked="true" onclick="flip(this)" aria-label="Farbwarnung"></button>
+      </div>
+      <div class="set-row">
+        <div class="txt"><div class="name">Ton</div><div class="desc">Leiser Klang bei Intervention</div></div>
+        <button class="toggle" role="switch" aria-checked="true" onclick="flip(this)" aria-label="Ton"></button>
+      </div>
+      <div class="set-row">
+        <div class="txt"><div class="name">Mini-Reset</div><div class="desc">Kurze Atempause als Vollbild</div></div>
+        <button class="toggle" role="switch" aria-checked="true" onclick="flip(this)" aria-label="Mini-Reset"></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Privatsphäre</h3>
+      <div class="privacy-note">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1.5 2.5 4v3.6c0 3.4 2.3 5.9 5.5 6.9 3.2-1 5.5-3.5 5.5-6.9V4L8 1.5Z" stroke="#5E7C6C" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <span>Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Office Mode</h3>
+      <div class="set-row">
+        <div class="txt"><div class="name">Status-Punkt anzeigen</div><div class="desc">Kleiner Punkt zeigt den Erkennungszustand in der Tarnansicht</div></div>
+        <button class="toggle" role="switch" aria-checked="true" onclick="flip(this)" aria-label="Status-Punkt anzeigen"></button>
+      </div>
+      <div class="set-row">
+        <div class="txt"><div class="name">Tarn-Layout</div><div class="desc">Erscheinungsbild der neutralen Ansicht</div></div>
+        <button>Notizen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Sprache</h3>
+      <div class="set-row">
+        <div class="txt"><div class="name">Deutsch</div></div>
+        <button>Ändern</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ OFFICE (Tarnung — bewusst neutral) ════════ -->
+<section class="view" id="view-office">
+  <div class="office-card">
+    <h4>Quarterly Notes</h4>
+    <div class="office-line w80"></div>
+    <div class="office-line w60"></div>
+    <div class="office-line w40"></div>
+    <div class="office-status"><span class="office-dot" onclick="show('focus')" style="cursor:pointer" title="Office Mode beenden"></span>Synced just now</div>
+  </div>
+  <div class="office-card">
+    <h4>Tasks</h4>
+    <div class="office-line w60"></div>
+    <div class="office-line w80"></div>
+    <div class="office-status"><span class="office-dot"></span>3 open</div>
+  </div>
+  <p class="office-note">Der Office Mode trägt absichtlich kein Nail-Guard-Design und läuft ohne Kopfzeile und Navigation. Nur der kleine Status-Punkt zeigt diskret den Erkennungszustand — ein Klick darauf beendet den Office Mode.</p>
+</section>
+
+</main>
+
+<!-- Intervention -->
+<div class="reset-veil" role="dialog" aria-label="Mini-Reset">
+  <div class="reset-card">
+    <div class="word">Kurz innehalten</div>
+    <p>Atme einmal tief ein und wieder aus.<br>Was war das gerade?</p>
+    <div class="choices">
+      <button onclick="setState('calm')">Treffer</button>
+      <button onclick="setState('calm')">Gesicht berührt</button>
+      <button onclick="setState('calm')">Fehlalarm</button>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <a class="active" data-v="focus">Focus</a>
+  <a data-v="review">Review</a>
+  <a data-v="settings">Einstellungen</a>
+</nav>
+
+<!-- Demo-Steuerung (nur Mockup) -->
+<div class="demo show" id="demoBar">
+  Demo:
+  <button onclick="setState('calm')">Ruhig</button>
+  <button onclick="setState('warm')">Hand nähert sich</button>
+  <button onclick="setState('ember')">Intervention</button>
+</div>
+
+<script>
+/* — Navigation — */
+function show(v){
+  document.body.dataset.view=v;
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active', s.id==='view-'+v));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active', a.dataset.v===v));
+  document.getElementById('demoBar').classList.toggle('show', v==='focus' || v==='office');
+}
+document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',()=>show(a.dataset.v)));
+
+/* — Zustände — */
+const words={
+  calm:["Ruhig","Nail Guard begleitet dich im Hintergrund — alles bleibt auf deinem Gerät"],
+  warm:["Achtsam","Deine Hand ist nah am Gesicht"],
+  ember:["Innehalten",""],
+  paused:["Pausiert","Beobachtung ist ausgesetzt"]
+};
+function setState(s){
+  document.body.dataset.state=s;
+  document.getElementById('stateWord').textContent=words[s][0];
+  document.getElementById('stateHint').textContent=words[s][1];
+  document.getElementById('pauseBtn').textContent=(s==='paused')?'Fortsetzen':'Pausieren';
+}
+document.getElementById('pauseBtn').addEventListener('click',()=>{
+  setState(document.body.dataset.state==='paused'?'calm':'paused');
+});
+
+/* — Schalter — */
+function flip(el){el.setAttribute('aria-checked', el.getAttribute('aria-checked')!=='true');}
+
+/* — Ruhige Zeit läuft live — */
+let sec=2*3600+47*60+13;
+setInterval(()=>{
+  if(document.body.dataset.state==='calm'){
+    sec++;
+    const h=String(Math.floor(sec/3600)).padStart(2,'0'),
+          m=String(Math.floor(sec%3600/60)).padStart(2,'0'),
+          s=String(sec%60).padStart(2,'0');
+    document.getElementById('calmTime').textContent=`${h}:${m}:${s}`;
+  }
+},1000);
+</script>
+</body>
+</html>

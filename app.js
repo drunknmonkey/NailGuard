@@ -2,21 +2,28 @@ import {
   FaceLandmarker,
   FilesetResolver,
   HandLandmarker,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/+esm";
+} from "./vendor/mediapipe/tasks-vision/vision_bundle.mjs";
 import { applyStaticTranslations, dateLocale, getLocale, setLocale, t } from "./i18n.js";
 
+// MediaPipe wird vollständig self-hosted ausgeliefert (vendor/ + models/),
+// es werden keine externen CDNs mehr angefragt.
 const MEDIAPIPE = {
-  wasmBaseUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm",
-  faceModelUrl:
-    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-  handModelUrl:
-    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+  wasmBaseUrl: "./vendor/mediapipe/tasks-vision/wasm",
+  faceModelUrl: "./models/face_landmarker.task",
+  handModelUrl: "./models/hand_landmarker.task",
 };
 
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
 const ONBOARDING_KEY = "nail-guard.onboarding.v1";
+const LOCALE_KEY = "nail-guard.locale.v1";
+
+// Alle Keys, die Export/Import berücksichtigen. Fremde Keys in einer
+// Backup-Datei werden beim Import ignoriert.
+const BACKUP_KEYS = [STORAGE_KEY, SETTINGS_KEY, NEUTRAL_NOTES_KEY, ONBOARDING_KEY, LOCALE_KEY];
+// Diese Keys müssen gültiges JSON enthalten; die übrigen sind Klartext.
+const JSON_BACKUP_KEYS = new Set([STORAGE_KEY, SETTINGS_KEY]);
 
 // Guided calibration: how close (normalized) counts as "at the mouth",
 // how long signals must hold, and how the personal threshold is derived.
@@ -30,6 +37,9 @@ const ONBOARDING = {
 };
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
+// Sparse Abtastpunkte über das ganze Gesicht (Stirn, Wangen, Kinn,
+// Gesichtsränder, Nase) für den Schalter „Gesichtsberührung melden".
+const FACE_TOUCH_INDICES = [10, 67, 297, 50, 280, 205, 425, 152, 234, 454, 1, 168];
 const SOUND_PRESETS = {
   softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
   breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
@@ -73,6 +83,7 @@ const els = {
   errorHints: document.querySelector("#errorHints"),
   modeTabs: [...document.querySelectorAll(".mode-tab")],
   modeLinks: [...document.querySelectorAll("[data-mode-link]")],
+  officeExits: [...document.querySelectorAll(".office-exit")],
   modeViews: [...document.querySelectorAll(".mode-view")],
   focusStreak: document.querySelector("#focusStreak"),
   focusConfirmed: document.querySelector("#focusConfirmed"),
@@ -102,12 +113,17 @@ const els = {
   presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
   autoTuneToggle: document.querySelector("#autoTuneToggle"),
+  faceTouchToggle: document.querySelector("#faceTouchToggle"),
+  officeDotToggle: document.querySelector("#officeDotToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   confirmBitingButton: document.querySelector("#confirmBitingButton"),
   falseAlarmButton: document.querySelector("#falseAlarmButton"),
   faceTouchButton: document.querySelector("#faceTouchButton"),
   resetStatsButton: document.querySelector("#resetStatsButton"),
+  exportDataButton: document.querySelector("#exportDataButton"),
+  importDataButton: document.querySelector("#importDataButton"),
+  importDataInput: document.querySelector("#importDataInput"),
   reviewDate: document.querySelector("#reviewDate"),
   statConfirmed: document.querySelector("#statConfirmed"),
   statFalse: document.querySelector("#statFalse"),
@@ -227,6 +243,23 @@ function bindEvents() {
     link.addEventListener("click", () => switchMode(link.dataset.modeLink));
   }
 
+  // Office Mode verlassen: Klick auf den Status-Punkt oder Esc-Taste
+  for (const exit of els.officeExits) {
+    exit.addEventListener("click", () => switchMode("focus"));
+    exit.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        switchMode("focus");
+      }
+    });
+  }
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.dataset.view === "office") {
+      switchMode("focus");
+    }
+  });
+
   for (const input of [els.distanceThreshold, els.holdSeconds, els.cooldownSeconds, els.soundVolume]) {
     input.addEventListener("input", () => {
       settingsFromUi();
@@ -257,11 +290,12 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle]) {
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle, els.faceTouchToggle, els.officeDotToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
       if (!state.settings.showOverlay) clearOverlay();
       if (!state.settings.warmthFeedback) setWarmth(0);
+      renderOfficeDot();
     });
   }
 
@@ -269,6 +303,12 @@ function bindEvents() {
   els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
   els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
   els.resetStatsButton.addEventListener("click", resetStats);
+  els.exportDataButton.addEventListener("click", exportData);
+  els.importDataButton.addEventListener("click", () => els.importDataInput.click());
+  els.importDataInput.addEventListener("change", () => {
+    importData(els.importDataInput.files[0]);
+    els.importDataInput.value = "";
+  });
   els.onboardingSkipButton.addEventListener("click", finishOnboarding);
   els.onboardingFinishButton.addEventListener("click", finishOnboarding);
   els.recalibrateButton.addEventListener("click", startOnboarding);
@@ -289,6 +329,13 @@ async function startApp() {
     els.workspace.hidden = false;
     state.running = true;
     state.paused = false;
+
+    // Persistenten Speicher anfragen, damit der Browser localStorage
+    // (Statistiken, Streak, Einstellungen) nicht automatisch bereinigt.
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
+
     switchMode(state.activeMode);
     refreshAppState(true);
     requestAnimationFrame(detection.loop);
@@ -361,6 +408,15 @@ const detection = {
     state.mouthCenter = faceLandmarks ? averageLandmarks(faceLandmarks, MOUTH_INDICES) : null;
     state.fingertips = handLandmarks.flatMap((hand) => FINGERTIP_INDICES.map((index) => hand[index]));
     state.minDistance = computeMinMouthDistance(state.mouthCenter, state.fingertips);
+
+    // „Gesichtsberührung melden": ganzes Gesicht statt nur Mund.
+    // Während der Kalibrierung zählt weiterhin nur der Mundabstand.
+    if (state.settings.faceTouchAlert && !state.onboarding && faceLandmarks) {
+      state.minDistance = Math.min(
+        state.minDistance,
+        computeMinFaceDistance(faceLandmarks, state.fingertips),
+      );
+    }
 
     renderLiveSignals(faceLandmarks, handLandmarks);
 
@@ -682,6 +738,9 @@ function finishOnboarding() {
   state.onboarding = null;
   state.nearSince = null;
   els.onboardingPanel.hidden = true;
+  // Nach der Kalibrierung landet der Nutzer im Focus Mode,
+  // nicht in den Einstellungen.
+  switchMode("focus");
 }
 
 function renderOnboarding() {
@@ -720,6 +779,8 @@ function switchMode(mode) {
   state.activeMode = ["focus", "calibration", "review", "neutral"].includes(mode) ? mode : "focus";
   state.settings.activeMode = state.activeMode;
   saveSettings();
+  // body[data-view="office"] blendet Kopfzeile und Navigation aus (Tarnung)
+  document.body.dataset.view = state.activeMode === "neutral" ? "office" : state.activeMode;
   renderAppChrome();
 
   for (const tab of els.modeTabs) {
@@ -994,6 +1055,8 @@ function settingsFromUi() {
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
     autoTune: els.autoTuneToggle.checked,
+    faceTouchAlert: els.faceTouchToggle.checked,
+    officeStatusDot: els.officeDotToggle.checked,
     neutralLayout: els.neutralLayoutSelect.value,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
@@ -1013,8 +1076,63 @@ function applySettingsToUi() {
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
   els.autoTuneToggle.checked = state.settings.autoTune;
+  els.faceTouchToggle.checked = state.settings.faceTouchAlert;
+  els.officeDotToggle.checked = state.settings.officeStatusDot;
   els.neutralLayoutSelect.value = state.settings.neutralLayout;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
+  renderOfficeDot();
+}
+
+function renderOfficeDot() {
+  document.body.dataset.officeDot = state.settings.officeStatusDot ? "on" : "off";
+}
+
+function exportData() {
+  const data = {};
+  for (const key of BACKUP_KEYS) {
+    const value = localStorage.getItem(key);
+    if (value !== null) data[key] = value;
+  }
+
+  const payload = { app: "nail-guard", exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `nailguard-backup-${todayKey()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(file) {
+  if (!file) return;
+
+  try {
+    const parsed = JSON.parse(await file.text());
+    // Backups tragen die Keys unter "data"; pures Key/Wert-JSON wird
+    // ebenfalls akzeptiert. Unbekannte Keys werden ignoriert.
+    const data = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+    if (!data || typeof data !== "object") throw new Error("invalid-backup");
+
+    const entries = [];
+    for (const key of BACKUP_KEYS) {
+      if (!(key in data)) continue;
+      const raw = data[key];
+      const value = typeof raw === "string" ? raw : JSON.stringify(raw);
+      if (JSON_BACKUP_KEYS.has(key)) JSON.parse(value);
+      entries.push([key, value]);
+    }
+    if (entries.length === 0) throw new Error("invalid-backup");
+
+    for (const [key, value] of entries) {
+      localStorage.setItem(key, value);
+    }
+
+    // App mit den importierten Daten neu initialisieren
+    window.location.reload();
+  } catch {
+    showError({ message: t("errors.importFailed"), hints: [t("errors.importFailedHint1")] });
+  }
 }
 
 function loadSettings() {
@@ -1031,6 +1149,8 @@ function loadSettings() {
     soundVolume: 0.35,
     vibration: true,
     autoTune: true,
+    faceTouchAlert: false,
+    officeStatusDot: true,
     neutralLayout: "clock",
     neutralSubtleInterventions: true,
   };
@@ -1149,6 +1269,19 @@ function computeMinMouthDistance(mouthCenter, fingertips) {
     const dy = mouthCenter.y - fingertip.y;
     return Math.min(min, Math.hypot(dx, dy));
   }, Number.POSITIVE_INFINITY);
+}
+
+function computeMinFaceDistance(faceLandmarks, fingertips) {
+  if (fingertips.length === 0) return Number.POSITIVE_INFINITY;
+
+  let min = Number.POSITIVE_INFINITY;
+  for (const index of FACE_TOUCH_INDICES) {
+    const point = faceLandmarks[index];
+    for (const fingertip of fingertips) {
+      min = Math.min(min, Math.hypot(point.x - fingertip.x, point.y - fingertip.y));
+    }
+  }
+  return min;
 }
 
 function drawOverlay() {
