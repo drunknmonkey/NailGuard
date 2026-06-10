@@ -2,7 +2,7 @@
   <defs>
     <clipPath id="nail"><rect x="166" y="112" width="180" height="306" rx="90"/></clipPath>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#1c776f"/>
-  <rect x="166" y="112" width="180" height="306" rx="90" fill="#fffdfa"/>
-  <ellipse cx="256" cy="418" rx="110" ry="78" fill="#9ecfc4" clip-path="url(#nail)"/>
+  <rect width="512" height="512" rx="112" fill="#1E3B34"/>
+  <rect x="166" y="112" width="180" height="306" rx="90" fill="#FAFCFA"/>
+  <ellipse cx="256" cy="418" rx="110" ry="78" fill="#A8C7B4" clip-path="url(#nail)"/>
 </svg>

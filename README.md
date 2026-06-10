@@ -168,6 +168,16 @@ Extern geladen werden aktuell:
 
 Der Service Worker (`sw.js`) cacht diese Dateien nach dem ersten erfolgreichen Laden lokal (Cache-First, die URLs sind versioniert). Damit funktioniert die App nach dem ersten Lauf auch offline. Alternativ können die Dateien weiterhin lokal gespiegelt und die URLs in `app.js` im Objekt `MEDIAPIPE` auf lokale Pfade geändert werden.
 
+## Design „Atem & Ruhe"
+
+Die App folgt einer eigenen Designsprache: ruhiger Begleiter statt Überwachungs-Tool.
+
+- **Tokens** (in `style.css` unter `:root`): Flächen `--mist`/`--paper`, Text `--pine`/`--moss`, Zustände `--breath` (ruhig), `--warm` (Hand nähert sich), `--ember` (Intervention). Für Text in Warnzuständen immer die dunklen Varianten `--warm-text`/`--ember-text` verwenden (Lesbarkeit).
+- **Schriften**: Fraunces (Display), Atkinson Hyperlegible (Body), Spline Sans Mono (Zahlen, `tabular-nums`) — geladen über Google Fonts, mit System-Fallbacks; der Service Worker cacht die Fonts nach dem ersten Laden.
+- **Signatur-Element**: der atmende Status-Ring im Focus-Modus. Der Zustand liegt als `data-state` auf `<body>` (`calm` 4,6 s Atemzyklus → `warm` 2,6 s → `ember` 1,6 s → `paused` steht). Gesteuert wird er zentral über `refreshAppState()` in `app.js`.
+- **Intervention**: Vollbild-Veil in `--pine` („Kurz innehalten") mit den drei Feedback-Optionen.
+- **Office Mode** verwendet dieses Design **bewusst nicht** (Tarnung): neutrale System-Schrift, graue Flächen, keine Markenbegriffe. Nur der kleine Status-Punkt übernimmt diskret dieselbe Farblogik wie der Ring.
+
 ## Sprachen (i18n)
 
 - Alle UI-Texte liegen in `i18n.js` in einem Wörterbuch für `de` und `en`.
