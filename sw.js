@@ -1,4 +1,4 @@
-const CACHE_NAME = "nail-guard-v2";
+const CACHE_NAME = "nail-guard-v3";
 
 const APP_SHELL = [
   "./",
@@ -16,8 +16,13 @@ const APP_SHELL = [
   "./icons/apple-touch-icon.png",
 ];
 
-// MediaPipe library, WASM and models: versioned URLs, safe to cache forever.
-const RUNTIME_HOSTS = ["cdn.jsdelivr.net", "storage.googleapis.com"];
+// MediaPipe library, WASM, models and web fonts: stable URLs, safe to cache.
+const RUNTIME_HOSTS = [
+  "cdn.jsdelivr.net",
+  "storage.googleapis.com",
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

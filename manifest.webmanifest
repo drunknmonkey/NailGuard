@@ -6,9 +6,13 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f7f5ef",
-  "theme_color": "#1c776f",
-  "categories": ["health", "productivity", "lifestyle"],
+  "background_color": "#EDF2ED",
+  "theme_color": "#1E3B34",
+  "categories": [
+    "health",
+    "productivity",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "./icons/icon.svg",
