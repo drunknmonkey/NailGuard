@@ -715,6 +715,9 @@ function finishOnboarding() {
   state.onboarding = null;
   state.nearSince = null;
   els.onboardingPanel.hidden = true;
+  // Nach der Kalibrierung landet der Nutzer im Focus Mode,
+  // nicht in den Einstellungen.
+  switchMode("focus");
 }
 
 function renderOnboarding() {

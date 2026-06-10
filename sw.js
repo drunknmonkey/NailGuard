@@ -1,4 +1,4 @@
-const CACHE_NAME = "nail-guard-v3";
+const CACHE_NAME = "nail-guard-v4";
 
 const APP_SHELL = [
   "./",
