@@ -84,6 +84,11 @@ const translations = {
     "settings.officeLayout": "Tarn-Layout",
     "settings.officeLayoutDesc": "Erscheinungsbild der neutralen Ansicht",
     "settings.officeSubtleDesc": "Interventionen erscheinen nur als kleine Notiz am Rand",
+    "settings.dataTitle": "Daten",
+    "settings.dataExport": "Exportieren",
+    "settings.dataExportDesc": "Statistiken, Streak und Einstellungen als JSON-Datei sichern",
+    "settings.dataImport": "Importieren",
+    "settings.dataImportDesc": "Backup-Datei einlesen; vorhandene Daten werden ersetzt",
 
     "calibration.testWarning": "Mini-Reset testen",
     "presets.soft": "Sanft",
@@ -248,6 +253,9 @@ const translations = {
     "errors.noGetUserMediaHint1": "Nutze Chrome, Safari oder Edge.",
     "errors.noGetUserMediaHint2":
       "Öffne die App über HTTPS oder lokal über http://localhost, nicht direkt als Datei.",
+    "errors.importFailed": "Die Backup-Datei konnte nicht importiert werden.",
+    "errors.importFailedHint1":
+      "Bitte eine unveränderte nailguard-backup-….json Datei aus dem Export verwenden.",
     "errors.generic": "Die App konnte nicht starten.",
     "errors.genericHint1": "Prüfe die Internetverbindung für den ersten MediaPipe-Download.",
     "errors.genericHint2": "Prüfe die Browser-Kamerafreigabe.",
@@ -335,6 +343,11 @@ const translations = {
     "settings.officeLayout": "Disguise layout",
     "settings.officeLayoutDesc": "Appearance of the neutral view",
     "settings.officeSubtleDesc": "Interventions appear only as a small note at the edge",
+    "settings.dataTitle": "Data",
+    "settings.dataExport": "Export",
+    "settings.dataExportDesc": "Save statistics, streak and settings as a JSON file",
+    "settings.dataImport": "Import",
+    "settings.dataImportDesc": "Read a backup file; existing data will be replaced",
 
     "calibration.testWarning": "Test mini reset",
     "presets.soft": "Gentle",
@@ -498,6 +511,9 @@ const translations = {
     "errors.noGetUserMediaHint1": "Use Chrome, Safari or Edge.",
     "errors.noGetUserMediaHint2":
       "Open the app via HTTPS or locally via http://localhost, not directly as a file.",
+    "errors.importFailed": "The backup file could not be imported.",
+    "errors.importFailedHint1":
+      "Please use an unmodified nailguard-backup-….json file from the export.",
     "errors.generic": "The app could not start.",
     "errors.genericHint1": "Check your internet connection for the first MediaPipe download.",
     "errors.genericHint2": "Check the browser's camera permission.",

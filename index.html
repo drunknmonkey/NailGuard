@@ -319,6 +319,27 @@
                 <input id="neutralSubtleToggle" class="switch" type="checkbox" checked aria-label="Sehr dezente Einblendung" data-i18n-aria-label="neutral.subtle" />
               </div>
             </div>
+
+            <div class="card">
+              <h3 data-i18n="settings.dataTitle">Daten</h3>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.dataExport">Exportieren</div>
+                  <div class="desc" data-i18n="settings.dataExportDesc">Statistiken, Streak und Einstellungen als JSON-Datei sichern</div>
+                </div>
+                <button class="mini-action" id="exportDataButton" type="button" data-i18n="settings.dataExport">Exportieren</button>
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.dataImport">Importieren</div>
+                  <div class="desc" data-i18n="settings.dataImportDesc">Backup-Datei einlesen; vorhandene Daten werden ersetzt</div>
+                </div>
+                <button class="mini-action" id="importDataButton" type="button" data-i18n="settings.dataImport">Importieren</button>
+                <input id="importDataInput" type="file" accept=".json,application/json" hidden />
+              </div>
+            </div>
           </div>
         </section>
 

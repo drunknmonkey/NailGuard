@@ -17,6 +17,13 @@ const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
 const ONBOARDING_KEY = "nail-guard.onboarding.v1";
+const LOCALE_KEY = "nail-guard.locale.v1";
+
+// Alle Keys, die Export/Import berücksichtigen. Fremde Keys in einer
+// Backup-Datei werden beim Import ignoriert.
+const BACKUP_KEYS = [STORAGE_KEY, SETTINGS_KEY, NEUTRAL_NOTES_KEY, ONBOARDING_KEY, LOCALE_KEY];
+// Diese Keys müssen gültiges JSON enthalten; die übrigen sind Klartext.
+const JSON_BACKUP_KEYS = new Set([STORAGE_KEY, SETTINGS_KEY]);
 
 // Guided calibration: how close (normalized) counts as "at the mouth",
 // how long signals must hold, and how the personal threshold is derived.
@@ -114,6 +121,9 @@ const els = {
   falseAlarmButton: document.querySelector("#falseAlarmButton"),
   faceTouchButton: document.querySelector("#faceTouchButton"),
   resetStatsButton: document.querySelector("#resetStatsButton"),
+  exportDataButton: document.querySelector("#exportDataButton"),
+  importDataButton: document.querySelector("#importDataButton"),
+  importDataInput: document.querySelector("#importDataInput"),
   reviewDate: document.querySelector("#reviewDate"),
   statConfirmed: document.querySelector("#statConfirmed"),
   statFalse: document.querySelector("#statFalse"),
@@ -293,6 +303,12 @@ function bindEvents() {
   els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
   els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
   els.resetStatsButton.addEventListener("click", resetStats);
+  els.exportDataButton.addEventListener("click", exportData);
+  els.importDataButton.addEventListener("click", () => els.importDataInput.click());
+  els.importDataInput.addEventListener("change", () => {
+    importData(els.importDataInput.files[0]);
+    els.importDataInput.value = "";
+  });
   els.onboardingSkipButton.addEventListener("click", finishOnboarding);
   els.onboardingFinishButton.addEventListener("click", finishOnboarding);
   els.recalibrateButton.addEventListener("click", startOnboarding);
@@ -1069,6 +1085,54 @@ function applySettingsToUi() {
 
 function renderOfficeDot() {
   document.body.dataset.officeDot = state.settings.officeStatusDot ? "on" : "off";
+}
+
+function exportData() {
+  const data = {};
+  for (const key of BACKUP_KEYS) {
+    const value = localStorage.getItem(key);
+    if (value !== null) data[key] = value;
+  }
+
+  const payload = { app: "nail-guard", exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `nailguard-backup-${todayKey()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(file) {
+  if (!file) return;
+
+  try {
+    const parsed = JSON.parse(await file.text());
+    // Backups tragen die Keys unter "data"; pures Key/Wert-JSON wird
+    // ebenfalls akzeptiert. Unbekannte Keys werden ignoriert.
+    const data = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+    if (!data || typeof data !== "object") throw new Error("invalid-backup");
+
+    const entries = [];
+    for (const key of BACKUP_KEYS) {
+      if (!(key in data)) continue;
+      const raw = data[key];
+      const value = typeof raw === "string" ? raw : JSON.stringify(raw);
+      if (JSON_BACKUP_KEYS.has(key)) JSON.parse(value);
+      entries.push([key, value]);
+    }
+    if (entries.length === 0) throw new Error("invalid-backup");
+
+    for (const [key, value] of entries) {
+      localStorage.setItem(key, value);
+    }
+
+    // App mit den importierten Daten neu initialisieren
+    window.location.reload();
+  } catch {
+    showError({ message: t("errors.importFailed"), hints: [t("errors.importFailedHint1")] });
+  }
 }
 
 function loadSettings() {
