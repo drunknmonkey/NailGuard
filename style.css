@@ -11,7 +11,14 @@
              · Spline Sans Mono (Zahlen, tabular-nums)
 
    Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
+   Navigation: NUR drei Reiter (Focus, Review, Einstellungen).
+   Office Mode ist ein ZUSTAND, kein Reiter: Aktivierung über Button im
+   Focus Mode; läuft vollflächig OHNE Header/Navigation (Tarnung!);
+   Verlassen per Klick auf den Status-Punkt oder per Esc.
+   Office-Optionen liegen in den Einstellungen, nie auf der Office-Seite.
+   Flow: Nach der Kalibrierung landet der Nutzer im FOCUS MODE.
    Der Office Mode verwendet dieses Design BEWUSST NICHT (Tarnung).
+   Referenz: docs/nailguard-design-referenz.html
    ════════════════════════════════════════════════════════════ */
 
 :root {
