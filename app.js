@@ -313,6 +313,13 @@ async function startApp() {
     els.workspace.hidden = false;
     state.running = true;
     state.paused = false;
+
+    // Persistenten Speicher anfragen, damit der Browser localStorage
+    // (Statistiken, Streak, Einstellungen) nicht automatisch bereinigt.
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
+
     switchMode(state.activeMode);
     refreshAppState(true);
     requestAnimationFrame(detection.loop);
