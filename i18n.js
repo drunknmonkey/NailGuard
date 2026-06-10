@@ -43,7 +43,6 @@ const translations = {
     "tabs.focus": "Focus",
     "tabs.calibration": "Einstellungen",
     "tabs.review": "Review",
-    "tabs.neutral": "Office",
 
     "focus.openOffice": "Office Mode",
     "focus.pause": "Pausieren",
@@ -129,7 +128,6 @@ const translations = {
     "review.streakZero": "Jeder ruhige Tag zählt. Heute ist ein guter Start.",
     "review.reset": "Statistik zurücksetzen",
 
-    "neutral.view": "Ansicht",
     "neutral.layout.clock": "Uhr & Datum",
     "neutral.layout.timer": "Fokus-Timer",
     "neutral.layout.notes": "Notizseite",
@@ -141,6 +139,7 @@ const translations = {
     "neutral.layout.reading": "Lesemodus",
     "neutral.layout.blank": "Blank Screen",
     "neutral.subtle": "Sehr dezente Einblendung",
+    "neutral.exitTitle": "Office Mode beenden",
     "neutral.kickerWorkspace": "Workspace",
     "neutral.today": "Heute",
     "neutral.active": "Aktiv",
@@ -295,7 +294,6 @@ const translations = {
     "tabs.focus": "Focus",
     "tabs.calibration": "Settings",
     "tabs.review": "Review",
-    "tabs.neutral": "Office",
 
     "focus.openOffice": "Office Mode",
     "focus.pause": "Pause",
@@ -381,7 +379,6 @@ const translations = {
     "review.streakZero": "Every calm day counts. Today is a good start.",
     "review.reset": "Reset statistics",
 
-    "neutral.view": "View",
     "neutral.layout.clock": "Clock & date",
     "neutral.layout.timer": "Focus timer",
     "neutral.layout.notes": "Notes page",
@@ -393,6 +390,7 @@ const translations = {
     "neutral.layout.reading": "Reading mode",
     "neutral.layout.blank": "Blank screen",
     "neutral.subtle": "Very subtle notifications",
+    "neutral.exitTitle": "Exit Office Mode",
     "neutral.kickerWorkspace": "Workspace",
     "neutral.today": "Today",
     "neutral.active": "Active",
@@ -558,5 +556,9 @@ export function applyStaticTranslations(root = document) {
 
   for (const el of root.querySelectorAll("[data-i18n-placeholder]")) {
     el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
+  }
+
+  for (const el of root.querySelectorAll("[data-i18n-title]")) {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
   }
 }

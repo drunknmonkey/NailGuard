@@ -795,9 +795,41 @@ canvas {
 }
 
 /* ═══ OFFICE (Tarnung — bewusst NICHT im Markendesign) ═══ */
+/* Office Mode ist ein Zustand, kein Reiter: er läuft vollflächig
+   ohne Kopfzeile und Navigation. Verlassen per Klick auf den
+   Status-Punkt oder per Esc-Taste. */
+body[data-view="office"] .topbar,
+body[data-view="office"] .mode-tabs {
+  display: none;
+}
+
+body[data-view="office"] {
+  background: #F5F6F8;
+}
+
+body[data-view="office"] .app-shell {
+  width: 100%;
+  padding: 0;
+}
+
 .neutral-view {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #3A4149;
+}
+
+body[data-view="office"] .neutral-view.active {
+  margin: 0;
+  border-radius: 0;
+  min-height: 100dvh;
+  padding: 1.5rem 1.4rem 2.5rem;
+}
+
+body[data-view="office"] .neutral-canvas {
+  flex: 1;
+}
+
+.office-exit {
+  cursor: pointer;
 }
 
 .neutral-view.active {

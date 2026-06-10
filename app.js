@@ -76,6 +76,7 @@ const els = {
   errorHints: document.querySelector("#errorHints"),
   modeTabs: [...document.querySelectorAll(".mode-tab")],
   modeLinks: [...document.querySelectorAll("[data-mode-link]")],
+  officeExits: [...document.querySelectorAll(".office-exit")],
   modeViews: [...document.querySelectorAll(".mode-view")],
   focusStreak: document.querySelector("#focusStreak"),
   focusConfirmed: document.querySelector("#focusConfirmed"),
@@ -231,6 +232,23 @@ function bindEvents() {
   for (const link of els.modeLinks) {
     link.addEventListener("click", () => switchMode(link.dataset.modeLink));
   }
+
+  // Office Mode verlassen: Klick auf den Status-Punkt oder Esc-Taste
+  for (const exit of els.officeExits) {
+    exit.addEventListener("click", () => switchMode("focus"));
+    exit.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        switchMode("focus");
+      }
+    });
+  }
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.dataset.view === "office") {
+      switchMode("focus");
+    }
+  });
 
   for (const input of [els.distanceThreshold, els.holdSeconds, els.cooldownSeconds, els.soundVolume]) {
     input.addEventListener("input", () => {
@@ -735,6 +753,8 @@ function switchMode(mode) {
   state.activeMode = ["focus", "calibration", "review", "neutral"].includes(mode) ? mode : "focus";
   state.settings.activeMode = state.activeMode;
   saveSettings();
+  // body[data-view="office"] blendet Kopfzeile und Navigation aus (Tarnung)
+  document.body.dataset.view = state.activeMode === "neutral" ? "office" : state.activeMode;
   renderAppChrome();
 
   for (const tab of els.modeTabs) {
