@@ -134,17 +134,9 @@ const els = {
   hourLabels: document.querySelector("#hourLabels"),
   streakDays: document.querySelector("#streakDays"),
   streakText: document.querySelector("#streakText"),
-  neutralLayoutSelect: document.querySelector("#neutralLayoutSelect"),
   neutralSubtleToggle: document.querySelector("#neutralSubtleToggle"),
-  neutralLayouts: [...document.querySelectorAll(".neutral-layout")],
-  neutralClockTime: document.querySelector("#neutralClockTime"),
-  neutralClockDate: document.querySelector("#neutralClockDate"),
-  neutralTimerValue: document.querySelector("#neutralTimerValue"),
   neutralNotes: document.querySelector("#neutralNotes"),
-  neutralBreathLabel: document.querySelector("#neutralBreathLabel"),
-  neutralDashboardTime: document.querySelector("#neutralDashboardTime"),
-  neutralFocusDuration: document.querySelector("#neutralFocusDuration"),
-  neutralBlankTime: document.querySelector("#neutralBlankTime"),
+  editorWordCount: document.querySelector("#editorWordCount"),
   neutralIntervention: document.querySelector("#neutralIntervention"),
   neutralInterventionTitle: document.querySelector("#neutralInterventionTitle"),
   neutralInterventionText: document.querySelector("#neutralInterventionText"),
@@ -175,7 +167,6 @@ const state = {
   minDistance: Number.POSITIVE_INFINITY,
   settings: loadSettings(),
   stats: loadStats(),
-  neutralTimerStartedAt: Date.now(),
   neutralInterventionTimer: null,
   appState: "calm",
   handNear: false,
@@ -194,10 +185,7 @@ function init() {
   switchMode(state.activeMode);
   renderAll();
   setInterval(renderStats, 15_000);
-  setInterval(() => {
-    renderNeutralInfo();
-    renderFocusTick();
-  }, 1_000);
+  setInterval(renderFocusTick, 1_000);
   registerServiceWorker();
 }
 
@@ -274,13 +262,11 @@ function bindEvents() {
   }
 
   els.soundPreset.addEventListener("change", settingsFromUi);
-  els.neutralLayoutSelect.addEventListener("change", () => {
-    settingsFromUi();
-    renderNeutralLayout();
-  });
   els.neutralSubtleToggle.addEventListener("change", settingsFromUi);
+  // Tarn-Editor: Notizen lokal persistieren und Wortzahl mitführen
   els.neutralNotes.addEventListener("input", () => {
     localStorage.setItem(NEUTRAL_NOTES_KEY, els.neutralNotes.value);
+    renderWordCount();
   });
   els.testSoundButton.addEventListener("click", () => {
     settingsFromUi();
@@ -805,8 +791,7 @@ function renderAll() {
   renderSettings();
   renderStats();
   renderPauseState();
-  renderNeutralLayout();
-  renderNeutralInfo();
+  renderOfficeEditor();
   renderOnboarding();
   refreshAppState(true);
 }
@@ -1005,41 +990,19 @@ function renderPresetButtons() {
   }
 }
 
-function renderNeutralLayout() {
-  const selectedLayout = [...els.neutralLayoutSelect.options].some((option) => option.value === state.settings.neutralLayout)
-    ? state.settings.neutralLayout
-    : "clock";
-  state.settings.neutralLayout = selectedLayout;
-  els.neutralLayoutSelect.value = selectedLayout;
+// Tarn-Editor (Office Mode): persistierte Notizen laden und Wortzahl
+// anzeigen. Beim ersten Start steht ein unverfänglicher Beispieltext.
+function renderOfficeEditor() {
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
-  els.neutralNotes.value = localStorage.getItem(NEUTRAL_NOTES_KEY) ?? t("neutral.notesKicker");
-
-  for (const layout of els.neutralLayouts) {
-    layout.classList.toggle("active", layout.dataset.neutralLayout === selectedLayout);
-  }
+  const stored = localStorage.getItem(NEUTRAL_NOTES_KEY);
+  els.neutralNotes.value = stored ?? t("office.sampleNotes");
+  renderWordCount();
 }
 
-function renderNeutralInfo() {
-  const now = new Date();
-  const time = now.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
-  const date = now.toLocaleDateString(dateLocale(), {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  });
-  const timerMs = Date.now() - state.neutralTimerStartedAt;
-  const timerMinutes = Math.floor(timerMs / 60_000);
-  const timerSeconds = Math.floor((timerMs % 60_000) / 1000);
-  const timer = `${String(timerMinutes).padStart(2, "0")}:${String(timerSeconds).padStart(2, "0")}`;
-  const breathPhase = Math.floor((Date.now() / 3500) % 2) === 0 ? t("neutral.breatheIn") : t("neutral.breatheOut");
-
-  els.neutralClockTime.textContent = time;
-  els.neutralClockDate.textContent = date;
-  els.neutralTimerValue.textContent = timer;
-  els.neutralBreathLabel.textContent = breathPhase;
-  els.neutralDashboardTime.textContent = time;
-  els.neutralFocusDuration.textContent = `${timerMinutes} min`;
-  els.neutralBlankTime.textContent = time;
+function renderWordCount() {
+  const trimmed = els.neutralNotes.value.trim();
+  const count = trimmed ? trimmed.split(/\s+/).length : 0;
+  els.editorWordCount.textContent = count === 1 ? t("office.wordOne") : t("office.wordOther", { count });
 }
 
 function settingsFromUi() {
@@ -1057,7 +1020,6 @@ function settingsFromUi() {
     autoTune: els.autoTuneToggle.checked,
     faceTouchAlert: els.faceTouchToggle.checked,
     officeStatusDot: els.officeDotToggle.checked,
-    neutralLayout: els.neutralLayoutSelect.value,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
   saveSettings();
@@ -1078,7 +1040,6 @@ function applySettingsToUi() {
   els.autoTuneToggle.checked = state.settings.autoTune;
   els.faceTouchToggle.checked = state.settings.faceTouchAlert;
   els.officeDotToggle.checked = state.settings.officeStatusDot;
-  els.neutralLayoutSelect.value = state.settings.neutralLayout;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
   renderOfficeDot();
 }
@@ -1151,7 +1112,6 @@ function loadSettings() {
     autoTune: true,
     faceTouchAlert: false,
     officeStatusDot: true,
-    neutralLayout: "clock",
     neutralSubtleInterventions: true,
   };
 

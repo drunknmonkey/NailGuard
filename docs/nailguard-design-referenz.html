@@ -22,9 +22,15 @@
   Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
   Navigation: NUR drei Reiter (Focus, Review, Einstellungen).
   Office Mode ist ein ZUSTAND, kein Reiter: Aktivierung über Button im
-  Focus Mode; läuft vollflächig OHNE Header/Navigation (Tarnung!);
-  Verlassen per Klick auf den Status-Punkt. Office-Optionen liegen in
-  den Einstellungen, nie auf der Office-Seite selbst.
+  Focus Mode; läuft vollflächig OHNE Header/Navigation (Tarnung!).
+  TARNUNG = ein funktionierender, schlichter Texteditor (Notizen.txt):
+  echte, beschreibbare Schreibfläche + Werkzeugleiste + Statusleiste.
+  Im echten Produkt sollte der Editorinhalt persistiert werden
+  (localStorage bzw. tauri-plugin-store), damit Notizen erhalten bleiben.
+  Der Erkennungs-Status sitzt getarnt als kleiner Punkt in der unteren
+  Statusleiste (folgt der Ring-Farblogik). Verlassen per Klick auf den
+  Punkt ODER per Esc-Taste. Office-Optionen liegen in den Einstellungen,
+  nie auf der Office-Seite selbst.
   Flow: Nach der Kalibrierung landet der Nutzer im FOCUS MODE,
   nicht in den Einstellungen.
   Der Office Mode verwendet dieses Design BEWUSST NICHT (Tarnung).
@@ -159,20 +165,32 @@ h2{font-family:var(--font-display);font-weight:400;font-size:1.45rem;margin:.4re
   background:color-mix(in srgb,var(--breath) 18%,var(--paper));border-radius:.8rem;padding:.8rem .9rem}
 .privacy-note svg{flex-shrink:0;margin-top:1px}
 
-/* ═══ OFFICE (bewusst NICHT im Markendesign) ═══ */
+/* ═══ OFFICE = funktionierender, unauffälliger Texteditor (Tarnung) ═══ */
 body[data-view="office"] header,
 body[data-view="office"] nav{display:none}
-#view-office{background:#F5F6F8;color:#3A4149;font-family:system-ui,sans-serif;
-  padding:1.5rem 1.4rem 2.5rem;min-height:100dvh;justify-content:flex-start}
-.office-card{background:#fff;border:1px solid #E3E6EA;border-radius:.5rem;padding:1rem 1.1rem;width:100%;max-width:30rem}
-.office-card h4{font-size:.85rem;font-weight:600;color:#3A4149;margin-bottom:.6rem}
-.office-line{height:8px;border-radius:4px;background:#EDEFF2;margin:.45rem 0}
-.office-line.w60{width:60%}.office-line.w80{width:80%}.office-line.w40{width:40%}
-.office-status{display:flex;align-items:center;gap:.45rem;font-size:.74rem;color:#8A929B;margin-top:.4rem}
-.office-dot{width:7px;height:7px;border-radius:50%;background:#9CB8A8;transition:background .8s}
+#view-office{background:#FFFFFF;color:#2B2F36;font-family:system-ui,-apple-system,sans-serif;
+  padding:0;min-height:100dvh;justify-content:flex-start;gap:0}
+.ed{display:flex;flex-direction:column;width:100%;min-height:100dvh}
+/* Werkzeugleiste wie in einem schlichten Editor */
+.ed-bar{display:flex;align-items:center;gap:1.1rem;padding:.6rem 1rem;
+  border-bottom:1px solid #E7E9EC;font-size:.82rem;color:#5B616B;background:#FBFBFC}
+.ed-bar .doc{font-weight:600;color:#2B2F36}
+.ed-bar .sep{flex:1}
+.ed-bar .tool{cursor:pointer;padding:.15rem .35rem;border-radius:4px}
+.ed-bar .tool:hover{background:#EEF0F2}
+/* Schreibfläche */
+.ed-area{flex:1;width:100%;border:none;outline:none;resize:none;
+  padding:2rem clamp(1rem,8vw,5rem);font-size:1.02rem;line-height:1.7;
+  color:#2B2F36;font-family:ui-serif,Georgia,'Times New Roman',serif;background:#FFFFFF}
+.ed-area::placeholder{color:#B8BdC4}
+/* Statusleiste unten — hier sitzt der getarnte Erkennungs-Punkt */
+.ed-foot{display:flex;align-items:center;gap:.5rem;padding:.45rem 1rem;
+  border-top:1px solid #E7E9EC;font-size:.74rem;color:#8A929B;background:#FBFBFC}
+.ed-foot .sep{flex:1}
+.office-dot{width:8px;height:8px;border-radius:50%;background:#9CB8A8;
+  transition:background .8s;cursor:pointer}
 body[data-state="warm"] .office-dot{background:#D9914F}
 body[data-state="ember"] .office-dot{background:#C46A4A}
-.office-note{font-size:.74rem;color:#8A929B;max-width:30rem;line-height:1.5}
 
 /* ═══ Intervention: voller Kontrast ═══ */
 .reset-veil{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
@@ -345,22 +363,31 @@ nav a.active::after{content:"";position:absolute;left:50%;bottom:-.3rem;width:4p
   </div>
 </section>
 
-<!-- ════════ OFFICE (Tarnung — bewusst neutral) ════════ -->
+<!-- ════════ OFFICE = funktionierender Texteditor (Tarnung) ════════ -->
 <section class="view" id="view-office">
-  <div class="office-card">
-    <h4>Quarterly Notes</h4>
-    <div class="office-line w80"></div>
-    <div class="office-line w60"></div>
-    <div class="office-line w40"></div>
-    <div class="office-status"><span class="office-dot" onclick="show('focus')" style="cursor:pointer" title="Office Mode beenden"></span>Synced just now</div>
+  <div class="ed">
+    <div class="ed-bar">
+      <span class="doc">Notizen.txt</span>
+      <span class="tool">Datei</span>
+      <span class="tool">Bearbeiten</span>
+      <span class="tool">Format</span>
+      <span class="sep"></span>
+      <span class="tool" onclick="show('focus')" title="Schließen">✕</span>
+    </div>
+    <textarea class="ed-area" id="edText" spellcheck="false"
+      placeholder="Schreiben …">Besprechung Donnerstag
+- Angebot bis Ende der Woche fertigstellen
+- Rückmeldung an das Team
+- Termine für nächste Woche abstimmen
+
+</textarea>
+    <div class="ed-foot">
+      <span id="edCount">0 Wörter</span>
+      <span class="sep"></span>
+      <span>Automatisch gespeichert</span>
+      <span class="office-dot" onclick="show('focus')" title="Office Mode beenden (oder Esc)"></span>
+    </div>
   </div>
-  <div class="office-card">
-    <h4>Tasks</h4>
-    <div class="office-line w60"></div>
-    <div class="office-line w80"></div>
-    <div class="office-status"><span class="office-dot"></span>3 open</div>
-  </div>
-  <p class="office-note">Der Office Mode trägt absichtlich kein Nail-Guard-Design und läuft ohne Kopfzeile und Navigation. Nur der kleine Status-Punkt zeigt diskret den Erkennungszustand — ein Klick darauf beendet den Office Mode.</p>
 </section>
 
 </main>
@@ -433,6 +460,20 @@ setInterval(()=>{
     document.getElementById('calmTime').textContent=`${h}:${m}:${s}`;
   }
 },1000);
+
+/* — Editor-Tarnung: Wortzählung — */
+const edText=document.getElementById('edText'), edCount=document.getElementById('edCount');
+function countWords(){
+  const n=edText.value.trim()? edText.value.trim().split(/\s+/).length : 0;
+  edCount.textContent = n===1 ? '1 Wort' : n+' Wörter';
+}
+edText.addEventListener('input', countWords);
+countWords();
+
+/* — Esc verlässt den Office Mode (zweiter, schneller Ausgang) — */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.body.dataset.view==='office') show('focus');
+});
 </script>
 </body>
 </html>
