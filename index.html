@@ -295,20 +295,9 @@
               <div class="set-row">
                 <div class="txt">
                   <div class="name" data-i18n="settings.officeLayout">Tarn-Layout</div>
-                  <div class="desc" data-i18n="settings.officeLayoutDesc">Erscheinungsbild der neutralen Ansicht</div>
+                  <div class="desc" data-i18n="settings.officeLayoutDesc">Die Tarnansicht ist ein schlichter Texteditor</div>
                 </div>
-                <select id="neutralLayoutSelect" aria-label="Tarn-Layout" data-i18n-aria-label="settings.officeLayout">
-                  <option value="clock" data-i18n="neutral.layout.clock">Uhr & Datum</option>
-                  <option value="timer" data-i18n="neutral.layout.timer">Fokus-Timer</option>
-                  <option value="notes" data-i18n="neutral.layout.notes">Notizseite</option>
-                  <option value="plan" data-i18n="neutral.layout.plan">Tagesplan</option>
-                  <option value="breathing" data-i18n="neutral.layout.breathing">Atemübung</option>
-                  <option value="water" data-i18n="neutral.layout.water">Wasser-Reminder</option>
-                  <option value="calendar" data-i18n="neutral.layout.calendar">Kalender-Look</option>
-                  <option value="dashboard" data-i18n="neutral.layout.dashboard">Minimal Dashboard</option>
-                  <option value="reading" data-i18n="neutral.layout.reading">Lesemodus</option>
-                  <option value="blank" data-i18n="neutral.layout.blank">Blank Screen</option>
-                </select>
+                <button class="mini-action" type="button" disabled data-i18n="settings.officeLayoutValue">Notizen.txt</button>
               </div>
 
               <div class="set-row">
@@ -343,82 +332,34 @@
           </div>
         </section>
 
+        <!-- Office Mode = funktionierender, schlichter Texteditor (Tarnung).
+             Bewusst NICHT im Markendesign. Der Erkennungs-Status sitzt als
+             kleiner Punkt in der Statusleiste; Verlassen per Klick darauf
+             oder per Esc. -->
         <section class="mode-view neutral-view" id="neutralView" data-view="neutral">
-          <div class="neutral-canvas" id="neutralCanvas">
-            <section class="neutral-layout neutral-clock active" data-neutral-layout="clock">
-              <p class="neutral-kicker" data-i18n="neutral.kickerWorkspace">Workspace</p>
-              <time class="neutral-time" id="neutralClockTime">--:--</time>
-              <p class="neutral-date" id="neutralClockDate">Heute</p>
-              <span class="neutral-status office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle"><i aria-hidden="true"></i><span data-i18n="neutral.active">Aktiv</span></span>
-            </section>
-
-            <section class="neutral-layout neutral-timer" data-neutral-layout="timer">
-              <p class="neutral-kicker" data-i18n="neutral.focusRunning">Fokuszeit läuft</p>
-              <div class="neutral-timer-value" id="neutralTimerValue">00:00</div>
-              <button class="neutral-faux-button" type="button" data-i18n="neutral.fauxPause">Pause</button>
-            </section>
-
-            <section class="neutral-layout neutral-notes" data-neutral-layout="notes">
-              <p class="neutral-kicker" data-i18n="neutral.notesKicker">Gedanken / To-dos</p>
-              <textarea id="neutralNotes" spellcheck="false">Gedanken / To-dos</textarea>
-            </section>
-
-            <section class="neutral-layout neutral-plan" data-neutral-layout="plan">
-              <p class="neutral-kicker" data-i18n="neutral.planTitle">Tagesplan</p>
-              <ul class="neutral-list">
-                <li><span>09:00</span><strong data-i18n="neutral.plan1">Start & Überblick</strong></li>
-                <li><span>10:30</span><strong data-i18n="neutral.plan2">Konzentrierter Block</strong></li>
-                <li><span>13:00</span><strong data-i18n="neutral.plan3">Kurzer Check-in</strong></li>
-                <li><span>15:30</span><strong data-i18n="neutral.plan4">Abschlussrunde</strong></li>
-              </ul>
-            </section>
-
-            <section class="neutral-layout neutral-breathing" data-neutral-layout="breathing">
-              <div class="breath-circle" aria-hidden="true"></div>
-              <p class="neutral-kicker" id="neutralBreathLabel">Einatmen</p>
-            </section>
-
-            <section class="neutral-layout neutral-water" data-neutral-layout="water">
-              <p class="neutral-kicker" data-i18n="neutral.waterTitle">Wasser trinken</p>
-              <div class="water-card">
-                <strong>3 / 6</strong>
-                <span data-i18n="neutral.waterGlasses">Gläser heute</span>
-              </div>
-            </section>
-
-            <section class="neutral-layout neutral-calendar" data-neutral-layout="calendar">
-              <p class="neutral-kicker" data-i18n="neutral.today">Heute</p>
-              <div class="calendar-look">
-                <div><span>09</span><p data-i18n="neutral.cal1">Planung</p></div>
-                <div><span>11</span><p data-i18n="neutral.cal2">Arbeitsblock</p></div>
-                <div><span>14</span><p data-i18n="neutral.cal3">Review</p></div>
-                <div><span>16</span><p data-i18n="neutral.cal4">Wrap-up</p></div>
-              </div>
-            </section>
-
-            <section class="neutral-layout neutral-dashboard" data-neutral-layout="dashboard">
-              <time class="neutral-dashboard-time" id="neutralDashboardTime">--:--</time>
-              <div class="neutral-dashboard-row">
-                <span class="office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle"><i aria-hidden="true"></i><span data-i18n="neutral.active">Aktiv</span></span>
-                <strong id="neutralFocusDuration">0 min</strong>
-              </div>
-            </section>
-
-            <section class="neutral-layout neutral-reading" data-neutral-layout="reading">
-              <p class="neutral-kicker" data-i18n="neutral.readingKicker">Lesemodus</p>
-              <article>
-                <h2 data-i18n="neutral.readingTitle">Ruhig arbeiten</h2>
-                <p data-i18n="neutral.readingBody">
-                  Ein klarer Block, eine kleine Aufgabe, ein nächster Schritt. Weniger Wechsel,
-                  mehr Aufmerksamkeit. Danach kurz sammeln und weitergehen.
-                </p>
-              </article>
-            </section>
-
-            <section class="neutral-layout neutral-blank" data-neutral-layout="blank">
-              <span class="neutral-status office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle"><i aria-hidden="true"></i><span data-i18n="neutral.active">Aktiv</span></span>
-              <time id="neutralBlankTime">--:--</time>
-            </section>
+          <div class="editor">
+            <div class="editor-bar">
+              <span class="editor-doc">Notizen.txt</span>
+              <span class="editor-tool" data-i18n="office.menuFile">Datei</span>
+              <span class="editor-tool" data-i18n="office.menuEdit">Bearbeiten</span>
+              <span class="editor-tool" data-i18n="office.menuFormat">Format</span>
+              <span class="editor-spacer"></span>
+              <span class="editor-tool office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle" title="Office Mode beenden">✕</span>
+            </div>
+            <textarea
+              class="editor-area"
+              id="neutralNotes"
+              spellcheck="false"
+              aria-label="Notizen"
+              data-i18n-placeholder="office.placeholder"
+              placeholder="Schreiben …"
+            ></textarea>
+            <div class="editor-foot">
+              <span class="editor-count" id="editorWordCount">0 Wörter</span>
+              <span class="editor-spacer"></span>
+              <span data-i18n="office.autosaved">Automatisch gespeichert</span>
+              <span class="office-dot office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle" title="Office Mode beenden (oder Esc)"></span>
+            </div>
           </div>
         </section>
 

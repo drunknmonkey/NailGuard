@@ -794,17 +794,20 @@ canvas {
   font-variant-numeric: tabular-nums;
 }
 
-/* ═══ OFFICE (Tarnung — bewusst NICHT im Markendesign) ═══ */
-/* Office Mode ist ein Zustand, kein Reiter: er läuft vollflächig
-   ohne Kopfzeile und Navigation. Verlassen per Klick auf den
-   Status-Punkt oder per Esc-Taste. */
+/* ═══ OFFICE = funktionierender, schlichter Texteditor (Tarnung) ═══ */
+/* Office Mode ist ein Zustand, kein Reiter: er läuft vollflächig ohne
+   Kopfzeile und Navigation. Die Tarnung ist ein echter, beschreibbarer
+   Texteditor (Notizen.txt) mit Werkzeug- und Statusleiste. Der
+   Erkennungs-Status sitzt getarnt als Punkt in der Statusleiste und
+   folgt der Ring-Farblogik. Verlassen per Klick auf den Punkt (oder das
+   ✕) oder per Esc-Taste. Bewusst NICHT im Markendesign. */
 body[data-view="office"] .topbar,
 body[data-view="office"] .mode-tabs {
   display: none;
 }
 
 body[data-view="office"] {
-  background: #F5F6F8;
+  background: #ffffff;
 }
 
 body[data-view="office"] .app-shell {
@@ -812,294 +815,135 @@ body[data-view="office"] .app-shell {
   padding: 0;
 }
 
-.neutral-view {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #3A4149;
-}
-
-body[data-view="office"] .neutral-view.active {
-  margin: 0;
-  border-radius: 0;
-  min-height: 100dvh;
-  padding: 1.5rem 1.4rem 2.5rem;
-}
-
-body[data-view="office"] .neutral-canvas {
-  flex: 1;
-}
-
 .office-exit {
   cursor: pointer;
+}
+
+.neutral-view {
+  color: #2b2f36;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .neutral-view.active {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 1rem;
-  margin: 0 -1.4rem;
-  padding: 1.2rem 1.4rem 1.6rem;
-  background: #F5F6F8;
-  border-radius: 0.5rem;
-  min-height: min(72vh, 780px);
+  padding: 0;
 }
 
-.neutral-canvas {
-  position: relative;
-  min-height: min(62vh, 680px);
-  overflow: hidden;
-  border: 1px solid #E3E6EA;
-  border-radius: 0.5rem;
-  background: #fff;
+.editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: min(72vh, 760px);
 }
 
-.neutral-layout {
-  display: none;
-  min-height: min(62vh, 680px);
-  padding: clamp(24px, 5vw, 64px);
+body[data-view="office"] .editor {
+  min-height: 100dvh;
 }
 
-.neutral-layout.active {
-  display: grid;
-}
-
-.neutral-kicker {
-  margin-bottom: 12px;
-  color: #8A929B;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.neutral-clock,
-.neutral-timer,
-.neutral-breathing,
-.neutral-water,
-.neutral-dashboard,
-.neutral-blank {
-  place-items: center;
-  text-align: center;
-}
-
-.neutral-time,
-.neutral-timer-value,
-.neutral-dashboard-time {
-  display: block;
-  color: #3A4149;
-  font-size: clamp(4.2rem, 15vw, 11rem);
-  line-height: 0.9;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.neutral-date {
-  color: #8A929B;
-  font-size: clamp(1.05rem, 2vw, 1.35rem);
-}
-
-.neutral-status {
-  display: inline-flex;
+/* Werkzeugleiste wie in einem schlichten Editor */
+.editor-bar {
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #E3E6EA;
-  border-radius: 999px;
-  background: #fff;
-  color: #8A929B;
-  font-size: 0.78rem;
+  gap: 1.1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #e7e9ec;
+  background: #fbfbfc;
+  color: #5b616b;
+  font-size: 0.82rem;
+}
+
+.editor-doc {
+  font-weight: 600;
+  color: #2b2f36;
+}
+
+.editor-spacer {
+  flex: 1;
+}
+
+.editor-tool {
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.editor-tool:hover {
+  background: #eef0f2;
+}
+
+.editor-tool:focus-visible {
+  outline: 2px solid #2b2f36;
+  outline-offset: 2px;
+}
+
+/* Schreibfläche */
+.editor-area {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 2rem clamp(1rem, 8vw, 5rem);
+  background: #ffffff;
+  color: #2b2f36;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.editor-area::placeholder {
+  color: #b8bdc4;
+}
+
+/* Statusleiste unten — hier sitzt der getarnte Erkennungs-Punkt */
+.editor-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-top: 1px solid #e7e9ec;
+  background: #fbfbfc;
+  color: #8a929b;
+  font-size: 0.74rem;
+}
+
+.editor-count {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Status-Punkt: übernimmt diskret dieselbe Farblogik wie der Ring */
-.neutral-status i,
-.neutral-dashboard-row i {
-  width: 7px;
-  height: 7px;
+.office-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #9CB8A8;
+  background: #9cb8a8;
+  cursor: pointer;
   transition: background 0.8s;
 }
 
-body[data-state="warm"] .neutral-status i,
-body[data-state="warm"] .neutral-dashboard-row i {
-  background: #D9914F;
+.office-dot:focus-visible {
+  outline: 2px solid #2b2f36;
+  outline-offset: 3px;
 }
 
-body[data-state="ember"] .neutral-status i,
-body[data-state="ember"] .neutral-dashboard-row i {
-  background: #C46A4A;
+body[data-state="warm"] .office-dot {
+  background: #d9914f;
 }
 
-body[data-state="paused"] .neutral-status i,
-body[data-state="paused"] .neutral-dashboard-row i {
-  background: #B9C0C7;
+body[data-state="ember"] .office-dot {
+  background: #c46a4a;
+}
+
+body[data-state="paused"] .office-dot {
+  background: #b9c0c7;
 }
 
 /* Status-Punkt lässt sich in den Einstellungen abschalten */
-body[data-office-dot="off"] .neutral-status i,
-body[data-office-dot="off"] .neutral-dashboard-row i {
+body[data-office-dot="off"] .office-dot {
   display: none;
-}
-
-.neutral-faux-button {
-  margin-top: 18px;
-  min-width: 130px;
-  border-radius: 0.4rem;
-  border: none;
-  background: #3A4149;
-  color: #fff;
-}
-
-.neutral-notes {
-  align-content: stretch;
-}
-
-.neutral-notes textarea {
-  width: 100%;
-  min-height: 420px;
-  resize: none;
-  border: 0;
-  outline: 0;
-  border-radius: 0.5rem;
-  padding: clamp(18px, 3vw, 32px);
-  background: #F5F6F8;
-  color: #3A4149;
-  font: inherit;
-  font-size: clamp(1.05rem, 2vw, 1.3rem);
-  line-height: 1.55;
-}
-
-.neutral-list,
-.calendar-look {
-  width: min(720px, 100%);
-  justify-self: center;
-  align-self: center;
-}
-
-.neutral-list {
-  display: grid;
-  gap: 10px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.neutral-list li,
-.calendar-look div {
-  display: grid;
-  grid-template-columns: 74px 1fr;
-  align-items: center;
-  gap: 14px;
-  min-height: 64px;
-  padding: 12px 16px;
-  border: 1px solid #E3E6EA;
-  border-radius: 0.5rem;
-  background: #FAFBFC;
-}
-
-.neutral-list span,
-.calendar-look span {
-  color: #8A929B;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.neutral-list strong,
-.calendar-look p {
-  margin: 0;
-  color: #3A4149;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.breath-circle {
-  width: clamp(160px, 30vw, 260px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(156, 184, 168, 0.3), rgba(156, 184, 168, 0.08));
-  border: 1px solid rgba(156, 184, 168, 0.4);
-  animation: office-breathe 7s ease-in-out infinite;
-}
-
-@keyframes office-breathe {
-  0%, 100% { transform: scale(0.78); }
-  50% { transform: scale(1); }
-}
-
-.water-card {
-  display: grid;
-  gap: 8px;
-  min-width: min(360px, 90vw);
-  padding: 34px;
-  border: 1px solid #E3E6EA;
-  border-radius: 0.5rem;
-  background: #FAFBFC;
-}
-
-.water-card strong {
-  font-size: clamp(3rem, 9vw, 6rem);
-  line-height: 0.9;
-  font-variant-numeric: tabular-nums;
-}
-
-.water-card span,
-.neutral-dashboard-row {
-  color: #8A929B;
-}
-
-.calendar-look {
-  display: grid;
-  gap: 10px;
-}
-
-.neutral-dashboard-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 28px;
-  margin-top: 18px;
-  padding: 10px 16px;
-  border: 1px solid #E3E6EA;
-  border-radius: 999px;
-  background: #FAFBFC;
-  font-size: 0.85rem;
-}
-
-.neutral-dashboard-row span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.neutral-reading {
-  place-items: center;
-}
-
-.neutral-reading article {
-  width: min(720px, 100%);
-}
-
-.neutral-reading h2 {
-  font-family: inherit;
-  font-weight: 700;
-  font-size: clamp(1.8rem, 5vw, 3.2rem);
-  color: #3A4149;
-}
-
-.neutral-reading p {
-  color: #8A929B;
-  font-size: clamp(1.05rem, 2vw, 1.3rem);
-  line-height: 1.75;
-}
-
-.neutral-blank {
-  color: #8A929B;
-}
-
-.neutral-blank time {
-  position: absolute;
-  right: 22px;
-  bottom: 18px;
-  font-variant-numeric: tabular-nums;
 }
 
 .neutral-intervention {
@@ -1496,10 +1340,6 @@ body[data-office-dot="off"] .neutral-dashboard-row i {
     gap: 2rem;
   }
 
-  .neutral-view.active {
-    margin: 0 -1rem;
-  }
-
   .set-row {
     flex-wrap: wrap;
   }
@@ -1507,8 +1347,7 @@ body[data-office-dot="off"] .neutral-dashboard-row i {
 
 @media (prefers-reduced-motion: reduce) {
   .halo,
-  .ring,
-  .breath-circle {
+  .ring {
     animation: none;
   }
 }
