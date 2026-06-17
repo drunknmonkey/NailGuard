@@ -2,21 +2,28 @@ import {
   FaceLandmarker,
   FilesetResolver,
   HandLandmarker,
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/+esm";
+} from "./vendor/mediapipe/tasks-vision/vision_bundle.mjs";
 import { applyStaticTranslations, dateLocale, getLocale, setLocale, t } from "./i18n.js";
 
+// MediaPipe wird vollständig self-hosted ausgeliefert (vendor/ + models/),
+// es werden keine externen CDNs mehr angefragt.
 const MEDIAPIPE = {
-  wasmBaseUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm",
-  faceModelUrl:
-    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-  handModelUrl:
-    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+  wasmBaseUrl: "./vendor/mediapipe/tasks-vision/wasm",
+  faceModelUrl: "./models/face_landmarker.task",
+  handModelUrl: "./models/hand_landmarker.task",
 };
 
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
 const ONBOARDING_KEY = "nail-guard.onboarding.v1";
+const LOCALE_KEY = "nail-guard.locale.v1";
+
+// Alle Keys, die Export/Import berücksichtigen. Fremde Keys in einer
+// Backup-Datei werden beim Import ignoriert.
+const BACKUP_KEYS = [STORAGE_KEY, SETTINGS_KEY, NEUTRAL_NOTES_KEY, ONBOARDING_KEY, LOCALE_KEY];
+// Diese Keys müssen gültiges JSON enthalten; die übrigen sind Klartext.
+const JSON_BACKUP_KEYS = new Set([STORAGE_KEY, SETTINGS_KEY]);
 
 // Guided calibration: how close (normalized) counts as "at the mouth",
 // how long signals must hold, and how the personal threshold is derived.
@@ -30,6 +37,9 @@ const ONBOARDING = {
 };
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
+// Sparse Abtastpunkte über das ganze Gesicht (Stirn, Wangen, Kinn,
+// Gesichtsränder, Nase) für den Schalter „Gesichtsberührung melden".
+const FACE_TOUCH_INDICES = [10, 67, 297, 50, 280, 205, 425, 152, 234, 454, 1, 168];
 const SOUND_PRESETS = {
   softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
   breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
@@ -62,20 +72,19 @@ const els = {
   startPanel: document.querySelector("#startPanel"),
   workspace: document.querySelector("#workspace"),
   startButton: document.querySelector("#startButton"),
-  appEyebrow: document.querySelector("#appEyebrow"),
   appTitle: document.querySelector("#appTitle"),
   startTitle: document.querySelector("#startTitle"),
   startBody: document.querySelector("#startBody"),
   startPrivacyNote: document.querySelector("#startPrivacyNote"),
-  statusPill: document.querySelector("#statusPill"),
-  statusText: document.querySelector("#statusText"),
+  stateWord: document.querySelector("#stateWord"),
+  stateHint: document.querySelector("#stateHint"),
   errorMessage: document.querySelector("#errorMessage"),
   errorText: document.querySelector("#errorText"),
   errorHints: document.querySelector("#errorHints"),
   modeTabs: [...document.querySelectorAll(".mode-tab")],
   modeLinks: [...document.querySelectorAll("[data-mode-link]")],
+  officeExits: [...document.querySelectorAll(".office-exit")],
   modeViews: [...document.querySelectorAll(".mode-view")],
-  focusStatus: document.querySelector("#focusStatus"),
   focusStreak: document.querySelector("#focusStreak"),
   focusConfirmed: document.querySelector("#focusConfirmed"),
   pauseButton: document.querySelector("#pauseButton"),
@@ -104,31 +113,30 @@ const els = {
   presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
   autoTuneToggle: document.querySelector("#autoTuneToggle"),
+  faceTouchToggle: document.querySelector("#faceTouchToggle"),
+  officeDotToggle: document.querySelector("#officeDotToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   confirmBitingButton: document.querySelector("#confirmBitingButton"),
   falseAlarmButton: document.querySelector("#falseAlarmButton"),
   faceTouchButton: document.querySelector("#faceTouchButton"),
   resetStatsButton: document.querySelector("#resetStatsButton"),
-  dailySummary: document.querySelector("#dailySummary"),
-  statWarnings: document.querySelector("#statWarnings"),
+  exportDataButton: document.querySelector("#exportDataButton"),
+  importDataButton: document.querySelector("#importDataButton"),
+  importDataInput: document.querySelector("#importDataInput"),
+  reviewDate: document.querySelector("#reviewDate"),
   statConfirmed: document.querySelector("#statConfirmed"),
   statFalse: document.querySelector("#statFalse"),
   statFace: document.querySelector("#statFace"),
   statLongest: document.querySelector("#statLongest"),
-  statStreak: document.querySelector("#statStreak"),
-  statLastWarning: document.querySelector("#statLastWarning"),
-  neutralLayoutSelect: document.querySelector("#neutralLayoutSelect"),
+  quietDelta: document.querySelector("#quietDelta"),
+  hourBars: document.querySelector("#hourBars"),
+  hourLabels: document.querySelector("#hourLabels"),
+  streakDays: document.querySelector("#streakDays"),
+  streakText: document.querySelector("#streakText"),
   neutralSubtleToggle: document.querySelector("#neutralSubtleToggle"),
-  neutralLayouts: [...document.querySelectorAll(".neutral-layout")],
-  neutralClockTime: document.querySelector("#neutralClockTime"),
-  neutralClockDate: document.querySelector("#neutralClockDate"),
-  neutralTimerValue: document.querySelector("#neutralTimerValue"),
   neutralNotes: document.querySelector("#neutralNotes"),
-  neutralBreathLabel: document.querySelector("#neutralBreathLabel"),
-  neutralDashboardTime: document.querySelector("#neutralDashboardTime"),
-  neutralFocusDuration: document.querySelector("#neutralFocusDuration"),
-  neutralBlankTime: document.querySelector("#neutralBlankTime"),
+  editorWordCount: document.querySelector("#editorWordCount"),
   neutralIntervention: document.querySelector("#neutralIntervention"),
   neutralInterventionTitle: document.querySelector("#neutralInterventionTitle"),
   neutralInterventionText: document.querySelector("#neutralInterventionText"),
@@ -159,10 +167,9 @@ const state = {
   minDistance: Number.POSITIVE_INFINITY,
   settings: loadSettings(),
   stats: loadStats(),
-  neutralTimerStartedAt: Date.now(),
   neutralInterventionTimer: null,
-  statusKey: "status.ready",
-  statusTone: "",
+  appState: "calm",
+  handNear: false,
   onboarding: null,
 };
 
@@ -177,9 +184,8 @@ function init() {
   bindEvents();
   switchMode(state.activeMode);
   renderAll();
-  updateStatus("status.ready");
   setInterval(renderStats, 15_000);
-  setInterval(renderNeutralInfo, 1_000);
+  setInterval(renderFocusTick, 1_000);
   registerServiceWorker();
 }
 
@@ -190,10 +196,7 @@ function setAppLocale(locale) {
   document.documentElement.lang = locale;
   applyStaticTranslations();
   renderLangSwitch();
-
-  const { statusKey, statusTone } = state;
   renderAll();
-  updateStatus(statusKey, statusTone);
 }
 
 function renderLangSwitch() {
@@ -228,6 +231,23 @@ function bindEvents() {
     link.addEventListener("click", () => switchMode(link.dataset.modeLink));
   }
 
+  // Office Mode verlassen: Klick auf den Status-Punkt oder Esc-Taste
+  for (const exit of els.officeExits) {
+    exit.addEventListener("click", () => switchMode("focus"));
+    exit.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        switchMode("focus");
+      }
+    });
+  }
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.dataset.view === "office") {
+      switchMode("focus");
+    }
+  });
+
   for (const input of [els.distanceThreshold, els.holdSeconds, els.cooldownSeconds, els.soundVolume]) {
     input.addEventListener("input", () => {
       settingsFromUi();
@@ -242,13 +262,11 @@ function bindEvents() {
   }
 
   els.soundPreset.addEventListener("change", settingsFromUi);
-  els.neutralLayoutSelect.addEventListener("change", () => {
-    settingsFromUi();
-    renderNeutralLayout();
-  });
   els.neutralSubtleToggle.addEventListener("change", settingsFromUi);
+  // Tarn-Editor: Notizen lokal persistieren und Wortzahl mitführen
   els.neutralNotes.addEventListener("input", () => {
     localStorage.setItem(NEUTRAL_NOTES_KEY, els.neutralNotes.value);
+    renderWordCount();
   });
   els.testSoundButton.addEventListener("click", () => {
     settingsFromUi();
@@ -258,11 +276,12 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle]) {
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle, els.faceTouchToggle, els.officeDotToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
       if (!state.settings.showOverlay) clearOverlay();
       if (!state.settings.warmthFeedback) setWarmth(0);
+      renderOfficeDot();
     });
   }
 
@@ -270,6 +289,12 @@ function bindEvents() {
   els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
   els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
   els.resetStatsButton.addEventListener("click", resetStats);
+  els.exportDataButton.addEventListener("click", exportData);
+  els.importDataButton.addEventListener("click", () => els.importDataInput.click());
+  els.importDataInput.addEventListener("change", () => {
+    importData(els.importDataInput.files[0]);
+    els.importDataInput.value = "";
+  });
   els.onboardingSkipButton.addEventListener("click", finishOnboarding);
   els.onboardingFinishButton.addEventListener("click", finishOnboarding);
   els.recalibrateButton.addEventListener("click", startOnboarding);
@@ -278,21 +303,27 @@ function bindEvents() {
 async function startApp() {
   hideError();
   els.startButton.disabled = true;
-  els.startButton.textContent = t("start.button");
 
   try {
-    updateStatus("status.loadingModel");
+    els.startButton.textContent = t("status.loadingModel");
     await detection.loadModels();
 
-    updateStatus("status.openingCamera");
+    els.startButton.textContent = t("status.openingCamera");
     await detection.startCamera();
 
     els.startPanel.hidden = true;
     els.workspace.hidden = false;
     state.running = true;
     state.paused = false;
+
+    // Persistenten Speicher anfragen, damit der Browser localStorage
+    // (Statistiken, Streak, Einstellungen) nicht automatisch bereinigt.
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
+
     switchMode(state.activeMode);
-    updateStatus("status.active", "active");
+    refreshAppState(true);
     requestAnimationFrame(detection.loop);
 
     if (!localStorage.getItem(ONBOARDING_KEY)) {
@@ -301,7 +332,6 @@ async function startApp() {
   } catch (error) {
     els.startButton.disabled = false;
     els.startButton.textContent = t("start.retry");
-    updateStatus("status.error", "warning");
     showError(readableError(error));
   }
 }
@@ -365,6 +395,15 @@ const detection = {
     state.fingertips = handLandmarks.flatMap((hand) => FINGERTIP_INDICES.map((index) => hand[index]));
     state.minDistance = computeMinMouthDistance(state.mouthCenter, state.fingertips);
 
+    // „Gesichtsberührung melden": ganzes Gesicht statt nur Mund.
+    // Während der Kalibrierung zählt weiterhin nur der Mundabstand.
+    if (state.settings.faceTouchAlert && !state.onboarding && faceLandmarks) {
+      state.minDistance = Math.min(
+        state.minDistance,
+        computeMinFaceDistance(faceLandmarks, state.fingertips),
+      );
+    }
+
     renderLiveSignals(faceLandmarks, handLandmarks);
 
     if (state.onboarding) {
@@ -390,13 +429,18 @@ const detection = {
       : 0;
 
     els.proximityBar.style.width = `${Math.round(proximityRatio * 100)}%`;
-    els.proximityBar.style.background = proximityRatio > 0.85 ? "#c97943" : "#57c7b7";
+    els.proximityBar.style.background = proximityRatio > 0.85 ? "#D9914F" : "#A8C7B4";
 
     if (state.paused) {
       state.nearSince = null;
+      state.handNear = false;
       setWarmth(0);
+      refreshAppState();
       return;
     }
+
+    state.handNear = isNear && !state.alertOpen;
+    refreshAppState();
 
     if (isNear && !state.alertOpen) {
       state.nearSince ??= now;
@@ -476,6 +520,8 @@ function triggerIntervention(reason, confidence, options = {}) {
       state.stats.longestWarningFreeMs,
       now - previousWarning,
     );
+    const hour = new Date().getHours();
+    state.stats.hourly[hour] = (state.stats.hourly[hour] ?? 0) + 1;
     saveStats();
   }
 
@@ -483,6 +529,7 @@ function triggerIntervention(reason, confidence, options = {}) {
   state.alertOpen = true;
   state.nearSince = null;
   state.currentIntervention = { reason, confidence, replacement, at: now, countStats };
+  refreshAppState();
 
   renderReplacement(replacement);
   renderStats();
@@ -502,7 +549,6 @@ function triggerIntervention(reason, confidence, options = {}) {
 function showBrowserIntervention(replacement) {
   els.alertReplacement.textContent = t("alert.body");
   els.alertPanel.hidden = false;
-  updateStatus("status.miniReset", "warning");
 }
 
 function showNeutralIntervention() {
@@ -513,14 +559,13 @@ function showNeutralIntervention() {
   els.neutralInterventionText.textContent = text;
   els.neutralIntervention.classList.toggle("prominent", !state.settings.neutralSubtleInterventions);
   els.neutralIntervention.hidden = false;
-  updateStatus("status.active", "warning");
 
   state.neutralInterventionTimer = window.setTimeout(() => {
     els.neutralIntervention.hidden = true;
     state.alertOpen = false;
     state.currentIntervention = null;
     setWarmth(0);
-    updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
+    refreshAppState();
   }, state.settings.neutralSubtleInterventions ? 3200 : 4600);
 }
 
@@ -543,7 +588,7 @@ function resolveIntervention(kind) {
   state.currentIntervention = null;
   setWarmth(0);
   els.alertPanel.hidden = true;
-  updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
+  refreshAppState();
   saveStats();
   renderStats();
 }
@@ -679,6 +724,9 @@ function finishOnboarding() {
   state.onboarding = null;
   state.nearSince = null;
   els.onboardingPanel.hidden = true;
+  // Nach der Kalibrierung landet der Nutzer im Focus Mode,
+  // nicht in den Einstellungen.
+  switchMode("focus");
 }
 
 function renderOnboarding() {
@@ -717,8 +765,9 @@ function switchMode(mode) {
   state.activeMode = ["focus", "calibration", "review", "neutral"].includes(mode) ? mode : "focus";
   state.settings.activeMode = state.activeMode;
   saveSettings();
+  // body[data-view="office"] blendet Kopfzeile und Navigation aus (Tarnung)
+  document.body.dataset.view = state.activeMode === "neutral" ? "office" : state.activeMode;
   renderAppChrome();
-  updateStatus(state.statusKey, state.statusTone);
 
   for (const tab of els.modeTabs) {
     tab.classList.toggle("active", tab.dataset.mode === state.activeMode);
@@ -742,9 +791,26 @@ function renderAll() {
   renderSettings();
   renderStats();
   renderPauseState();
-  renderNeutralLayout();
-  renderNeutralInfo();
+  renderOfficeEditor();
   renderOnboarding();
+  refreshAppState(true);
+}
+
+function computeAppState() {
+  if (state.alertOpen) return "ember";
+  if (state.paused) return "paused";
+  if (state.handNear) return "warm";
+  return "calm";
+}
+
+function refreshAppState(force = false) {
+  const next = computeAppState();
+  if (!force && next === state.appState) return;
+
+  state.appState = next;
+  document.body.dataset.state = next;
+  els.stateWord.textContent = t(`state.${next}`);
+  els.stateHint.textContent = t(`state.${next}Hint`);
 }
 
 function renderLiveSignals(faceLandmarks, handLandmarks) {
@@ -768,27 +834,102 @@ function renderStats() {
   ensureTodayStats();
   const now = Date.now();
   const warningStart = state.stats.lastWarningAt || state.stats.trackingStartedAt;
-  const confirmedStart = state.stats.lastConfirmedAt || state.stats.trackingStartedAt;
   const longestQuiet = Math.max(state.stats.longestWarningFreeMs, now - warningStart);
-  const streak = now - confirmedStart;
 
-  els.statWarnings.textContent = state.stats.warnings;
+  els.focusConfirmed.textContent = state.stats.warnings;
   els.statConfirmed.textContent = state.stats.confirmed;
   els.statFalse.textContent = state.stats.falseAlarms;
   els.statFace.textContent = state.stats.faceTouches;
-  els.statLongest.textContent = formatDuration(longestQuiet);
-  els.statStreak.textContent = formatDuration(streak);
-  els.focusStreak.textContent = formatDuration(streak);
-  els.focusConfirmed.textContent = state.stats.warnings;
-  els.dailySummary.textContent = dailySummaryText(longestQuiet);
-  els.statLastWarning.textContent = state.stats.lastWarningAt
-    ? t("review.lastWarningAt", {
-        time: new Date(state.stats.lastWarningAt).toLocaleTimeString(dateLocale(), {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      })
-    : t("review.lastWarningNone");
+  els.statLongest.textContent = formatQuietHours(longestQuiet);
+
+  els.reviewDate.textContent = t("review.today", {
+    date: new Date().toLocaleDateString(dateLocale(), { day: "numeric", month: "long" }),
+  });
+
+  renderQuietDelta(longestQuiet);
+  renderHourBars();
+  renderStreak();
+  renderFocusTick();
+}
+
+function renderFocusTick() {
+  const start = state.stats.lastConfirmedAt || state.stats.trackingStartedAt;
+  els.focusStreak.textContent = formatClock(Date.now() - start);
+}
+
+function renderQuietDelta(longestQuiet) {
+  const yesterday = loadAllStats()[dateKeyFor(addDays(new Date(), -1))];
+
+  if (!yesterday?.longestWarningFreeMs) {
+    els.quietDelta.textContent = "";
+    return;
+  }
+
+  const deltaMs = longestQuiet - yesterday.longestWarningFreeMs;
+  const minutes = Math.round(Math.abs(deltaMs) / 60_000);
+  const strong = document.createElement("b");
+  strong.textContent = `${deltaMs >= 0 ? "+" : "−"}${formatDuration(minutes * 60_000)}`;
+  els.quietDelta.replaceChildren(strong, ` ${t("review.vsYesterday")}`);
+}
+
+function renderHourBars() {
+  const hourly = state.stats.hourly ?? {};
+  const activeHours = Object.keys(hourly).map(Number);
+  const start = Math.min(8, ...activeHours);
+  const end = Math.max(18, ...activeHours.map((hour) => hour + 1));
+  const max = Math.max(1, ...Object.values(hourly));
+
+  const bars = [];
+  for (let hour = start; hour < end; hour += 1) {
+    const count = hourly[hour] ?? 0;
+    const bar = document.createElement("div");
+    bar.className = count > 0 && max >= 2 && count >= max * 0.66 ? "bar peak" : "bar";
+    bar.style.height = count === 0 ? "4%" : `${Math.round((count / max) * 100)}%`;
+    bars.push(bar);
+  }
+  els.hourBars.replaceChildren(...bars);
+
+  const middle = Math.round((start + end) / 2);
+  els.hourLabels.replaceChildren(
+    ...[start, middle, end].map((hour) => {
+      const label = document.createElement("span");
+      label.textContent = `${hour}:00`;
+      return label;
+    }),
+  );
+}
+
+function renderStreak() {
+  const days = calcCalmStreak(loadAllStats());
+  els.streakDays.textContent = days;
+
+  if (days === 0) {
+    els.streakText.textContent = t("review.streakZero");
+    return;
+  }
+
+  const strong = document.createElement("b");
+  strong.textContent = days === 1 ? t("review.streakStrongOne") : t("review.streakStrong", { days });
+  els.streakText.replaceChildren(
+    strong,
+    ` ${t("review.streakRest")}`,
+    document.createElement("br"),
+    t("review.streakKeepGoing"),
+  );
+}
+
+function calcCalmStreak(allStats) {
+  if ((state.stats.warnings ?? 0) >= 5) return 0;
+
+  let days = 1;
+  const cursor = new Date();
+  for (;;) {
+    cursor.setDate(cursor.getDate() - 1);
+    const dayStats = allStats[dateKeyFor(cursor)];
+    if (!dayStats || (dayStats.warnings ?? 0) >= 5) break;
+    days += 1;
+  }
+  return days;
 }
 
 function renderSettings() {
@@ -801,8 +942,16 @@ function renderSettings() {
 
 function renderAppChrome() {
   const isNeutral = state.activeMode === "neutral";
-  els.appEyebrow.textContent = isNeutral ? t("neutral.eyebrow") : t("app.eyebrow");
-  els.appTitle.textContent = isNeutral ? t("neutral.title") : t("app.title");
+  document.body.classList.toggle("office-mode", isNeutral);
+
+  if (isNeutral) {
+    els.appTitle.textContent = t("neutral.title");
+  } else {
+    const wordmark = document.createElement("span");
+    wordmark.textContent = "Guard";
+    els.appTitle.replaceChildren("Nail", wordmark);
+  }
+
   els.startTitle.textContent = isNeutral ? t("start.titleNeutral") : t("start.title");
   els.startBody.textContent = isNeutral ? t("start.bodyNeutral") : t("start.body");
   els.startPrivacyNote.textContent = isNeutral ? t("start.privacyNeutral") : t("start.privacy");
@@ -811,8 +960,7 @@ function renderAppChrome() {
 function renderPauseState() {
   els.pauseButton.textContent = state.paused ? t("focus.resume") : t("focus.pause");
   els.pauseButton.classList.toggle("paused", state.paused);
-  els.focusStatus.textContent = state.paused ? t("status.paused") : t("status.active");
-  updateStatus(state.paused ? "status.paused" : "status.active", state.paused ? "paused" : "active");
+  refreshAppState(true);
   renderAppChrome();
 }
 
@@ -820,18 +968,6 @@ function renderReplacement(replacement) {
   if (els.replacementAction) {
     els.replacementAction.textContent = replacement;
   }
-}
-
-function dailySummaryText(longestQuiet) {
-  if (state.stats.confirmed === 0 && state.stats.warnings === 0) {
-    return t("review.summaryQuiet");
-  }
-
-  if (state.stats.confirmed === 0) {
-    return t("review.summaryNoConfirmed", { duration: formatDuration(longestQuiet) });
-  }
-
-  return t("review.summaryConfirmed", { count: state.stats.confirmed });
 }
 
 function applyCalibrationPreset(presetName) {
@@ -854,41 +990,19 @@ function renderPresetButtons() {
   }
 }
 
-function renderNeutralLayout() {
-  const selectedLayout = [...els.neutralLayoutSelect.options].some((option) => option.value === state.settings.neutralLayout)
-    ? state.settings.neutralLayout
-    : "clock";
-  state.settings.neutralLayout = selectedLayout;
-  els.neutralLayoutSelect.value = selectedLayout;
+// Tarn-Editor (Office Mode): persistierte Notizen laden und Wortzahl
+// anzeigen. Beim ersten Start steht ein unverfänglicher Beispieltext.
+function renderOfficeEditor() {
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
-  els.neutralNotes.value = localStorage.getItem(NEUTRAL_NOTES_KEY) ?? t("neutral.notesKicker");
-
-  for (const layout of els.neutralLayouts) {
-    layout.classList.toggle("active", layout.dataset.neutralLayout === selectedLayout);
-  }
+  const stored = localStorage.getItem(NEUTRAL_NOTES_KEY);
+  els.neutralNotes.value = stored ?? t("office.sampleNotes");
+  renderWordCount();
 }
 
-function renderNeutralInfo() {
-  const now = new Date();
-  const time = now.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
-  const date = now.toLocaleDateString(dateLocale(), {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  });
-  const timerMs = Date.now() - state.neutralTimerStartedAt;
-  const timerMinutes = Math.floor(timerMs / 60_000);
-  const timerSeconds = Math.floor((timerMs % 60_000) / 1000);
-  const timer = `${String(timerMinutes).padStart(2, "0")}:${String(timerSeconds).padStart(2, "0")}`;
-  const breathPhase = Math.floor((Date.now() / 3500) % 2) === 0 ? t("neutral.breatheIn") : t("neutral.breatheOut");
-
-  els.neutralClockTime.textContent = time;
-  els.neutralClockDate.textContent = date;
-  els.neutralTimerValue.textContent = timer;
-  els.neutralBreathLabel.textContent = breathPhase;
-  els.neutralDashboardTime.textContent = time;
-  els.neutralFocusDuration.textContent = `${timerMinutes} min`;
-  els.neutralBlankTime.textContent = time;
+function renderWordCount() {
+  const trimmed = els.neutralNotes.value.trim();
+  const count = trimmed ? trimmed.split(/\s+/).length : 0;
+  els.editorWordCount.textContent = count === 1 ? t("office.wordOne") : t("office.wordOther", { count });
 }
 
 function settingsFromUi() {
@@ -904,7 +1018,8 @@ function settingsFromUi() {
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
     autoTune: els.autoTuneToggle.checked,
-    neutralLayout: els.neutralLayoutSelect.value,
+    faceTouchAlert: els.faceTouchToggle.checked,
+    officeStatusDot: els.officeDotToggle.checked,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
   saveSettings();
@@ -923,8 +1038,62 @@ function applySettingsToUi() {
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
   els.autoTuneToggle.checked = state.settings.autoTune;
-  els.neutralLayoutSelect.value = state.settings.neutralLayout;
+  els.faceTouchToggle.checked = state.settings.faceTouchAlert;
+  els.officeDotToggle.checked = state.settings.officeStatusDot;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
+  renderOfficeDot();
+}
+
+function renderOfficeDot() {
+  document.body.dataset.officeDot = state.settings.officeStatusDot ? "on" : "off";
+}
+
+function exportData() {
+  const data = {};
+  for (const key of BACKUP_KEYS) {
+    const value = localStorage.getItem(key);
+    if (value !== null) data[key] = value;
+  }
+
+  const payload = { app: "nail-guard", exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `nailguard-backup-${todayKey()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(file) {
+  if (!file) return;
+
+  try {
+    const parsed = JSON.parse(await file.text());
+    // Backups tragen die Keys unter "data"; pures Key/Wert-JSON wird
+    // ebenfalls akzeptiert. Unbekannte Keys werden ignoriert.
+    const data = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+    if (!data || typeof data !== "object") throw new Error("invalid-backup");
+
+    const entries = [];
+    for (const key of BACKUP_KEYS) {
+      if (!(key in data)) continue;
+      const raw = data[key];
+      const value = typeof raw === "string" ? raw : JSON.stringify(raw);
+      if (JSON_BACKUP_KEYS.has(key)) JSON.parse(value);
+      entries.push([key, value]);
+    }
+    if (entries.length === 0) throw new Error("invalid-backup");
+
+    for (const [key, value] of entries) {
+      localStorage.setItem(key, value);
+    }
+
+    // App mit den importierten Daten neu initialisieren
+    window.location.reload();
+  } catch {
+    showError({ message: t("errors.importFailed"), hints: [t("errors.importFailedHint1")] });
+  }
 }
 
 function loadSettings() {
@@ -941,7 +1110,8 @@ function loadSettings() {
     soundVolume: 0.35,
     vibration: true,
     autoTune: true,
-    neutralLayout: "clock",
+    faceTouchAlert: false,
+    officeStatusDot: true,
     neutralSubtleInterventions: true,
   };
 
@@ -998,6 +1168,7 @@ function normalizeStats(stats, date) {
     lastWarningAt: stats?.lastWarningAt ?? null,
     lastConfirmedAt: stats?.lastConfirmedAt ?? null,
     longestWarningFreeMs,
+    hourly: stats?.hourly ?? {},
   };
 }
 
@@ -1009,11 +1180,28 @@ function ensureTodayStats() {
 }
 
 function todayKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+  return dateKeyFor(new Date());
+}
+
+function dateKeyFor(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function addDays(date, days) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function loadAllStats() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? {};
+  } catch {
+    return {};
+  }
 }
 
 function averageLandmarks(landmarks, indices) {
@@ -1043,16 +1231,29 @@ function computeMinMouthDistance(mouthCenter, fingertips) {
   }, Number.POSITIVE_INFINITY);
 }
 
+function computeMinFaceDistance(faceLandmarks, fingertips) {
+  if (fingertips.length === 0) return Number.POSITIVE_INFINITY;
+
+  let min = Number.POSITIVE_INFINITY;
+  for (const index of FACE_TOUCH_INDICES) {
+    const point = faceLandmarks[index];
+    for (const fingertip of fingertips) {
+      min = Math.min(min, Math.hypot(point.x - fingertip.x, point.y - fingertip.y));
+    }
+  }
+  return min;
+}
+
 function drawOverlay() {
   const ctx = els.overlay.getContext("2d");
   clearOverlay();
 
   if (state.mouthCenter) {
-    drawPoint(ctx, state.mouthCenter, 8, "#f2a24f");
+    drawPoint(ctx, state.mouthCenter, 8, "#D9914F");
   }
 
   for (const fingertip of state.fingertips) {
-    drawPoint(ctx, fingertip, 6, "#57c7b7");
+    drawPoint(ctx, fingertip, 6, "#A8C7B4");
     if (state.mouthCenter) drawLine(ctx, state.mouthCenter, fingertip);
   }
 }
@@ -1152,16 +1353,21 @@ function formatDuration(ms) {
   return minutes ? `${hours} h ${minutes} min` : `${hours} h`;
 }
 
-function updateStatus(key, tone = "") {
-  state.statusKey = key;
-  state.statusTone = tone;
-  const visibleKey = state.activeMode === "neutral" && key !== "status.ready" && key !== "status.error"
-    ? (state.paused ? "status.paused" : "status.active")
-    : key;
-  els.statusText.textContent = t(visibleKey);
-  els.statusPill.classList.toggle("active", tone === "active");
-  els.statusPill.classList.toggle("warning", tone === "warning");
-  els.statusPill.classList.toggle("paused", tone === "paused");
+function formatQuietHours(ms) {
+  const totalMinutes = Math.max(0, Math.floor(ms / 60_000));
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}:${String(minutes).padStart(2, "0")} h`;
+}
+
+function formatClock(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 function showError(errorInfo) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "nail-guard-v2";
+const CACHE_NAME = "nail-guard-v5";
 
 const APP_SHELL = [
   "./",
@@ -14,10 +14,20 @@ const APP_SHELL = [
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png",
+  "./vendor/mediapipe/tasks-vision/vision_bundle.mjs",
+  "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.js",
+  "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm",
+  "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_nosimd_internal.js",
+  "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_nosimd_internal.wasm",
+  "./models/face_landmarker.task",
+  "./models/hand_landmarker.task",
 ];
 
-// MediaPipe library, WASM and models: versioned URLs, safe to cache forever.
-const RUNTIME_HOSTS = ["cdn.jsdelivr.net", "storage.googleapis.com"];
+// Web fonts: stable URLs, safe to cache.
+const RUNTIME_HOSTS = [
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

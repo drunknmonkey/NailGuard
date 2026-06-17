@@ -9,9 +9,9 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
 
-TEAL = (28, 119, 111, 255)        # --accent
-NAIL = (255, 253, 250, 255)       # --surface
-LUNULA = (158, 207, 196, 255)
+PINE = (30, 59, 52, 255)          # --pine
+NAIL = (250, 252, 250, 255)       # --paper
+LUNULA = (168, 199, 180, 255)     # --breath
 SUPERSAMPLE = 4
 
 ICONS_DIR = Path(__file__).resolve().parent.parent / "icons"
@@ -23,9 +23,9 @@ def render(size, rounded_corners, art_scale=1.0):
     draw = ImageDraw.Draw(image)
 
     if rounded_corners:
-        draw.rounded_rectangle([0, 0, s - 1, s - 1], radius=round(s * 0.22), fill=TEAL)
+        draw.rounded_rectangle([0, 0, s - 1, s - 1], radius=round(s * 0.22), fill=PINE)
     else:
-        draw.rectangle([0, 0, s - 1, s - 1], fill=TEAL)
+        draw.rectangle([0, 0, s - 1, s - 1], fill=PINE)
 
     # Nail capsule, proportions matching icons/icon.svg (viewBox 512)
     def px(value):

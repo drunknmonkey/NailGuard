@@ -157,16 +157,26 @@ Im Office Mode werden im sichtbaren UI keine Begriffe zum eigentlichen Tracking-
 - Es gibt keine Accounts, keine externe Datenbank und kein Tracking.
 - Statistiken und Einstellungen bleiben ausschließlich lokal im Browser-Speicher (`localStorage`) des jeweiligen Geräts.
 - Die Verarbeitung der Kameraframes findet lokal im Browser statt.
-- Die Content-Security-Policy erlaubt nur die App selbst, jsDelivr und Google Storage für MediaPipe-Dateien.
+- Die Content-Security-Policy erlaubt nur die App selbst sowie Google Fonts für die Schriften.
 
-Extern geladen werden aktuell:
+MediaPipe wird vollständig self-hosted ausgeliefert, es werden keine MediaPipe-CDNs mehr angefragt:
 
-- `@mediapipe/tasks-vision@0.10.15` als ES-Modul von `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/+esm`
-- MediaPipe WASM-Dateien von `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm`
-- FaceLandmarker-Modell von `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`
-- HandLandmarker-Modell von `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`
+- `@mediapipe/tasks-vision@0.10.15` als ES-Modul samt WASM-Dateien unter `vendor/mediapipe/tasks-vision/`
+- FaceLandmarker- und HandLandmarker-Modelle (float16) unter `models/`
 
-Der Service Worker (`sw.js`) cacht diese Dateien nach dem ersten erfolgreichen Laden lokal (Cache-First, die URLs sind versioniert). Damit funktioniert die App nach dem ersten Lauf auch offline. Alternativ können die Dateien weiterhin lokal gespiegelt und die URLs in `app.js` im Objekt `MEDIAPIPE` auf lokale Pfade geändert werden.
+Extern geladen werden nur noch die Schriften über Google Fonts (`fonts.googleapis.com` / `fonts.gstatic.com`), mit System-Fallbacks.
+
+Der Service Worker (`sw.js`) cacht alle Dateien nach dem ersten erfolgreichen Laden lokal. Damit funktioniert die App nach dem ersten Lauf auch offline.
+
+## Design „Atem & Ruhe"
+
+Die App folgt einer eigenen Designsprache: ruhiger Begleiter statt Überwachungs-Tool.
+
+- **Tokens** (in `style.css` unter `:root`): Flächen `--mist`/`--paper`, Text `--pine`/`--moss`, Zustände `--breath` (ruhig), `--warm` (Hand nähert sich), `--ember` (Intervention). Für Text in Warnzuständen immer die dunklen Varianten `--warm-text`/`--ember-text` verwenden (Lesbarkeit).
+- **Schriften**: Fraunces (Display), Atkinson Hyperlegible (Body), Spline Sans Mono (Zahlen, `tabular-nums`) — geladen über Google Fonts, mit System-Fallbacks; der Service Worker cacht die Fonts nach dem ersten Laden.
+- **Signatur-Element**: der atmende Status-Ring im Focus-Modus. Der Zustand liegt als `data-state` auf `<body>` (`calm` 4,6 s Atemzyklus → `warm` 2,6 s → `ember` 1,6 s → `paused` steht). Gesteuert wird er zentral über `refreshAppState()` in `app.js`.
+- **Intervention**: Vollbild-Veil in `--pine` („Kurz innehalten") mit den drei Feedback-Optionen.
+- **Office Mode** verwendet dieses Design **bewusst nicht** (Tarnung): neutrale System-Schrift, graue Flächen, keine Markenbegriffe. Nur der kleine Status-Punkt übernimmt diskret dieselbe Farblogik wie der Ring.
 
 ## Sprachen (i18n)
 
@@ -194,13 +204,13 @@ Die zentrale Intervention ist vorbereitet, damit eine spätere Mac-App statt des
 
 - Der Browser darf die echte Mac-Bildschirmhelligkeit oder globale Bildschirmfarbe nicht verändern.
 - Systemweites Abdunkeln, ein globales Overlay oder Steuerung von Display-Farbfiltern ist erst mit einer Mac-App möglich, z. B. Electron, Tauri oder einer nativen Swift-App.
-- Firmen-PCs können Kamera, WebAssembly, WebGL/GPU oder externe Modell-CDNs per Browser-/Netzwerk-Policy blockieren.
-- Manche Firmen-Proxys oder Browser-Erweiterungen blockieren `cdn.jsdelivr.net` oder `storage.googleapis.com`; dann können MediaPipe oder die Modelle nicht laden.
+- Firmen-PCs können Kamera, WebAssembly oder WebGL/GPU per Browser-/Netzwerk-Policy blockieren.
+- Manche Firmen-Proxys oder Browser-Erweiterungen blockieren `fonts.googleapis.com`; dann greifen die System-Fallback-Schriften.
 - In verwalteten Browsern kann `localStorage` gelöscht, deaktiviert oder beim Schließen bereinigt werden; dann bleiben Statistik und Settings nicht dauerhaft erhalten.
 - Das MVP unterscheidet nicht sicher zwischen Nägelkauen, Lippen berühren, Trinken oder anderen Hand-zum-Gesicht-Bewegungen. Deshalb wird die Warnung manuell klassifiziert.
 - Licht, Kamerawinkel, verdeckte Finger und schnelle Bewegungen beeinflussen die Erkennung.
 - Die Distanzschwelle ist normalisiert auf Bildkoordinaten, nicht auf echte Zentimeter.
-- Beim ersten Start ist eine Internetverbindung nötig, solange MediaPipe-Dateien von CDN/Google Storage geladen werden.
+- Beim ersten Start ist eine Internetverbindung nötig, bis der Service Worker die App-Dateien (inkl. WASM und Modelle) gecacht hat.
 
 ## Manuelle Tests
 
