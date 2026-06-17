@@ -5,8 +5,8 @@
   "identifier": "app.nailguard.spike",
   "build": {
     "frontendDist": "../spike-dist",
-    "beforeBuildCommand": "bash ../spike/build-frontend.sh",
-    "beforeDevCommand": "bash ../spike/build-frontend.sh"
+    "beforeBuildCommand": "bash spike/build-frontend.sh",
+    "beforeDevCommand": "bash spike/build-frontend.sh"
   },
   "app": {
     "withGlobalTauri": true,
