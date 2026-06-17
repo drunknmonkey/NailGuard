@@ -65,6 +65,12 @@ Spalten: `iso_timestamp, sekunden_seit_start, callbacks_letzte_sekunde, visibili
 2. Nach dem Lauf: **Actions → der Run → Artifacts → `NailGuard-Spike-macOS`** herunterladen.
    Das ZIP enthält die `.dmg` und die `.app`.
 
+> **Status: Build ist grün.** Letzter erfolgreicher Lauf:
+> <https://github.com/drunknmonkey/NailGuard/actions/runs/27698487672> – Artefakt
+> `NailGuard-Spike-macOS` (~34 MB, enthält `.dmg` + `.app`). Download oben rechts im Run
+> unter „Artifacts" (GitHub-Login nötig). Damit ist das doppelklickbare Bundle vorhanden;
+> es fehlt nur noch Pauls Mess-Lauf.
+
 ### Variante B – lokal auf einem Mac (für Entwickler)
 
 ```bash
