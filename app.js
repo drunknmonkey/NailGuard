@@ -417,6 +417,12 @@ const detection = {
     } else {
       clearOverlay();
     }
+
+    // --- TAURI-SPIKE (Wegwerf, nach dem Spike wieder entfernen) -------------
+    // Zählt jeden abgeschlossenen Detection-Callback für die Hintergrund-
+    // Throttling-Messung. Ohne das Spike-Overlay (reine PWA) ist dies inert.
+    if (window.__nailguardSpike) window.__nailguardSpike.onDetection();
+    // ------------------------------------------------------------------------
   },
 
   evaluateProximity(now) {
