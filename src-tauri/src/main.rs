@@ -14,6 +14,69 @@ use std::time::{Duration, Instant};
 
 use tauri::{Manager, WindowEvent};
 
+// --- macOS: getUserMedia im WKWebView erlauben ----------------------------------
+// WKWebView verweigert Kamera/Mikrofon auf Web-Ebene, solange der WKUIDelegate die
+// Methode `requestMediaCapturePermissionForOrigin:...` nicht beantwortet (WRY tut das
+// fuer Screen-Sharing, aber nicht fuer die Kamera – tauri-apps/wry#1195). Wir setzen
+// daher einen minimalen Delegate, der die Anfrage mit "grant" (=1) beantwortet. Das
+// ist Apples offizieller Mechanismus, kein Workaround.
+//
+// Bewusst mit Roh-Typen (*mut AnyObject / isize / block2::Block), damit wir nur von
+// objc2 + block2 abhaengen (Versionen wie wry) und nicht von den versionssensiblen
+// objc2-web-kit-Typen. WebKit prueft `respondsToSelector:`, ein Minimal-Delegate genuegt.
+#[cfg(target_os = "macos")]
+mod macos_camera {
+    use block2::Block;
+    use objc2::rc::Retained;
+    use objc2::runtime::{AnyObject, NSObject, NSObjectProtocol};
+    use objc2::{define_class, msg_send, AllocAnyThread};
+
+    define_class!(
+        #[unsafe(super(NSObject))]
+        #[name = "NailguardMediaUIDelegate"]
+        pub struct MediaUIDelegate;
+
+        unsafe impl NSObjectProtocol for MediaUIDelegate {}
+
+        impl MediaUIDelegate {
+            // - (void)webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:
+            // Signatur-Encoding: v@:@@@q@?  (void, self, _cmd, webview, origin, frame, NSInteger, block)
+            #[unsafe(method(webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:))]
+            fn grant_media(
+                &self,
+                _web_view: *mut AnyObject,
+                _origin: *mut AnyObject,
+                _frame: *mut AnyObject,
+                _capture_type: isize,
+                decision_handler: &Block<dyn Fn(isize)>,
+            ) {
+                // WKPermissionDecisionGrant == 1
+                decision_handler.call((1isize,));
+            }
+        }
+    );
+
+    impl MediaUIDelegate {
+        fn new() -> Retained<Self> {
+            unsafe { msg_send![Self::alloc(), init] }
+        }
+    }
+
+    /// Haengt den Delegate an den WKWebView (Pointer aus `PlatformWebview::inner()`).
+    pub unsafe fn install(webview_ptr: *mut std::ffi::c_void) {
+        let wk = webview_ptr.cast::<AnyObject>();
+        if wk.is_null() {
+            return;
+        }
+        let delegate = MediaUIDelegate::new();
+        let _: () = msg_send![&*wk, setUIDelegate: &*delegate];
+        // uiDelegate ist eine schwache Property -> Delegate fuer die App-Lebensdauer halten.
+        std::mem::forget(delegate);
+    }
+}
+// --------------------------------------------------------------------------------
+
+
 /// Gemeinsamer Zustand zwischen WebView-Befehlen und nativem Ticker.
 struct SpikeState {
     /// Vom WebView gemeldete Detection-Callbacks seit dem letzten Tick.
@@ -94,6 +157,14 @@ fn main() {
                         handle.state::<SpikeState>().focus.store(*focused, Ordering::Relaxed);
                     }
                 });
+
+                // macOS: Kamera-/Mikrofon-Anfragen im WKWebView erlauben.
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = win.with_webview(|webview| unsafe {
+                        macos_camera::install(webview.inner().cast());
+                    });
+                }
             }
 
             // Nativer 1-Sekunden-Ticker. Läuft unabhängig vom WebView-Throttling.
