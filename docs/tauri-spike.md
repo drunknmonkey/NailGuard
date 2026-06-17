@@ -10,12 +10,17 @@ Der Spike beantwortet genau zwei Fragen:
 2. **Hintergrund-Throttling:** Läuft die rAF-Erkennungsschleife weiter, wenn das Fenster
    den Fokus verliert, verdeckt oder **minimiert** ist – und mit welcher Rate?
 
-> **Wichtiger Hinweis zur Durchführung:** Dieser Spike wurde in einer Linux-Cloud-Umgebung
-> gebaut. Dort steht **kein WKWebView und kein macOS** zur Verfügung, d. h. der eigentliche
-> Mess-Lauf muss auf einem Mac stattfinden (Abschnitt „Test-Choreografie"). Das macOS-Bundle
-> wird über GitHub Actions (`.github/workflows/spike-mac-build.yml`) auf einem `macos-14`-Runner
-> gebaut – das ist der einzige verfügbare Weg zu einem echten WKWebView-Build ohne lokalen Mac.
-> Die mit `[MESSEN]` markierten Felder unten füllt der Tester (Paul) nach dem Lauf aus.
+> **Wichtiger Hinweis zum Status:** Dieser Spike wurde in einer Linux-Cloud-Umgebung
+> entwickelt. Dort steht **kein macOS, kein WKWebView**, kein GitHub-Actions-Runner und
+> (crates.io ist gesperrt) auch keine Rust-Kompilierung zur Verfügung. Konsequenz:
+>
+> - Der **Code ist vollständig** (Scaffold, Mess-Instrumentierung, Auswertung, CI-Workflow).
+> - Das **macOS-Bundle (.app/.dmg) wurde in dieser Umgebung noch nicht erzeugt.** Es entsteht
+>   durch **einen** Lauf des Workflows `.github/workflows/spike-mac-build.yml` auf einem
+>   `macos-14`-Runner (sobald der Branch auf echtem GitHub liegt) oder durch `tauri build`
+>   auf einem Mac (Variante B).
+> - Der eigentliche **Mess-Lauf** und damit die `[MESSEN]`-Felder unten erfolgen auf Pauls
+>   Mac (Abschnitt „Test-Choreografie").
 
 ---
 
