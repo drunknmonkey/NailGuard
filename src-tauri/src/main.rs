@@ -64,7 +64,22 @@ mod macos_camera {
 
     /// Haengt den Delegate an den WKWebView (Pointer aus `PlatformWebview::inner()`).
     pub unsafe fn install(webview_ptr: *mut std::ffi::c_void) {
+        // Runtime-Diagnose: bestaetigt, dass with_webview/install lief und welche
+        // ObjC-Klasse inner() liefert (sollte WKWebView sein). Liegt auf dem Desktop.
+        let dbg_path = format!(
+            "{}/Desktop/nailguard-spike-debug.txt",
+            std::env::var("HOME").unwrap_or_default()
+        );
         let wk = webview_ptr.cast::<AnyObject>();
+        let class = if wk.is_null() {
+            "<null>".to_string()
+        } else {
+            format!("{:?}", (&*wk).class())
+        };
+        let _ = std::fs::write(
+            &dbg_path,
+            format!("install() aufgerufen; ptr_null={}; inner_class={}\n", wk.is_null(), class),
+        );
         if wk.is_null() {
             return;
         }
@@ -72,6 +87,10 @@ mod macos_camera {
         let _: () = msg_send![&*wk, setUIDelegate: &*delegate];
         // uiDelegate ist eine schwache Property -> Delegate fuer die App-Lebensdauer halten.
         std::mem::forget(delegate);
+        let _ = std::fs::write(
+            &dbg_path,
+            format!("install() ok; inner_class={}; setUIDelegate gesetzt\n", class),
+        );
     }
 }
 // --------------------------------------------------------------------------------

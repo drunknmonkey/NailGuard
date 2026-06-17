@@ -47,6 +47,16 @@ jobs:
           # Unsigniert: keine Apple-Signatur/Notarisierung.
           APPLE_SIGNING_IDENTITY: "-"
 
+      - name: Inspect bundle (Kamera-Diagnose)
+        run: |
+          set -x
+          APP=$(/usr/bin/find src-tauri/target/release/bundle/macos -maxdepth 1 -name '*.app' | head -1)
+          echo "APP=$APP"
+          echo '--- NSCameraUsageDescription ---'
+          /usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$APP/Contents/Info.plist" || echo "NSCameraUsageDescription FEHLT"
+          echo '--- codesign + entitlements ---'
+          codesign -dvvv --entitlements :- "$APP" 2>&1 || true
+
       - name: Upload bundle
         uses: actions/upload-artifact@v4
         with:
