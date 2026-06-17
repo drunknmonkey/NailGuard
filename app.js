@@ -179,7 +179,10 @@ function init() {
   document.documentElement.lang = getLocale();
   applyStaticTranslations();
   renderLangSwitch();
-  state.activeMode = state.settings.activeMode;
+  // Office Mode ist ein Zustand, kein Start-Modus: er wird nur manuell
+  // über den Button im Focus Mode betreten. Beim Start daher nie in den
+  // (zuletzt gespeicherten) Office Mode springen, sondern in den Focus Mode.
+  state.activeMode = state.settings.activeMode === "neutral" ? "focus" : state.settings.activeMode;
   applySettingsToUi();
   bindEvents();
   switchMode(state.activeMode);
