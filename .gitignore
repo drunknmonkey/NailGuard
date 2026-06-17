@@ -22,3 +22,7 @@ build/
 .env
 .env.*
 !.env.example
+
+# Tauri-Spike (Wegwerf): generierte Frontend-Kopie und Mess-Log
+/spike-dist/
+nailguard-spike-log.csv

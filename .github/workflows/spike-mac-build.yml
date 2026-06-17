@@ -1,0 +1,57 @@
+# Wegwerf-Spike: baut die unsignierte macOS-.app/.dmg der Tauri-Hülle.
+# So entsteht ein doppelklickbares Bundle, ohne lokalen Mac. Das Artefakt
+# liegt nach dem Lauf unter "Actions -> dieser Run -> Artifacts".
+name: Spike macOS Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/spike-tauri-nailguard-tqlfm1
+    paths:
+      - "src-tauri/**"
+      - "spike/**"
+      - ".github/workflows/spike-mac-build.yml"
+
+jobs:
+  build:
+    # macOS 14 (Sonoma) – nötig für backgroundThrottling-Support.
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.toml') }}
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli@^2
+
+      - name: Generate app icons
+        run: tauri icon icons/icon-512.png
+
+      - name: Build unsigned bundle
+        run: tauri build
+        env:
+          # Unsigniert: keine Apple-Signatur/Notarisierung.
+          APPLE_SIGNING_IDENTITY: "-"
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: NailGuard-Spike-macOS
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/macos/*.app
