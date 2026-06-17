@@ -1,25 +1,35 @@
 # Spike: Tauri 2.x Machbarkeit für NailGuard
 
-**Status:** Wegwerf-Spike (kein Produktiv-Code). Branch: `claude/spike-tauri-nailguard-tqlfm1`.
-`main` und der PWA-Code bleiben unangetastet; die einzige Ergänzung am App-Code
-ist ein klar markierter, inerter Zähler-Hook in `app.js` (`window.__nailguardSpike`).
+**Status:** ABGESCHLOSSEN. Wegwerf-Spike (kein Produktiv-Code). Branch:
+`claude/spike-tauri-nailguard-tqlfm1`. `main` und der PWA-Code bleiben unangetastet;
+die einzige Ergänzung am App-Code ist ein klar markierter, inerter Zähler-Hook in
+`app.js` (`window.__nailguardSpike`).
 
-Der Spike beantwortet genau zwei Fragen:
+Der Spike beantwortet zwei Fragen:
 
 1. **Kamera:** Funktioniert `getUserMedia` / MediaPipe im WKWebView der Tauri-App auf macOS?
 2. **Hintergrund-Throttling:** Läuft die rAF-Erkennungsschleife weiter, wenn das Fenster
    den Fokus verliert, verdeckt oder **minimiert** ist – und mit welcher Rate?
 
-> **Wichtiger Hinweis zum Status:** Der Spike wurde in einer Linux-Cloud-Umgebung
-> entwickelt (dort kein macOS/WKWebView, keine Rust-Kompilierung – crates.io gesperrt).
-> Das **macOS-Bundle wird daher von GitHub Actions** auf einem `macos-14`-Runner gebaut
-> (`.github/workflows/spike-mac-build.yml`). Konsequenz:
->
-> - Der **Code ist vollständig** (Scaffold, Mess-Instrumentierung, Auswertung, CI-Workflow).
-> - Das **.app/.dmg** entsteht durch den Actions-Lauf (Artefakt `NailGuard-Spike-macOS`)
->   oder lokal per `tauri build` auf einem Mac (Variante B).
-> - Der eigentliche **Mess-Lauf** und damit die `[MESSEN]`-Felder unten erfolgen auf Pauls
->   Mac (Abschnitt „Test-Choreografie").
+## TL;DR – Ergebnis
+
+- **Kamera: funktioniert** – aber **nur** mit drei zusammenwirkenden Bausteinen (Standard-
+  Tauri-Setup allein reicht NICHT): `NSCameraUsageDescription` + ein eigener
+  **WKUIDelegate-Grant** (WRY macht das für die Kamera nicht – wry#1195) + das
+  **Kamera-Entitlement** unter Hardened Runtime. Dann erscheint der System-Dialog (einmalig)
+  und die Erkennung läuft mit voller Rate.
+- **Hintergrund-Erkennung: NO-GO mit der reinen rAF-Schleife.** Sobald das Fenster
+  `hidden` ist (egal ob **minimiert** *oder* von einem anderen Fenster **verdeckt**),
+  stoppt `requestAnimationFrame` und die Erkennung fällt auf **~0/s** – trotz
+  `backgroundThrottling: "disabled"`. Unfokussiert-aber-sichtbar läuft dagegen voll weiter.
+- **Empfehlung:** **GO** für eine Tauri-Desktop-App, aber die Hintergrund-Erkennung
+  **darf nicht** auf der WebView-rAF-Schleife basieren. Siehe „Empfehlung" unten.
+
+## Testumgebung
+
+- Chip: **Apple Silicon (arm64)** (Bundle: `…_aarch64.dmg`).
+- macOS-Version: **macOS 14+ (Sonoma/Sequoia)** — genaue Version bitte noch bestätigen.
+- Kamera: integrierte Mac-Kamera.
 
 ---
 
@@ -27,206 +37,161 @@ Der Spike beantwortet genau zwei Fragen:
 
 ```
 src-tauri/
-├── Cargo.toml            # Tauri-2-Abhängigkeiten
+├── Cargo.toml            # Tauri-2-Deps (+ objc2/block2 nur für macOS)
 ├── build.rs
-├── Info.plist            # NSCameraUsageDescription (wird von Tauri auto-gemerged)
-├── tauri.conf.json       # lädt spike-dist/, backgroundThrottling: "disabled"
-└── src/main.rs           # nativer 1-Sekunden-CSV-Logger + Tauri-Commands
+├── Info.plist            # NSCameraUsageDescription (von Tauri auto-gemerged)
+├── Entitlements.plist    # com.apple.security.device.camera/microphone/audio-input
+├── tauri.conf.json       # lädt spike-dist/, backgroundThrottling:"disabled", entitlements
+├── capabilities/default.json
+└── src/main.rs           # nativer 1-s-CSV-Logger + WKUIDelegate-Kamera-Grant + Commands
 spike/
 ├── spike.js              # On-Screen-Overlay + Brücke zu den Rust-Commands
 ├── build-frontend.sh     # kopiert die PWA nach spike-dist/ und injiziert spike.js
 └── analyze.py            # wertet spike-log.csv pro Phase aus
 .github/workflows/
-└── spike-mac-build.yml   # baut unsignierte .app/.dmg auf macos-14
+└── spike-mac-build.yml   # baut unsignierte .app/.dmg auf macos-14 (+ Bundle-Diagnose)
 ```
 
-**Architektur der Messung (der Knackpunkt):** Die App nutzt **dieselbe rAF-Schleife**
-wie die echte PWA (`detection.loop` → `detectFrame`). Jeder abgeschlossene
-Detection-Callback ruft `window.__nailguardSpike.onDetection()` → `invoke("spike_tick")`.
+**Architektur der Messung:** Die App nutzt **dieselbe rAF-Schleife** wie die echte PWA
+(`detection.loop` → `detectFrame`). Jeder abgeschlossene Detection-Callback ruft
+`window.__nailguardSpike.onDetection()` → `invoke("spike_tick")`. Das **lückenlose Logging
+macht die Rust-Seite**: ein nativer Thread in `main.rs` tickt jede Sekunde und schreibt eine
+CSV-Zeile – auch dann, wenn der WebView (rAF + JS-Timer) eingefroren ist. Genau deshalb
+erscheint im versteckten Zustand eine Zeile mit `callbacks_letzte_sekunde = 0`, statt dass
+die Messung „stehenbleibt". Fokus wird zusätzlich nativ über `WindowEvent::Focused` verfolgt.
 
-Entscheidend: Das **lückenlose Logging macht die Rust-Seite**, nicht das WebView.
-Ein nativer Thread in `main.rs` tickt jede Sekunde und schreibt eine CSV-Zeile –
-**auch dann, wenn der WebView (rAF + JS-Timer) von macOS eingefroren ist.** Genau
-deshalb taucht im minimierten Zustand eine Zeile mit `callbacks_letzte_sekunde = 0`
-auf, statt dass die Messung einfach „stehenbleibt". Der Fensterfokus wird zusätzlich
-nativ über Tauris `WindowEvent::Focused` verfolgt.
-
-CSV-Datei: `~/Desktop/nailguard-spike-log.csv`
+CSV: `~/Desktop/nailguard-spike-log.csv`
 Spalten: `iso_timestamp, sekunden_seit_start, callbacks_letzte_sekunde, visibilityState, hasFocus`
+
+> Hinweis Datenhygiene: Der Logger hängt an dieselbe Datei an (kein Truncate pro Start),
+> deshalb sammelten sich frühere Fehlversuche (Kamera blockiert → lauter Nullen) in derselben
+> CSV. `analyze.py` bzw. die Auswertung trennt nach Sessions (Reset von `sekunden_seit_start`);
+> ausgewertet wurde die letzte, kamera-aktive Session.
 
 ---
 
 ## Wie man es baut & startet
 
-### Variante A – über GitHub Actions (ohne Mac, empfohlen für die Bundle-Erstellung)
+### Variante A – über GitHub Actions (ohne Mac)
 
-1. Workflow **Spike macOS Build** läuft automatisch beim Push auf den Branch
-   (oder manuell über „Run workflow").
-2. Nach dem Lauf: **Actions → der Run → Artifacts → `NailGuard-Spike-macOS`** herunterladen.
-   Das ZIP enthält die `.dmg` und die `.app`.
+1. Workflow **Spike macOS Build** läuft automatisch beim Push (oder manuell „Run workflow").
+2. **Actions → der Run → Artifacts → `NailGuard-Spike-macOS`** herunterladen (ZIP mit `.dmg`/`.app`).
+3. Der Workflow-Schritt „Inspect bundle" druckt zur Kontrolle `NSCameraUsageDescription`,
+   Codesign-Flags und Entitlements des gebauten Bundles.
 
-> **Status: Build ist grün.** Letzter erfolgreicher Lauf:
-> <https://github.com/drunknmonkey/NailGuard/actions/runs/27698487672> – Artefakt
-> `NailGuard-Spike-macOS` (~34 MB, enthält `.dmg` + `.app`). Download oben rechts im Run
-> unter „Artifacts" (GitHub-Login nötig). Damit ist das doppelklickbare Bundle vorhanden;
-> es fehlt nur noch Pauls Mess-Lauf.
-
-### Variante B – lokal auf einem Mac (für Entwickler)
+### Variante B – lokal auf einem Mac
 
 ```bash
-# Voraussetzungen: Rust (rustup), Node 20, Xcode Command Line Tools
+# Voraussetzungen: Rust (rustup), Node, Xcode Command Line Tools
 npm install -g @tauri-apps/cli@^2
 tauri icon icons/icon-512.png   # generiert src-tauri/icons (einmalig)
-tauri build                     # erzeugt src-tauri/target/release/bundle/{dmg,macos}
-# oder zum Entwickeln:
-tauri dev
+tauri build                     # -> src-tauri/target/release/bundle/{dmg,macos}
 ```
 
 `build-frontend.sh` läuft automatisch als `beforeBuildCommand` und erzeugt `spike-dist/`.
 
 ---
 
-## Anleitung für Paul (einfach, zum Anklicken)
+## Anleitung für Paul (zum Anklicken)
 
-1. **Datei holen:** Die Datei `NailGuard Spike_…_.dmg` liegt im heruntergeladenen
-   Ordner (aus GitHub Actions, Artefakt `NailGuard-Spike-macOS`).
-2. **Installieren:** Doppelklick auf die `.dmg`. Im Fenster das **NailGuard-Spike-Symbol
-   in den Ordner „Programme" ziehen** (oder einfach direkt aus dem `.dmg` starten).
-3. **Unsignierte App öffnen:** Beim ersten Start meldet macOS „nicht verifizierter
-   Entwickler". Deshalb **nicht** doppelklicken, sondern:
-   **Rechtsklick auf die App → „Öffnen" → im Dialog noch einmal „Öffnen"**.
-   (Bei sehr neuem macOS ggf.: **Systemeinstellungen → Datenschutz & Sicherheit →
-   ganz unten „Dennoch öffnen".**)
-4. **Kamera erlauben:** Wenn macOS fragt „… möchte auf die Kamera zugreifen", auf
-   **„Erlauben"** klicken. *Es kann sein, dass die Frage zweimal kommt* (einmal für die
-   App, einmal für den WebView) – beide Male **„Erlauben"**.
-5. In der App auf **„Kamera starten"** klicken und auch dort den Zugriff erlauben.
-6. Oben rechts erscheint das **schwarze Mess-Overlay** mit „Rate /s", „Zeit", „visibility"
-   und „hasFocus". Prüfen: **Video läuft, Rate ist größer als 0.**
+1. Alte „NailGuard Spike"-App in den Papierkorb (damit sicher die neue läuft).
+2. Aktuelles Artefakt aus GitHub Actions laden, entpacken, `.dmg` öffnen, App nach
+   **Programme** ziehen.
+3. Unsigniert öffnen: **Rechtsklick auf die App → „Öffnen" → im Dialog „Öffnen"**.
+4. **„Kamera starten"** klicken → macOS fragt nach der **Kamera** → **„Erlauben"**.
+5. Overlay oben rechts prüfen: **Video läuft, Rate > 0.**
 
-### Test-Choreografie (bitte in dieser Reihenfolge, Kamera bleibt durchgehend an)
+### Test-Choreografie (Kamera bleibt durchgehend an)
 
 | Schritt | Aktion | Dauer |
 |--------:|--------|-------|
-| 1 | App im Vordergrund lassen, nichts tun | ~30 s |
-| 2 | In eine **andere App** klicken (NailGuard verliert den Fokus, bleibt aber sichtbar) | ~30 s |
-| 3 | Ein **anderes Fenster komplett über** NailGuard legen (verdeckt) | ~30 s |
-| 4 | NailGuard **minimieren** (gelber Knopf / ⌘M) | ~60 s |
-| 5 | Fenster **wiederherstellen** | – |
+| 1 | Vordergrund lassen | ~30 s |
+| 2 | In eine **andere App** klicken (Fokus weg, sichtbar) | ~30 s |
+| 3 | Ein **anderes Fenster komplett über** NailGuard legen | ~30 s |
+| 4 | NailGuard **minimieren** | ~60 s |
+| 5 | Wiederherstellen | – |
 
-Danach die App schließen. Auf dem **Schreibtisch** liegt jetzt die Datei
-`nailguard-spike-log.csv`. Diese Datei an die Entwickler schicken.
-
-### Auswertung
-
-```bash
-python3 spike/analyze.py ~/Desktop/nailguard-spike-log.csv
-```
-
-Gibt die durchschnittliche Rate pro Phase und die komplette Zeitreihe aus.
+Danach App schließen → `nailguard-spike-log.csv` liegt auf dem Schreibtisch.
+Auswertung: `python3 spike/analyze.py ~/Desktop/nailguard-spike-log.csv`.
 
 ---
 
 ## Ergebnisse
 
-### Testumgebung `[MESSEN]`
+### Kamera
 
-- macOS-Version: `[MESSEN, z. B. 14.5 Sonoma / 15.x Sequoia]`
-- Chip: `[MESSEN, Apple Silicon (M-Serie) oder Intel]`
-- Kamera: `[MESSEN, z. B. integrierte FaceTime-HD]`
+Funktioniert. **Wichtig – mit Standard-Tauri-2-Konfiguration startet die Kamera NICHT**
+(sofortiger „blockiert"-Fehler, **kein** System-Dialog). Nötig waren drei Dinge zusammen:
 
-### Kamera `[MESSEN]`
+1. `NSCameraUsageDescription` in `src-tauri/Info.plist` (wird auto-gemerged).
+2. Ein eigener **WKUIDelegate**, der
+   `webView:requestMediaCapturePermissionForOrigin:…:decisionHandler:` mit *grant* beantwortet
+   (gesetzt via `with_webview`/`setUIDelegate:`). WRY implementiert das für Screen-Sharing,
+   **nicht** für die Kamera – das ist der offene Punkt wry#1195.
+3. Das **Kamera-Entitlement** (`com.apple.security.device.camera`) – unter Hardened Runtime
+   verweigert macOS sonst still (ohne Dialog).
 
-- Video im WebView sichtbar? `[ja/nein]`
-- Berechtigungsdialog(e): `[einmal / zweimal / gar nicht]`
-- Macken: `[z. B. doppelter Prompt, Verzögerung, schwarzes Bild]`
+Berechtigungsdialog: erschien **einmal** (kein doppelter Prompt). Sobald erteilt, lieferte
+die bestehende MediaPipe-Schleife volle Bildrate.
 
-> **Technische Erwartung:** Mit `NSCameraUsageDescription` in der `Info.plist` startet
-> `getUserMedia` im WKWebView. Bekannte Macke auf macOS 14: der Berechtigungsdialog kann
-> **zweimal** erscheinen (App-Ebene + WebView-Ebene). Bleibt das Bild schwarz oder startet
-> die Kamera gar nicht → siehe „Bei hartem Blocker" unten.
+### Hintergrund-Throttling (kamera-aktive Session, 317 s, Apple Silicon)
 
-### Hintergrund-Throttling `[MESSEN]`
+| Phase | `visibilityState`/`hasFocus` | Ø Callbacks/s | max | Anmerkung |
+|-------|------------------------------|---------------|-----|-----------|
+| Vordergrund (fokussiert, sichtbar) | visible / true | **~51** | 58 | volle Rate |
+| Unfokussiert, **sichtbar** | visible / false | **~53** | 57 | **kein Throttling** |
+| **Verdeckt** (Fenster komplett drüber) | hidden / false | **~0,5** | 20 | rAF gestoppt; nur 2 von 41 s ≠ 0 |
+| **Minimiert** | hidden / false | **~0,0** | 1 | praktisch tot: 1 Callback in 158 s |
 
-Werte aus `analyze.py` eintragen:
+(Erste ~16 s = Aufwärmphase: Kamera starten + Berechtigung erteilen, daher 0/s.)
 
-| Phase | Ø Callbacks/s | Anmerkungen |
-|-------|---------------|-------------|
-| Vordergrund (fokussiert, sichtbar) | `[MESSEN]` | Referenzrate, vermutlich ~30–60 |
-| Unfokussiert, sichtbar | `[MESSEN]` | |
-| Verdeckt (anderes Fenster darüber) | `[MESSEN]` | |
-| Minimiert | `[MESSEN]` | **der eigentliche Knackpunkt** |
-
----
-
-## Technische Einschätzung & Empfehlung
-
-> Diese Einschätzung beruht auf der dokumentierten WKWebView-/macOS-Mechanik. Sie ist
-> **vor** dem Mess-Lauf formuliert; die `[MESSEN]`-Tabelle bestätigt oder widerlegt sie.
-
-**Frage 1 – Kamera: voraussichtlich GO.** `getUserMedia` + MediaPipe laufen im WKWebView,
-sobald `NSCameraUsageDescription` gesetzt ist. Einziger zu erwartender Reibungspunkt ist
-der mögliche Doppel-Prompt – kein Blocker.
-
-**Frage 2 – Hintergrund-Erkennung im minimierten Zustand: voraussichtlich NO-GO für die
-unveränderte rAF-Schleife.** Grund: `requestAnimationFrame` ist an das Rendern des Fensters
-gekoppelt. Ein **minimiertes oder vollständig verdecktes** WKWebView wird von macOS nicht
-gerendert, `document.visibilityState` wird `hidden`, und rAF-Callbacks werden praktisch
-gestoppt (erwartete Rate ~0/s). Wichtig: Tauris `backgroundThrottling: "disabled"` (in
-`tauri.conf.json` gesetzt) hebt zwar die **Timer-Suspendierung** auf, ändert aber nichts
-daran, dass **rAF ohne Rendering nicht feuert**. Genau deshalb misst der Spike mit der
-optimistischen Einstellung `"disabled"` – wenn es **damit** nicht läuft, ist es ein
-belastbares NO-GO für „Erkennung per WebView-rAF im Hintergrund".
-
-**Entscheidungsregel an der Messung:**
-
-- **Minimiert ≥ ~10 Callbacks/s →** GO. Tauri-WebView taugt auch für die Hintergrund-Erkennung;
-  ggf. Ziel-FPS senken reicht als Optimierung.
-- **Minimiert ~1–5 Callbacks/s →** GRENZWERTIG. Für Nägelkauen (Hand-zu-Mund dauert i. d. R.
-  > 1 s) evtl. gerade ausreichend, aber riskant → Gegenmaßnahmen nötig (siehe unten).
-- **Minimiert ~0 Callbacks/s →** NO-GO für „minimiert erkennen" mit der reinen rAF-Schleife.
-  Vordergrund/unfokussiert-sichtbar bleiben aber nutzbar.
-
-**Bewertung der Reserve für NailGuard:** Eine Hand-zu-Mund-Bewegung dauert grob 1–3 Sekunden.
-Selbst 2–3 zuverlässige Detections/s würden zum Erfassen reichen. Das Problem ist nicht die
-nötige Kadenz, sondern dass rAF im **minimierten** Zustand voraussichtlich komplett pausiert –
-dann gibt es gar keine Kadenz. „Verdeckt, aber nicht minimiert" ist der Grenzfall, der über
-die Praxistauglichkeit entscheidet und deshalb in der Choreografie separat getestet wird.
-
-### Empfehlung
-
-**GO für eine Tauri-Desktop-App – aber NICHT für „Hintergrund-Erkennung per WebView-rAF im
-minimierten Zustand".** Die Kamera funktioniert, und solange das Fenster sichtbar ist (auch
-unfokussiert), trägt die bestehende Erkennungsschleife. Für NailGuards Kernversprechen
-(Erkennen, während der Nutzer in anderen Apps arbeitet) braucht es **mindestens eine** der
-folgenden Gegenmaßnahmen – abhängig vom Messergebnis:
-
-- **Stream/Erfassung auf die Rust-Seite ziehen:** Kamera nativ in Rust öffnen, Frames per
-  Timer (vom `backgroundThrottling`-unabhängigen Rust-Thread) ziehen und an die Inferenz
-  geben. Entkoppelt die Erkennung vollständig von rAF/Rendering.
-- **Detection in einen Web Worker** verlagern (Worker-Timer werden anders gedrosselt als rAF;
-  in Kombination mit `backgroundThrottling: "disabled"` zu prüfen) – günstigerer Umbau, aber
-  hängt weiter am Rendering, wenn die Frames per `<video>`/`canvas` gezogen werden.
-- **Fenster nie minimieren lassen:** Statt Minimieren in ein kleines, immer sichtbares
-  Menüleisten-/Overlay-Fenster ausweichen, das weiter gerendert wird (native Wake-Strategie).
-- **Niedrigere Ziel-FPS** – nur relevant, falls die Messung „grenzwertig" ergibt; löst den
-  Minimiert-=-0-Fall **nicht**.
-
-Konkrete nächste Schritte nach einem „Go": kleinen Folge-Spike mit nativer Rust-Kamera-Erfassung
-bauen und gegen die hier gemessene Vordergrund-Referenzrate vergleichen.
+Kernbefund: **`requestAnimationFrame` ist an das Rendern gekoppelt.** macOS meldet sowohl
+beim Minimieren als auch beim vollständigen Verdecken `visibilityState = hidden` und stellt
+das Rendern – und damit rAF – ein. `backgroundThrottling: "disabled"` (gesetzt) ändert das
+nicht: es hebt nur die Timer-Suspendierung auf, lässt rAF aber ohne Rendering nicht feuern.
 
 ---
 
-## Bei hartem Blocker
+## Einschätzung der Reserve für NailGuards Hintergrund-Erkennung
 
-Startet die Kamera im WKWebView trotz `NSCameraUsageDescription` partout nicht (schwarzes
-Bild, kein Prompt, sofortiger Crash): **stoppen und dokumentieren** statt Workarounds zu
-basteln. Das ist selbst ein Ergebnis für das Gate. Relevante Infos für die Doku: macOS-Version,
-Chip, ob ein Prompt erschien, Konsolen-/Crash-Log.
+Eine Hand-zu-Mund-Bewegung dauert grob 1–3 s; schon 2–3 Detections/s würden reichen, um sie
+zu erfassen. Das Problem ist **nicht die nötige Kadenz, sondern dass es im versteckten
+Zustand gar keine Kadenz gibt** (~0/s). Besonders relevant: Schon das **bloße Verdecken**
+durch ein anderes Fenster – der Normalfall, wenn jemand in einer anderen App arbeitet –
+genügt, um die Erkennung zu stoppen. Es muss also nicht einmal minimiert sein.
+
+Positiv: Solange das Fenster **sichtbar** bleibt (auch unfokussiert oder nur teilweise frei),
+läuft die Erkennung mit voller Rate (~50–60/s).
+
+## Empfehlung: GO (mit klarer Auflage)
+
+**GO** für eine Tauri-Desktop-App – die Kamera funktioniert zuverlässig, und im sichtbaren
+Zustand trägt die bestehende Erkennungsschleife voll. **Aber:** Die Hintergrund-Erkennung
+**darf nicht** auf der WebView-`requestAnimationFrame`-Schleife basieren. Für NailGuards
+Kernversprechen (Erkennen, während der Nutzer in anderen Apps arbeitet) ist mindestens eine
+dieser Gegenmaßnahmen nötig:
+
+1. **Erfassung + Inferenz auf die Rust-Seite ziehen** (native Kamera-Aufnahme per Timer im
+   `backgroundThrottling`-unabhängigen Rust-Thread, Inferenz nativ oder im Worker).
+   Entkoppelt die Erkennung vollständig von rAF/Rendering. **Empfohlener Weg.**
+2. **Fenster nie verstecken lassen:** kleines, immer sichtbares Menüleisten-/Overlay-Fenster,
+   das weiter gerendert wird (statt Minimieren/Verdecken). Pragmatisch, aber UX-Kompromiss.
+3. **Web Worker** für die Detection (Worker-Timer werden anders gedrosselt als rAF) – günstiger
+   Umbau, hängt aber weiter am Rendering, wenn Frames per `<video>`/`canvas` gezogen werden;
+   muss separat verifiziert werden.
+4. **Niedrigere Ziel-FPS** – löst den Versteckt-=-0-Fall **nicht** und ist daher keine Lösung.
+
+Konkreter nächster Schritt nach dem „Go": kleiner Folge-Spike mit nativer Rust-Kamera-Erfassung,
+gemessen gegen die hier ermittelte Vordergrund-Referenz (~50/s).
+
+> Was beim Kamera-Blocker half (für die Produkt-App relevant): Der Spike stoppte zunächst bei
+> „Kamera blockiert, kein Dialog". Ursache war die Kombination aus fehlendem WKUIDelegate-Grant
+> **und** fehlendem Kamera-Entitlement unter Hardened Runtime. Beide sind im Repo umgesetzt und
+> per CI-Bundle-Diagnose verifiziert (NSCameraUsageDescription, Entitlements, Codesign-Flags).
 
 ---
 
 ## Außerhalb des Scopes (bewusst nicht gemacht)
 
-Keine Signierung/Notarisierung, kein Autostart, kein Tray-Icon, keine saubere Architektur –
-das ist Wegwerf-Code, fokussiert auf die zwei Fragen. Kommt erst nach einem „Go".
+Keine Notarisierung (nur Ad-hoc-Signatur), kein Autostart, kein Tray-Icon, keine saubere
+Architektur – Wegwerf-Code, fokussiert auf die zwei Fragen. Kommt erst nach dem „Go".
