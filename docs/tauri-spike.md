@@ -10,15 +10,14 @@ Der Spike beantwortet genau zwei Fragen:
 2. **Hintergrund-Throttling:** Läuft die rAF-Erkennungsschleife weiter, wenn das Fenster
    den Fokus verliert, verdeckt oder **minimiert** ist – und mit welcher Rate?
 
-> **Wichtiger Hinweis zum Status:** Dieser Spike wurde in einer Linux-Cloud-Umgebung
-> entwickelt. Dort steht **kein macOS, kein WKWebView**, kein GitHub-Actions-Runner und
-> (crates.io ist gesperrt) auch keine Rust-Kompilierung zur Verfügung. Konsequenz:
+> **Wichtiger Hinweis zum Status:** Der Spike wurde in einer Linux-Cloud-Umgebung
+> entwickelt (dort kein macOS/WKWebView, keine Rust-Kompilierung – crates.io gesperrt).
+> Das **macOS-Bundle wird daher von GitHub Actions** auf einem `macos-14`-Runner gebaut
+> (`.github/workflows/spike-mac-build.yml`). Konsequenz:
 >
 > - Der **Code ist vollständig** (Scaffold, Mess-Instrumentierung, Auswertung, CI-Workflow).
-> - Das **macOS-Bundle (.app/.dmg) wurde in dieser Umgebung noch nicht erzeugt.** Es entsteht
->   durch **einen** Lauf des Workflows `.github/workflows/spike-mac-build.yml` auf einem
->   `macos-14`-Runner (sobald der Branch auf echtem GitHub liegt) oder durch `tauri build`
->   auf einem Mac (Variante B).
+> - Das **.app/.dmg** entsteht durch den Actions-Lauf (Artefakt `NailGuard-Spike-macOS`)
+>   oder lokal per `tauri build` auf einem Mac (Variante B).
 > - Der eigentliche **Mess-Lauf** und damit die `[MESSEN]`-Felder unten erfolgen auf Pauls
 >   Mac (Abschnitt „Test-Choreografie").
 
