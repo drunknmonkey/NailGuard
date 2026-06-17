@@ -1,0 +1,11 @@
+{
+  "name": "nailguard",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "sync-desktop": "python3 tools/sync-desktop-frontend.py"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

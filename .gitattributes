@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# MediaPipe-Binärdateien (Desktop-Build)
+*.task binary
+*.wasm binary
