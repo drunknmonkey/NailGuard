@@ -106,18 +106,28 @@ struct SpikeState {
     visibility: Mutex<String>,
     /// Fensterfokus – wird sowohl nativ (Window-Event) als auch vom WebView gesetzt.
     focus: AtomicBool,
+    /// Pro App-Start eine eigene, mit Zeitstempel benannte CSV (keine Session-Vermischung).
+    log_path: PathBuf,
 }
 
-/// Schreibziel: Desktop des Nutzers, damit Paul die Datei sofort findet.
-/// Existiert kein Desktop, landet die Datei im Home-Verzeichnis.
-fn log_path() -> PathBuf {
+/// Desktop des Nutzers (Fallback: Home), damit Paul die Datei sofort findet.
+fn log_dir() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
     let mut p = PathBuf::from(home);
     p.push("Desktop");
     if !p.exists() {
         p.pop();
     }
-    p.push("nailguard-spike-log.csv");
+    p
+}
+
+/// Pro Start eindeutiger Dateiname: nailguard-spike-log-YYYYMMDD-HHMMSS.csv
+fn new_log_path() -> PathBuf {
+    let mut p = log_dir();
+    p.push(format!(
+        "nailguard-spike-log-{}.csv",
+        chrono::Local::now().format("%Y%m%d-%H%M%S")
+    ));
     p
 }
 
@@ -138,8 +148,84 @@ fn spike_state(visibility: String, has_focus: bool, state: tauri::State<SpikeSta
 
 /// Erlaubt dem WebView, den Speicherort im Overlay anzuzeigen.
 #[tauri::command]
-fn spike_log_path() -> String {
-    log_path().to_string_lossy().into_owned()
+fn spike_log_path(state: tauri::State<SpikeState>) -> String {
+    state.log_path.to_string_lossy().into_owned()
+}
+
+fn cmd_err<E: std::fmt::Display>(err: E) -> String {
+    err.to_string()
+}
+
+/// Pill-Modus: kompaktes, rahmenloses, immer sichtbares Mini-Fenster. Das WebView
+/// (Kamera + rAF-Erkennung) bleibt dasselbe – nur die Fenster-Eigenschaften ändern sich.
+#[tauri::command]
+fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> Result<(), String> {
+    window.set_decorations(false).map_err(cmd_err)?;
+    window.set_always_on_top(true).map_err(cmd_err)?;
+    window
+        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(220.0, 120.0)))
+        .map_err(cmd_err)?;
+    // Auf allen Spaces/Workspaces sichtbar (Desktop-only, Fehler nicht fatal).
+    let _ = window.set_visible_on_all_workspaces(true);
+    if let (Some(x), Some(y)) = (x, y) {
+        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)));
+    }
+    #[cfg(target_os = "macos")]
+    set_collection_behavior(&window, true);
+    Ok(())
+}
+
+/// Zurück in den Voll-Modus. Gibt die zuletzt genutzte Pill-Position zurück,
+/// damit das WebView sie in localStorage sichern kann.
+#[tauri::command]
+fn exit_pill(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
+    let pos = window.outer_position().map_err(cmd_err)?;
+    #[cfg(target_os = "macos")]
+    set_collection_behavior(&window, false);
+    let _ = window.set_visible_on_all_workspaces(false);
+    window.set_always_on_top(false).map_err(cmd_err)?;
+    window.set_decorations(true).map_err(cmd_err)?;
+    window
+        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(960.0, 720.0)))
+        .map_err(cmd_err)?;
+    let _ = window.center();
+    Ok((pos.x, pos.y))
+}
+
+/// Aktuelle Fensterposition (für die periodische Positions-Sicherung im Pill-Modus).
+#[tauri::command]
+fn pill_position(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
+    let p = window.outer_position().map_err(cmd_err)?;
+    Ok((p.x, p.y))
+}
+
+/// macOS: NSWindow so konfigurieren, dass die Pille auf allen Spaces und als
+/// Auxiliary über Vollbild-Apps schweben kann. Caveat: über das Vollbild EINER
+/// ANDEREN App ist das nicht garantiert (siehe docs/pill-mode.md).
+#[cfg(target_os = "macos")]
+fn set_collection_behavior(window: &tauri::WebviewWindow, pill: bool) {
+    let ns_addr = match window.ns_window() {
+        Ok(p) => p as usize,
+        Err(_) => return,
+    };
+    let _ = window.run_on_main_thread(move || {
+        if ns_addr == 0 {
+            return;
+        }
+        unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+            let ns = ns_addr as *mut AnyObject;
+            if pill {
+                let cur: usize = msg_send![&*ns, collectionBehavior];
+                // NSWindowCollectionBehaviorCanJoinAllSpaces (1<<0) | FullScreenAuxiliary (1<<8)
+                let beh = cur | (1usize << 0) | (1usize << 8);
+                let _: () = msg_send![&*ns, setCollectionBehavior: beh];
+            } else {
+                let _: () = msg_send![&*ns, setCollectionBehavior: 0usize];
+            }
+        }
+    });
 }
 
 fn main() {
@@ -149,22 +235,24 @@ fn main() {
             start: Instant::now(),
             visibility: Mutex::new("visible".to_string()),
             focus: AtomicBool::new(true),
+            log_path: new_log_path(),
         })
         .invoke_handler(tauri::generate_handler![
             spike_tick,
             spike_state,
-            spike_log_path
+            spike_log_path,
+            enter_pill,
+            exit_pill,
+            pill_position
         ])
         .setup(|app| {
-            // CSV anlegen + Header schreiben, falls noch nicht vorhanden.
-            let path = log_path();
-            if !path.exists() {
-                if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
-                    let _ = writeln!(
-                        f,
-                        "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus"
-                    );
-                }
+            // Frische CSV pro Start + Header (Datei ist immer neu).
+            let path = app.state::<SpikeState>().log_path.clone();
+            if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
+                let _ = writeln!(
+                    f,
+                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus"
+                );
             }
 
             // Fokus zusätzlich nativ verfolgen – das funktioniert auch dann,
@@ -200,7 +288,7 @@ fn main() {
                     .unwrap_or_else(|_| "?".to_string());
                 let focus = state.focus.load(Ordering::Relaxed);
                 let ts = chrono::Local::now().to_rfc3339();
-                if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(log_path()) {
+                if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
                     let _ = writeln!(f, "{},{},{},{},{}", ts, secs, count, vis, focus);
                 }
             });

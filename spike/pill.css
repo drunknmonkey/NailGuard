@@ -1,0 +1,105 @@
+/*
+ * Pill-Modus: kleines, immer sichtbares Mini-Fenster, das nur den Atemring zeigt.
+ * Wiederverwendung statt Neubau: Ring-Farbe (--ring-color), Atem-Dauer (--breath-dur)
+ * und die @keyframes breathe stammen aus style.css und folgen body[data-state].
+ */
+
+/* "Andocken"-Steuerung im Voll-Modus (dezent, unten links). */
+.pill-enter-btn {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  font: 500 14px/1 "Atkinson Hyperlegible", system-ui, sans-serif;
+  color: var(--paper);
+  background: var(--pine);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.pill-enter-btn:hover {
+  background: color-mix(in srgb, var(--pine) 88%, black);
+}
+
+/* Pill-Bühne: nur im Pill-Modus sichtbar. */
+.pill-stage {
+  display: none;
+}
+
+body.pill-mode {
+  margin: 0;
+  overflow: hidden;
+  background: var(--mist);
+}
+body.pill-mode .app-shell {
+  display: none !important;
+}
+/* Mess-Overlay des Spikes im Mini-Fenster ausblenden (läuft aber weiter). */
+body.pill-mode #spike-overlay,
+body.pill-mode .pill-enter-btn {
+  display: none !important;
+}
+body.pill-mode .pill-stage {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--mist);
+}
+
+/* Schmale Drag-Region oben zum Verschieben. */
+.pill-grip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--moss);
+  font-size: 14px;
+  letter-spacing: 3px;
+  cursor: grab;
+  user-select: none;
+}
+
+/* Ring als Button: Klick -> zurück in den Voll-Modus. */
+.pill-ring-btn {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.pill-halo,
+.pill-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.pill-halo {
+  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color) 26%, transparent) 0%, transparent 68%);
+  animation: breathe var(--breath-dur) ease-in-out infinite;
+  scale: 1.32;
+}
+.pill-ring {
+  border: 1.5px solid var(--ring-color);
+  animation: breathe var(--breath-dur) ease-in-out infinite;
+  transition: border-color 1.2s ease;
+}
+.pill-ring.inner {
+  inset: 8%;
+  border-width: 1px;
+  opacity: 0.55;
+  animation-delay: calc(var(--breath-dur) * -0.12);
+}
+body[data-state="paused"] .pill-halo,
+body[data-state="paused"] .pill-ring {
+  animation-play-state: paused;
+}

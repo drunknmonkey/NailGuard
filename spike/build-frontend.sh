@@ -14,18 +14,23 @@ for item in index.html app.js style.css i18n.js landing.js sw.js manifest.webman
   cp -R "$ROOT/$item" "$DIST/"
 done
 
-# Spike-Overlay-/Logger-Skript dazulegen ...
+# Spike-/Pill-Assets dazulegen ...
 cp "$ROOT/spike/spike.js" "$DIST/spike.js"
+cp "$ROOT/spike/pill.js" "$DIST/pill.js"
+cp "$ROOT/spike/pill.css" "$DIST/pill.css"
 
-# ... und als klassisches Skript vor </body> einbinden (nur im Spike-Build).
+# ... und in die kopierte index.html einbinden (nur im Tauri-Build).
 python3 - "$DIST/index.html" <<'PY'
 import sys
 path = sys.argv[1]
 html = open(path, encoding="utf-8").read()
+if "./pill.css" not in html:
+    html = html.replace("  </head>", '    <link rel="stylesheet" href="./pill.css" />\n  </head>', 1)
 if "./spike.js" not in html:
     html = html.replace(
         "  </body>",
-        '    <script src="./spike.js"></script>\n  </body>',
+        '    <script src="./spike.js"></script>\n'
+        '    <script src="./pill.js"></script>\n  </body>',
         1,
     )
 open(path, "w", encoding="utf-8").write(html)
