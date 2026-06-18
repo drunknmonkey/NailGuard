@@ -88,6 +88,23 @@ Auswertung: `python3 spike/analyze.py ~/Desktop/nailguard-spike-log-<Zeitstempel
 Erwartung als Beleg: durchgehend ~50/s, **keine `hidden`-/0-Strecken**, solange die Pille
 sichtbar in der Ecke liegt.
 
+### Bestätigungs-Ergebnis (gemessen)
+
+Lauf vom 18.06.2026, ~19,5 Minuten Pill-Modus in der Ecke, parallel in anderen Apps gearbeitet
+(Apple Silicon):
+
+| Kennzahl | Wert |
+|----------|------|
+| Dauer | 1169 s (19,5 min) |
+| `hidden`-Sekunden | **0** (durchgehend `visible`, meist unfokussiert) |
+| Ø Rate nach Aufwärmen (8 s) | **44,5/s** (Median 46/s) |
+| Sekunden mit 0/s nach Aufwärmen | **0 (0,0 %)** |
+| Längste 0-Strecke | **0 s** |
+
+Damit ist belegt: Solange die Pille sichtbar in der Ecke schwebt, bleibt `visibilityState`
+durchgehend `visible`, die rAF-Schleife läuft nie leer, und die Erkennung hält volle Rate –
+auch unfokussiert und während in anderen Apps gearbeitet wird. Kein Throttling, keine Lücken.
+
 > Pro App-Start wird jetzt eine **eigene, mit Zeitstempel benannte** Log-Datei geschrieben
 > – damit sich (anders als beim ersten Spike-Lauf) keine mehreren Sessions in einer Datei
 > mischen.
