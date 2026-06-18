@@ -38,6 +38,35 @@ Mechanik.
 Der Ring spiegelt die **bestehende** Zustandsmaschine (`body[data-state]`:
 calm/warm/ember/paused), gesetzt von `refreshAppState()` in `app.js`. Keine neue Erkennung.
 
+## Aussehen: Variante A „Reiner Ring"
+
+Auf dem Bildschirm schwebt nur ein kleiner, **transparenter, atmender Ring** – kein Kästchen,
+kein Rahmen, kein „···"-Balken.
+
+- **Transparentes Fenster:** `tauri.conf.json` → `app.macOSPrivateApi: true`, Fenster
+  `transparent: true` + `shadow: false` (nativer rechteckiger Schatten aus), Cargo-Feature
+  `tauri/macos-private-api`. Im Pill-Modus wird zusätzlich der Seiten-/Body-Hintergrund auf
+  `transparent` gesetzt, sodass nur der Ring sichtbar ist.
+- **Voll-Modus bleibt opak:** Der Body hat ohnehin `background: var(--mist)` – die volle UI
+  füllt ihren Hintergrund also weiterhin deckend (sonst würde das transparente Fenster die
+  ganze App durchsichtig machen).
+- **Schatten in CSS, nicht nativ:** weiches Abheben über `box-shadow` am Ring (Pine-getönt;
+  im Achtung-Zustand ember-getönt).
+- **Ruhe vs. Achtung:** Ruhe = Ring in `--pine`, leicht zurückgenommene Deckkraft, Atmung
+  `scale 1→1,06` über 5,6 s; Achtung (`data-state` warm/ember) = `--ember`, schneller (1,8 s),
+  größere Amplitude, volle Deckkraft. `prefers-reduced-motion`: Atmung aus (Zustand nur über
+  Farbe).
+- **Kein Chrome im Ruhezustand:** Der ganze Ring ist Drag-/Klick-Ziel. Verschieben durch
+  Ziehen (`startDragging` beim ersten Move), Klick (ohne Ziehen) öffnet den Voll-Modus.
+  Beim Drüberfahren erscheinen zwei leise Symbole: **⤢ vergrößern** und **✕ schließen**
+  (App beenden), die sonst ausgeblendet sind.
+- Fenstergröße im Pill-Modus ~110×110 (transparenter Rand unsichtbar, Platz für Atmung +
+  Schatten).
+
+> Bekanntes Risiko (macOS): In manchen Tauri-Versionen geht die Fenster-Transparenz im
+> gepackten `.dmg` verloren, obwohl sie im Dev läuft (tauri-apps/tauri#13415). Falls Paul
+> doch ein Kästchen sieht, ist das die Ursache und wird separat nachgezogen.
+
 ## Verhalten im Pill-Modus
 
 - Fenster schrumpft auf ~220×120, **rahmenlos** (`set_decorations(false)`).

@@ -1,7 +1,12 @@
 /*
- * Pill-Modus: kleines, immer sichtbares Mini-Fenster, das nur den Atemring zeigt.
- * Wiederverwendung statt Neubau: Ring-Farbe (--ring-color), Atem-Dauer (--breath-dur)
- * und die @keyframes breathe stammen aus style.css und folgen body[data-state].
+ * Pill-Modus, Variante A „Reiner Ring":
+ * Das Fenster ist transparent (siehe tauri.conf.json: transparent + shadow:false,
+ * macOSPrivateApi). Im Pill-Modus wird der Seitenhintergrund transparent gemacht,
+ * sodass nur der frei schwebende, atmende Ring auf dem Bildschirm liegt.
+ *
+ * Wiederverwendung der Zustandsmaschine: alles folgt body[data-state]
+ * (calm / warm / ember / paused), gesetzt von refreshAppState() in app.js.
+ * Farben aus den Projekt-Tokens: --pine (ruhig), --ember (Achtung).
  */
 
 /* "Andocken"-Steuerung im Voll-Modus (dezent, unten links). */
@@ -17,26 +22,25 @@
   border-radius: 999px;
   padding: 10px 16px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 14px rgba(30, 59, 52, 0.18);
 }
 .pill-enter-btn:hover {
   background: color-mix(in srgb, var(--pine) 88%, black);
 }
 
-/* Pill-Bühne: nur im Pill-Modus sichtbar. */
 .pill-stage {
   display: none;
 }
 
+/* --- Pill-Modus: Seite transparent, nur der Ring sichtbar --- */
 body.pill-mode {
   margin: 0;
   overflow: hidden;
-  background: var(--mist);
+  background: transparent !important;
 }
 body.pill-mode .app-shell {
   display: none !important;
 }
-/* Mess-Overlay des Spikes im Mini-Fenster ausblenden (läuft aber weiter). */
 body.pill-mode #spike-overlay,
 body.pill-mode .pill-enter-btn {
   display: none !important;
@@ -47,59 +51,113 @@ body.pill-mode .pill-stage {
   inset: 0;
   align-items: center;
   justify-content: center;
-  background: var(--mist);
-}
-
-/* Schmale Drag-Region oben zum Verschieben. */
-.pill-grip {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--moss);
-  font-size: 14px;
-  letter-spacing: 3px;
-  cursor: grab;
-  user-select: none;
-}
-
-/* Ring als Button: Klick -> zurück in den Voll-Modus. */
-.pill-ring-btn {
-  position: relative;
-  width: 84px;
-  height: 84px;
-  padding: 0;
-  border: none;
   background: transparent;
-  cursor: pointer;
 }
-.pill-halo,
+
+/* Ring-Bereich = Drag- und Klick-Ziel. */
+.pill-ring-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  cursor: grab;
+  opacity: 0.82; /* im Ruhezustand etwas zurückgenommen */
+  transition: opacity 0.5s ease;
+}
+.pill-ring-wrap:active {
+  cursor: grabbing;
+}
+body[data-state="warm"] .pill-ring-wrap,
+body[data-state="ember"] .pill-ring-wrap {
+  opacity: 1; /* im Warnzustand voll aufblühen */
+}
+
 .pill-ring {
   position: absolute;
   inset: 0;
   border-radius: 50%;
+  border: 2px solid var(--pine);
+  box-shadow: 0 8px 22px rgba(30, 59, 52, 0.2);
+  animation: pill-breathe 5.6s ease-in-out infinite;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
-.pill-halo {
-  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color) 26%, transparent) 0%, transparent 68%);
-  animation: breathe var(--breath-dur) ease-in-out infinite;
-  scale: 1.32;
+.pill-core {
+  position: absolute;
+  inset: 17%;
+  border-radius: 50%;
+  background: var(--pine);
+  opacity: 0.16;
+  animation: pill-glow 5.6s ease-in-out infinite;
+  transition: background-color 0.4s ease;
 }
-.pill-ring {
-  border: 1.5px solid var(--ring-color);
-  animation: breathe var(--breath-dur) ease-in-out infinite;
-  transition: border-color 1.2s ease;
+
+/* Achtung-Zustand: ember, schneller, größere Amplitude, ember-getönter Schatten. */
+body[data-state="warm"] .pill-ring,
+body[data-state="ember"] .pill-ring {
+  border-color: var(--ember);
+  box-shadow: 0 8px 24px rgba(196, 106, 74, 0.28);
+  animation-duration: 1.8s;
+  animation-name: pill-breathe-strong;
 }
-.pill-ring.inner {
-  inset: 8%;
-  border-width: 1px;
-  opacity: 0.55;
-  animation-delay: calc(var(--breath-dur) * -0.12);
+body[data-state="warm"] .pill-core,
+body[data-state="ember"] .pill-core {
+  background: var(--ember);
+  opacity: 0.24;
+  animation-duration: 1.8s;
 }
-body[data-state="paused"] .pill-halo,
-body[data-state="paused"] .pill-ring {
+body[data-state="paused"] .pill-ring,
+body[data-state="paused"] .pill-core {
   animation-play-state: paused;
+}
+
+@keyframes pill-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@keyframes pill-breathe-strong {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.09); }
+}
+@keyframes pill-glow {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.30; }
+}
+
+/* Bedienelemente nur beim Drüberfahren. */
+.pill-controls {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.pill-ring-wrap:hover .pill-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+.pill-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pine) 90%, transparent);
+  color: var(--paper);
+  font-size: 11px;
+  line-height: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(30, 59, 52, 0.25);
+}
+.pill-btn:hover {
+  background: var(--pine);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-ring,
+  .pill-core {
+    animation: none !important;
+  }
 }

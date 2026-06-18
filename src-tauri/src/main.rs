@@ -162,8 +162,9 @@ fn cmd_err<E: std::fmt::Display>(err: E) -> String {
 fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> Result<(), String> {
     window.set_decorations(false).map_err(cmd_err)?;
     window.set_always_on_top(true).map_err(cmd_err)?;
+    // Variante A „Reiner Ring": kleines, transparentes Fenster, nur der Ring.
     window
-        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(220.0, 120.0)))
+        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(110.0, 110.0)))
         .map_err(cmd_err)?;
     // Auf allen Spaces/Workspaces sichtbar (Desktop-only, Fehler nicht fatal).
     let _ = window.set_visible_on_all_workspaces(true);
@@ -197,6 +198,12 @@ fn exit_pill(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
 fn pill_position(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
     let p = window.outer_position().map_err(cmd_err)?;
     Ok((p.x, p.y))
+}
+
+/// „Schließen"-Steuerung der Pille: App beenden.
+#[tauri::command]
+fn close_app(window: tauri::WebviewWindow) {
+    let _ = window.close();
 }
 
 /// macOS: NSWindow so konfigurieren, dass die Pille auf allen Spaces und als
@@ -243,7 +250,8 @@ fn main() {
             spike_log_path,
             enter_pill,
             exit_pill,
-            pill_position
+            pill_position,
+            close_app
         ])
         .setup(|app| {
             // Frische CSV pro Start + Header (Datei ist immer neu).
