@@ -39,6 +39,12 @@ const translations = {
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
     "start.desktopLink": "Desktop-App kommt bald – zur Warteliste",
+    "start.step1": "Kamera erlauben",
+    "start.step1Desc": "Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.",
+    "start.step2": "Kurz kalibrieren",
+    "start.step2Desc": "Finger zum Mund führen: Nail Guard lernt deinen persönlichen Abstand.",
+    "start.step3": "Einfach weiterarbeiten",
+    "start.step3Desc": "Sanfte Hinweise wenn nötig, sonst läuft alles unsichtbar im Hintergrund.",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Einstellungen",
@@ -110,10 +116,9 @@ const translations = {
     "calibration.testSound": "Test",
     "calibration.recalibrate": "Kalibrierung neu starten",
 
-    "sounds.softChime": "Sanfter Gong",
-    "sounds.breathBell": "Atem-Glocke",
-    "sounds.doubleTap": "Doppel-Klopfen",
     "sounds.bubblePop": "Bubble Pop",
+    "sounds.doubleTap": "Doppel-Klopfen",
+    "sounds.breathBell": "Atem-Glocke",
     "sounds.tinyRobot": "Mini-Roboter",
     "sounds.boing": "Boing",
 
@@ -276,6 +281,12 @@ const translations = {
     "start.button": "Start camera",
     "start.retry": "Try again",
     "start.desktopLink": "Desktop app coming soon – join the waitlist",
+    "start.step1": "Allow camera",
+    "start.step1Desc": "Detection runs entirely in your browser — nothing leaves your device.",
+    "start.step2": "Quick calibration",
+    "start.step2Desc": "Bring a finger to your mouth: Nail Guard learns your personal distance.",
+    "start.step3": "Just keep working",
+    "start.step3Desc": "Gentle nudges when needed; otherwise it runs invisibly in the background.",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Settings",
@@ -347,10 +358,9 @@ const translations = {
     "calibration.testSound": "Test",
     "calibration.recalibrate": "Restart calibration",
 
-    "sounds.softChime": "Soft chime",
-    "sounds.breathBell": "Breath bell",
-    "sounds.doubleTap": "Double tap",
     "sounds.bubblePop": "Bubble pop",
+    "sounds.doubleTap": "Double tap",
+    "sounds.breathBell": "Breath bell",
     "sounds.tinyRobot": "Tiny robot",
     "sounds.boing": "Boing",
 
