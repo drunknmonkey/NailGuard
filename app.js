@@ -41,10 +41,9 @@ const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
 // Gesichtsränder, Nase) für den Schalter „Gesichtsberührung melden".
 const FACE_TOUCH_INDICES = [10, 67, 297, 50, 280, 205, 425, 152, 234, 454, 1, 168];
 const SOUND_PRESETS = {
-  softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
-  breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
-  doubleTap: { notes: [[240, 0, 0.08, "sine"], [240, 0.14, 0.08, "sine"]] },
   bubblePop: { notes: [[420, 0, 0.08, "sine"], [760, 0.07, 0.12, "sine"]] },
+  doubleTap: { notes: [[240, 0, 0.08, "sine"], [240, 0.14, 0.08, "sine"]] },
+  breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
   tinyRobot: { notes: [[660, 0, 0.07, "square"], [520, 0.09, 0.07, "square"], [780, 0.18, 0.09, "square"]] },
   boing: { notes: [[260, 0, 0.16, "sawtooth"], [180, 0.1, 0.22, "sine"]] },
 };
@@ -1040,7 +1039,7 @@ function applySettingsToUi() {
   els.soundToggle.checked = state.settings.sound;
   els.soundPreset.value = SOUND_PRESETS[state.settings.soundPreset]
     ? state.settings.soundPreset
-    : "softChime";
+    : "bubblePop";
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
   els.autoTuneToggle.checked = state.settings.autoTune;
@@ -1112,7 +1111,7 @@ function loadSettings() {
     showOverlay: true,
     warmthFeedback: true,
     sound: false,
-    soundPreset: "softChime",
+    soundPreset: "bubblePop",
     soundVolume: 0.35,
     vibration: true,
     autoTune: true,
@@ -1315,7 +1314,7 @@ function playSoundPreset(presetKey, volume) {
   if (!AudioContext) return;
 
   const context = new AudioContext();
-  const preset = SOUND_PRESETS[presetKey] ?? SOUND_PRESETS.softChime;
+  const preset = SOUND_PRESETS[presetKey] ?? SOUND_PRESETS.bubblePop;
   const masterGain = context.createGain();
   const safeVolume = Math.max(0, Math.min(1, volume));
 
