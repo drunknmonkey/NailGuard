@@ -163,8 +163,9 @@ fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> R
     window.set_decorations(false).map_err(cmd_err)?;
     window.set_always_on_top(true).map_err(cmd_err)?;
     // Variante A „Reiner Ring": kleines, transparentes Fenster, nur der Ring.
+    // 130px gibt dem 80px Ring auf jeder Seite 25px Puffer für den Glow (max 22px).
     window
-        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(110.0, 110.0)))
+        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(130.0, 130.0)))
         .map_err(cmd_err)?;
     // Auf allen Spaces/Workspaces sichtbar (Desktop-only, Fehler nicht fatal).
     let _ = window.set_visible_on_all_workspaces(true);
