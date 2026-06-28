@@ -64,6 +64,8 @@ const translations = {
 
     "settings.title": "Einstellungen",
     "settings.cameraTitle": "Kamera",
+    "settings.cameraSelectLabel": "Gerät",
+    "settings.cameraDevice": "Kamera",
     "settings.detectionTitle": "Erkennung",
     "settings.cuesTitle": "Hinweise",
     "settings.privacyTitle": "Privatsphäre",
@@ -301,6 +303,8 @@ const translations = {
 
     "settings.title": "Settings",
     "settings.cameraTitle": "Camera",
+    "settings.cameraSelectLabel": "Device",
+    "settings.cameraDevice": "Camera",
     "settings.detectionTitle": "Detection",
     "settings.cuesTitle": "Cues",
     "settings.privacyTitle": "Privacy",
