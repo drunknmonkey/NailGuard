@@ -1,0 +1,6 @@
+# Tauri-Spike: generierte / lokale Build-Artefakte
+/target
+Cargo.lock
+
+# Von `tauri icon` generiert (siehe .github/workflows + docs/tauri-spike.md)
+/icons

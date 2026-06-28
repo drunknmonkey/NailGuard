@@ -52,6 +52,20 @@
           <button class="primary-action" id="startButton" type="button" data-i18n="start.button">Kamera starten</button>
           <a class="text-action desktop-link" href="./desktop.html" data-i18n="start.desktopLink">Desktop-App kommt bald – zur Warteliste</a>
         </div>
+        <ol class="start-steps" aria-label="So funktioniert's">
+          <li>
+            <strong data-i18n="start.step1">Kamera erlauben</strong>
+            <span data-i18n="start.step1Desc">Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.</span>
+          </li>
+          <li>
+            <strong data-i18n="start.step2">Kurz kalibrieren</strong>
+            <span data-i18n="start.step2Desc">Finger zum Mund führen: Nail Guard lernt deinen persönlichen Abstand.</span>
+          </li>
+          <li>
+            <strong data-i18n="start.step3">Einfach weiterarbeiten</strong>
+            <span data-i18n="start.step3Desc">Sanfte Hinweise wenn nötig, sonst läuft alles unsichtbar im Hintergrund.</span>
+          </li>
+        </ol>
       </section>
 
       <section class="workspace" id="workspace" hidden>
@@ -128,6 +142,14 @@
 
             <div class="card">
               <h3 data-i18n="settings.cameraTitle">Kamera</h3>
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.cameraSelectLabel">Gerät</div>
+                </div>
+                <div class="set-control">
+                  <select id="cameraSelect" aria-label="Kamera auswählen" data-i18n-aria-label="settings.cameraSelectLabel"></select>
+                </div>
+              </div>
               <div class="video-frame">
                 <video id="video" playsinline muted autoplay></video>
                 <canvas id="overlay" aria-hidden="true"></canvas>
@@ -243,10 +265,9 @@
                 </div>
                 <div class="set-control">
                   <select id="soundPreset">
-                    <option value="softChime" data-i18n="sounds.softChime">Sanfter Gong</option>
-                    <option value="breathBell" data-i18n="sounds.breathBell">Atem-Glocke</option>
-                    <option value="doubleTap" data-i18n="sounds.doubleTap">Doppel-Klopfen</option>
                     <option value="bubblePop" data-i18n="sounds.bubblePop">Bubble Pop</option>
+                    <option value="doubleTap" data-i18n="sounds.doubleTap">Doppel-Klopfen</option>
+                    <option value="breathBell" data-i18n="sounds.breathBell">Atem-Glocke</option>
                     <option value="tinyRobot" data-i18n="sounds.tinyRobot">Mini-Roboter</option>
                     <option value="boing" data-i18n="sounds.boing">Boing</option>
                   </select>

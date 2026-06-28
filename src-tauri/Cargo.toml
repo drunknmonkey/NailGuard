@@ -1,0 +1,22 @@
+[package]
+name = "nailguard-spike"
+version = "0.1.0"
+description = "Wegwerf-Spike: Tauri-2-Hülle für NailGuard zur Messung von Kamera + Hintergrund-Throttling."
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api"] }
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+# macOS: WKUIDelegate-Kamera-Grant (Versionen wie wry, damit objc2 vereinheitlicht wird).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+
+[profile.release]
+opt-level = "s"

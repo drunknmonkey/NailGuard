@@ -41,10 +41,9 @@ const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
 // Gesichtsränder, Nase) für den Schalter „Gesichtsberührung melden".
 const FACE_TOUCH_INDICES = [10, 67, 297, 50, 280, 205, 425, 152, 234, 454, 1, 168];
 const SOUND_PRESETS = {
-  softChime: { notes: [[520, 0, 0.24, "sine"], [780, 0.08, 0.26, "sine"]] },
-  breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
-  doubleTap: { notes: [[240, 0, 0.08, "sine"], [240, 0.14, 0.08, "sine"]] },
   bubblePop: { notes: [[420, 0, 0.08, "sine"], [760, 0.07, 0.12, "sine"]] },
+  doubleTap: { notes: [[240, 0, 0.08, "sine"], [240, 0.14, 0.08, "sine"]] },
+  breathBell: { notes: [[392, 0, 0.22, "triangle"], [494, 0.26, 0.28, "triangle"], [587, 0.56, 0.34, "triangle"]] },
   tinyRobot: { notes: [[660, 0, 0.07, "square"], [520, 0.09, 0.07, "square"], [780, 0.18, 0.09, "square"]] },
   boing: { notes: [[260, 0, 0.16, "sawtooth"], [180, 0.1, 0.22, "sine"]] },
 };
@@ -149,6 +148,7 @@ const els = {
   onboardingSkipButton: document.querySelector("#onboardingSkipButton"),
   onboardingFinishButton: document.querySelector("#onboardingFinishButton"),
   recalibrateButton: document.querySelector("#recalibrateButton"),
+  cameraSelect: document.querySelector("#cameraSelect"),
 };
 
 const state = {
@@ -261,6 +261,7 @@ function bindEvents() {
     button.addEventListener("click", () => applyCalibrationPreset(button.dataset.preset));
   }
 
+  els.cameraSelect.addEventListener("change", () => swapCamera(els.cameraSelect.value));
   els.soundPreset.addEventListener("change", settingsFromUi);
   els.neutralSubtleToggle.addEventListener("change", settingsFromUi);
   // Tarn-Editor: Notizen lokal persistieren und Wortzahl mitführen
@@ -310,6 +311,7 @@ async function startApp() {
 
     els.startButton.textContent = t("status.openingCamera");
     await detection.startCamera();
+    await populateCameraSelect();
 
     els.startPanel.hidden = true;
     els.workspace.hidden = false;
@@ -336,6 +338,59 @@ async function startApp() {
   }
 }
 
+async function populateCameraSelect() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const videoInputs = devices.filter((d) => d.kind === "videoinput");
+  if (videoInputs.length === 0) return;
+
+  const VIRTUAL_PATTERN = /virtual|obs|snap|camo|ndivideokit/i;
+  const currentId = state.settings.cameraDeviceId;
+  const currentStillValid = currentId && videoInputs.some((d) => d.deviceId === currentId);
+
+  els.cameraSelect.innerHTML = "";
+  for (const device of videoInputs) {
+    const option = document.createElement("option");
+    option.value = device.deviceId;
+    option.textContent = device.label || `${t("settings.cameraDevice")} ${videoInputs.indexOf(device) + 1}`;
+    els.cameraSelect.appendChild(option);
+  }
+
+  if (currentStillValid) {
+    els.cameraSelect.value = currentId;
+    return;
+  }
+
+  const realCamera = videoInputs.find((d) => !VIRTUAL_PATTERN.test(d.label));
+  const preferredId = (realCamera ?? videoInputs[0]).deviceId;
+  els.cameraSelect.value = preferredId;
+  state.settings.cameraDeviceId = preferredId;
+  saveSettings();
+}
+
+async function swapCamera(deviceId) {
+  if (!state.running) return;
+  state.settings.cameraDeviceId = deviceId || null;
+  saveSettings();
+
+  if (state.stream) {
+    for (const track of state.stream.getTracks()) {
+      track.stop();
+    }
+    state.stream = null;
+  }
+
+  try {
+    await detection.startCamera();
+  } catch {
+    state.settings.cameraDeviceId = null;
+    saveSettings();
+    await detection.startCamera();
+    await populateCameraSelect();
+  }
+}
+
 const detection = {
   async loadModels() {
     if (state.faceLandmarker && state.handLandmarker) return;
@@ -355,12 +410,13 @@ const detection = {
       throw new Error("getUserMedia-unavailable");
     }
 
+    const deviceId = state.settings.cameraDeviceId;
+    const videoConstraints = deviceId
+      ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } };
+
     state.stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
+      video: videoConstraints,
       audio: false,
     });
 
@@ -417,6 +473,12 @@ const detection = {
     } else {
       clearOverlay();
     }
+
+    // --- TAURI-SPIKE (Wegwerf, nach dem Spike wieder entfernen) -------------
+    // Zählt jeden abgeschlossenen Detection-Callback für die Hintergrund-
+    // Throttling-Messung. Ohne das Spike-Overlay (reine PWA) ist dies inert.
+    if (window.__nailguardSpike) window.__nailguardSpike.onDetection();
+    // ------------------------------------------------------------------------
   },
 
   evaluateProximity(now) {
@@ -1034,7 +1096,7 @@ function applySettingsToUi() {
   els.soundToggle.checked = state.settings.sound;
   els.soundPreset.value = SOUND_PRESETS[state.settings.soundPreset]
     ? state.settings.soundPreset
-    : "softChime";
+    : "bubblePop";
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
   els.autoTuneToggle.checked = state.settings.autoTune;
@@ -1106,8 +1168,9 @@ function loadSettings() {
     showOverlay: true,
     warmthFeedback: true,
     sound: false,
-    soundPreset: "softChime",
+    soundPreset: "bubblePop",
     soundVolume: 0.35,
+    cameraDeviceId: null,
     vibration: true,
     autoTune: true,
     faceTouchAlert: false,
@@ -1309,7 +1372,7 @@ function playSoundPreset(presetKey, volume) {
   if (!AudioContext) return;
 
   const context = new AudioContext();
-  const preset = SOUND_PRESETS[presetKey] ?? SOUND_PRESETS.softChime;
+  const preset = SOUND_PRESETS[presetKey] ?? SOUND_PRESETS.bubblePop;
   const masterGain = context.createGain();
   const safeVolume = Math.max(0, Math.min(1, volume));
 

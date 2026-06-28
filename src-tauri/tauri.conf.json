@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NailGuard Spike",
+  "version": "0.1.0",
+  "identifier": "app.nailguard.spike",
+  "build": {
+    "frontendDist": "../spike-dist",
+    "beforeBuildCommand": "bash spike/build-frontend.sh",
+    "beforeDevCommand": "bash spike/build-frontend.sh"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "NailGuard Spike",
+        "width": 960,
+        "height": 720,
+        "resizable": true,
+        "minimizable": true,
+        "backgroundThrottling": "disabled",
+        "transparent": true,
+        "shadow": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "14.0",
+      "entitlements": "Entitlements.plist"
+    }
+  }
+}
