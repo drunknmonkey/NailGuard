@@ -76,7 +76,8 @@ body[data-state="ember"] .pill-ring-wrap {
   inset: 0;
   border-radius: 50%;
   border: 2px solid var(--pine);
-  box-shadow: 0 8px 22px rgba(30, 59, 52, 0.2);
+  /* Symmetrischer Glow statt gerichteter Schatten: bleibt im erweiterten Fensterbereich (130px). */
+  box-shadow: 0 0 20px rgba(30, 59, 52, 0.22);
   animation: pill-breathe 5.6s ease-in-out infinite;
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
@@ -94,7 +95,7 @@ body[data-state="ember"] .pill-ring-wrap {
 body[data-state="warm"] .pill-ring,
 body[data-state="ember"] .pill-ring {
   border-color: var(--ember);
-  box-shadow: 0 8px 24px rgba(196, 106, 74, 0.28);
+  box-shadow: 0 0 22px rgba(196, 106, 74, 0.30);
   animation-duration: 1.8s;
   animation-name: pill-breathe-strong;
 }
