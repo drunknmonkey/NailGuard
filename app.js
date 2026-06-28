@@ -157,6 +157,8 @@ const state = {
   stream: null,
   running: false,
   paused: false,
+  autoPaused: false,
+  wakeLock: null,
   lastVideoTime: -1,
   nearSince: null,
   lastAlertAt: 0,
@@ -312,6 +314,8 @@ async function startApp() {
     els.startButton.textContent = t("status.openingCamera");
     await detection.startCamera();
     await populateCameraSelect();
+    await requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     els.startPanel.hidden = true;
     els.workspace.hidden = false;
@@ -388,6 +392,44 @@ async function swapCamera(deviceId) {
     saveSettings();
     await detection.startCamera();
     await populateCameraSelect();
+  }
+}
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  try {
+    state.wakeLock = await navigator.wakeLock.request("screen");
+  } catch {
+    // Best-effort: some browsers or power modes deny the lock silently.
+  }
+}
+
+function releaseWakeLock() {
+  if (state.wakeLock) {
+    state.wakeLock.release();
+    state.wakeLock = null;
+  }
+}
+
+function handleVisibilityChange() {
+  if (!state.running) return;
+
+  if (document.hidden) {
+    releaseWakeLock();
+    if (!state.paused) {
+      state.paused = true;
+      state.autoPaused = true;
+      state.nearSince = null;
+      setWarmth(0);
+      renderPauseState();
+    }
+  } else {
+    if (state.autoPaused) {
+      state.paused = false;
+      state.autoPaused = false;
+      renderPauseState();
+    }
+    requestWakeLock();
   }
 }
 
@@ -818,6 +860,7 @@ function setOnboardingSignal(key) {
 
 function togglePause() {
   state.paused = !state.paused;
+  state.autoPaused = false;
   state.nearSince = null;
   setWarmth(0);
   renderPauseState();
