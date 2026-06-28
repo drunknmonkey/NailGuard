@@ -148,6 +148,7 @@ const els = {
   onboardingSkipButton: document.querySelector("#onboardingSkipButton"),
   onboardingFinishButton: document.querySelector("#onboardingFinishButton"),
   recalibrateButton: document.querySelector("#recalibrateButton"),
+  cameraSelect: document.querySelector("#cameraSelect"),
 };
 
 const state = {
@@ -260,6 +261,7 @@ function bindEvents() {
     button.addEventListener("click", () => applyCalibrationPreset(button.dataset.preset));
   }
 
+  els.cameraSelect.addEventListener("change", () => swapCamera(els.cameraSelect.value));
   els.soundPreset.addEventListener("change", settingsFromUi);
   els.neutralSubtleToggle.addEventListener("change", settingsFromUi);
   // Tarn-Editor: Notizen lokal persistieren und Wortzahl mitführen
@@ -309,6 +311,7 @@ async function startApp() {
 
     els.startButton.textContent = t("status.openingCamera");
     await detection.startCamera();
+    await populateCameraSelect();
 
     els.startPanel.hidden = true;
     els.workspace.hidden = false;
@@ -335,6 +338,59 @@ async function startApp() {
   }
 }
 
+async function populateCameraSelect() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const videoInputs = devices.filter((d) => d.kind === "videoinput");
+  if (videoInputs.length === 0) return;
+
+  const VIRTUAL_PATTERN = /virtual|obs|snap|camo|ndivideokit/i;
+  const currentId = state.settings.cameraDeviceId;
+  const currentStillValid = currentId && videoInputs.some((d) => d.deviceId === currentId);
+
+  els.cameraSelect.innerHTML = "";
+  for (const device of videoInputs) {
+    const option = document.createElement("option");
+    option.value = device.deviceId;
+    option.textContent = device.label || `${t("settings.cameraDevice")} ${videoInputs.indexOf(device) + 1}`;
+    els.cameraSelect.appendChild(option);
+  }
+
+  if (currentStillValid) {
+    els.cameraSelect.value = currentId;
+    return;
+  }
+
+  const realCamera = videoInputs.find((d) => !VIRTUAL_PATTERN.test(d.label));
+  const preferredId = (realCamera ?? videoInputs[0]).deviceId;
+  els.cameraSelect.value = preferredId;
+  state.settings.cameraDeviceId = preferredId;
+  saveSettings();
+}
+
+async function swapCamera(deviceId) {
+  if (!state.running) return;
+  state.settings.cameraDeviceId = deviceId || null;
+  saveSettings();
+
+  if (state.stream) {
+    for (const track of state.stream.getTracks()) {
+      track.stop();
+    }
+    state.stream = null;
+  }
+
+  try {
+    await detection.startCamera();
+  } catch {
+    state.settings.cameraDeviceId = null;
+    saveSettings();
+    await detection.startCamera();
+    await populateCameraSelect();
+  }
+}
+
 const detection = {
   async loadModels() {
     if (state.faceLandmarker && state.handLandmarker) return;
@@ -354,12 +410,13 @@ const detection = {
       throw new Error("getUserMedia-unavailable");
     }
 
+    const deviceId = state.settings.cameraDeviceId;
+    const videoConstraints = deviceId
+      ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } };
+
     state.stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
+      video: videoConstraints,
       audio: false,
     });
 
@@ -1113,6 +1170,7 @@ function loadSettings() {
     sound: false,
     soundPreset: "bubblePop",
     soundVolume: 0.35,
+    cameraDeviceId: null,
     vibration: true,
     autoTune: true,
     faceTouchAlert: false,

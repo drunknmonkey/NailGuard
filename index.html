@@ -142,6 +142,14 @@
 
             <div class="card">
               <h3 data-i18n="settings.cameraTitle">Kamera</h3>
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.cameraSelectLabel">Gerät</div>
+                </div>
+                <div class="set-control">
+                  <select id="cameraSelect" aria-label="Kamera auswählen" data-i18n-aria-label="settings.cameraSelectLabel"></select>
+                </div>
+              </div>
               <div class="video-frame">
                 <video id="video" playsinline muted autoplay></video>
                 <canvas id="overlay" aria-hidden="true"></canvas>
