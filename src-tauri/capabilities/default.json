@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Spike: erlaubt die Kern-IPC für das Hauptfenster. Die eigenen Commands (spike_tick/spike_state/spike_log_path) sind als App-Commands ohnehin erlaubt. getUserMedia wird NICHT über Capabilities geregelt, sondern OS-seitig über NSCameraUsageDescription (Info.plist) + WKWebView – siehe docs/tauri-spike.md.",
-  "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-start-dragging"]
+  "description": "Ambient-Glow-Spike: Kern-IPC (inkl. Event emit/listen) für Steuerfenster (main) und Overlay-Fenster. Die Signal-/Stil-Updates laufen ausschließlich über den Tauri-Event-Bus zwischen beiden Fenstern.",
+  "windows": ["main", "overlay"],
+  "permissions": ["core:default"]
 }

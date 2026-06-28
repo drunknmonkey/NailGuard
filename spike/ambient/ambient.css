@@ -1,0 +1,267 @@
+/*
+ * Ambient-Glow-Spike – gemeinsame Stile für Steuerfenster und Overlay.
+ *
+ * Design „Atem & Ruhe": Tokens und Atem-Tempo aus
+ * docs/nailguard-design-referenz.html übernommen.
+ *   --ember #C46A4A  = Achtung/Intervention (Glow-Farbe)
+ *   --breath-dur     = Atemtempo (ruhig 4.6s → warm 2.6s → ember 1.6s)
+ *
+ * Bewusst Systemschrift statt Fraunces/Atkinson: der Spike soll ohne
+ * Netzwerk und ohne gebündelte Fonts auskommen.
+ */
+
+:root {
+  --mist: #edf2ed;
+  --paper: #fafcfa;
+  --pine: #1e3b34;
+  --moss: #5e7c6c;
+  --breath: #a8c7b4;
+  --warm: #d9914f;
+  --ember: #c46a4a;
+  --still: #b8c2bc;
+  --line: rgba(30, 59, 52, 0.12);
+}
+
+/* ============================================================= */
+/* Overlay-Fenster: ganzflächig, transparent, klick-durchlässig.  */
+/* Nur EIN Stil ist sichtbar (A/B, nicht gestapelt).              */
+/* ============================================================= */
+
+/* Sanftes Easing des Signals als animierbare Custom-Property –
+   so gleiten Deckkraft UND Vignetten-Reichweite im Atem-Tempo,
+   ganz ohne requestAnimationFrame (drossel-resistent). */
+@property --signal {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+html.overlay,
+html.overlay body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  --signal: 0;
+  --max-op: 0.18;
+  --breath-dur: 4.6s;
+  /* Make-or-break-Easing: Signaländerungen gleiten ~Atemzug lang. */
+  transition: --signal 1.8s ease-in-out;
+}
+
+#overlay .layer {
+  position: fixed;
+  inset: 0;
+  display: none;
+  /* Effektive Deckkraft = eingestelltes Maximum × (geglättetes) Signal. */
+  opacity: calc(var(--signal) * var(--max-op));
+  will-change: opacity;
+}
+
+#overlay .glow {
+  position: absolute;
+  inset: 0;
+  /* Leises Atmen, auch bei konstantem Signal – Signatur des Rings. */
+  animation: ambient-breathe var(--breath-dur) ease-in-out infinite;
+}
+
+/* „Vignette": warmes Ember-Glühen wächst von den Rändern herein.
+   Steigendes Signal schiebt den transparenten Kern nach innen. */
+#overlay[data-style="vignette"] .layer.vignette {
+  display: block;
+}
+.layer.vignette .glow {
+  background: radial-gradient(
+    ellipse at center,
+    transparent calc(72% - var(--signal) * 42%),
+    var(--ember) 128%
+  );
+}
+
+/* „Screen-Wash": ganzer Bildschirm leicht amber getönt. */
+#overlay[data-style="wash"] .layer.wash {
+  display: block;
+}
+.layer.wash .glow {
+  background: var(--ember);
+}
+
+@keyframes ambient-breathe {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* „Bewegung reduzieren" respektieren: kein Atmen, kein Easing –
+   das Signal steht sofort, der Glow bleibt ruhig. */
+@media (prefers-reduced-motion: reduce) {
+  #overlay {
+    transition: none;
+  }
+  #overlay .glow {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ============================================================= */
+/* Steuerfenster (Control Panel).                                 */
+/* ============================================================= */
+
+html.control,
+html.control body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--mist);
+  color: var(--pine);
+  font: 15px/1.5 system-ui, -apple-system, "Atkinson Hyperlegible", sans-serif;
+}
+
+.panel {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 22px 22px 32px;
+}
+
+.panel h1 {
+  font-size: 19px;
+  font-weight: 650;
+  margin: 0 0 2px;
+  letter-spacing: 0.2px;
+}
+.panel .sub {
+  color: var(--moss);
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.card > .label {
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--moss);
+  margin-bottom: 12px;
+}
+
+/* Stil-Umschalter A/B (segmentiert, gegenseitig ausschließend). */
+.seg {
+  display: flex;
+  gap: 8px;
+}
+.seg button {
+  flex: 1;
+  padding: 11px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--mist);
+  color: var(--pine);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.seg button:hover {
+  border-color: var(--moss);
+}
+.seg button[aria-pressed="true"] {
+  background: var(--pine);
+  border-color: var(--pine);
+  color: var(--paper);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.row .name {
+  font-weight: 600;
+}
+.row .val {
+  font-variant-numeric: tabular-nums;
+  color: var(--moss);
+  font-size: 13px;
+}
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--ember);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--moss);
+  margin: 4px 0 0;
+}
+kbd {
+  font: 12px/1 ui-monospace, "Spline Sans Mono", monospace;
+  background: var(--mist);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.pulse-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--ember);
+  color: var(--paper);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.pulse-btn:active {
+  filter: brightness(0.94);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--moss);
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--still);
+}
+.dot.on {
+  background: var(--breath);
+}
+
+.note {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--moss);
+  background: color-mix(in srgb, var(--warm) 12%, var(--paper));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.note b {
+  color: var(--pine);
+}

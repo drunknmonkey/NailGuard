@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de" class="control">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NailGuard · Ambient-Glow-Spike</title>
+    <link rel="stylesheet" href="./ambient.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <h1>Ambient-Glow · Spike</h1>
+      <p class="sub">
+        Simuliert das Erkennungs-Signal (0–1) ohne Kamera. Das Glühen liegt als
+        eigenes, klick-durchlässiges Fenster über dem ganzen Bildschirm.
+      </p>
+
+      <section class="card">
+        <div class="label">Stil (A/B)</div>
+        <div class="seg" id="styleSeg">
+          <button type="button" data-style="vignette" aria-pressed="true">
+            Vignette
+          </button>
+          <button type="button" data-style="wash" aria-pressed="false">
+            Screen-Wash
+          </button>
+        </div>
+        <p class="hint">
+          Tasten <kbd>1</kbd> Vignette · <kbd>2</kbd> Screen-Wash
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="label">Regler</div>
+
+        <div class="row">
+          <span class="name">Test-Signal</span>
+          <span class="val" id="signalVal">0.00</span>
+        </div>
+        <input id="signal" type="range" min="0" max="1" step="0.01" value="0" />
+        <p class="hint">
+          Simuliert die Hand-zu-Mund-Nähe. <kbd>Leertaste</kbd> = kurzer Puls
+          (Glühen fährt im Atem-Tempo hoch und wieder zurück).
+        </p>
+
+        <div class="row" style="margin-top: 16px">
+          <span class="name">Max. Deckkraft</span>
+          <span class="val" id="maxopVal">18%</span>
+        </div>
+        <input id="maxop" type="range" min="0" max="0.6" step="0.01" value="0.18" />
+        <p class="hint">Obergrenze der Deckkraft bei Signal = 1. Default dezent.</p>
+
+        <button class="pulse-btn" id="pulseBtn" type="button">Puls auslösen</button>
+      </section>
+
+      <section class="card">
+        <div class="label">Status</div>
+        <div class="status" style="margin-bottom: 8px">
+          <span class="dot" id="reduceDot"></span>
+          <span id="reduceTxt">Bewegung reduzieren: –</span>
+        </div>
+        <div class="status">
+          <span class="dot on"></span>
+          <span>Overlay aktiv · von Bildschirmaufnahme ausgeschlossen (NSWindowSharingNone)</span>
+        </div>
+      </section>
+
+      <section class="note">
+        <b>Erst prüfen (Make-or-break):</b> macOS-Bildschirmaufnahme oder
+        Zoom-Screenshare starten, Signal hochziehen – das Glühen muss in der
+        Aufnahme <b>fehlen</b>. Details: <code>docs/ambient-glow-spike.md</code>.
+        <br />
+        Unsigniert: beim ersten Start Rechtsklick auf die App → <b>Öffnen</b>.
+      </section>
+    </main>
+    <script src="./control.js"></script>
+  </body>
+</html>

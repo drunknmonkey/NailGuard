@@ -26,3 +26,6 @@ build/
 # Tauri-Spike (Wegwerf): generierte Frontend-Kopie und Mess-Log
 /spike-dist/
 nailguard-spike-log.csv
+
+# Ambient-Glow-Spike: generierte Frontend-Kopie
+/ambient-dist/

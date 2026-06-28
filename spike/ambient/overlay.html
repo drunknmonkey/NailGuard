@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="de" class="overlay">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NailGuard Ambient Overlay</title>
+    <link rel="stylesheet" href="./ambient.css" />
+  </head>
+  <body>
+    <!--
+      Ganzflächiges, klick-durchlässiges Glow-Overlay. Es rendert NICHTS
+      selbst-leuchtendes am System vorbei (keine Helligkeit/Gamma) – nur zwei
+      CSS-Schichten, deren Deckkraft ein 0–1-Signal steuert. Genau EINE Schicht
+      ist je nach Stil sichtbar (Vignette ODER Wash).
+    -->
+    <div id="overlay" data-style="vignette">
+      <div class="layer vignette"><div class="glow"></div></div>
+      <div class="layer wash"><div class="glow"></div></div>
+    </div>
+    <script src="./overlay.js"></script>
+  </body>
+</html>
