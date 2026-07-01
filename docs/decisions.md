@@ -83,3 +83,37 @@ Erster großer Redesign-Pass. Ziel war ein ruhiger, nicht-überwachender Look.
 - Begründung: rAF läuft zwar weiter, aber macOS drosselt; „Ruhig" anzuzeigen,
   während nichts ausgewertet wird, ist irreführend.
 - Screen Wake Lock hält den Bildschirm wach, solange der Tab aktiv ist (best-effort).
+
+---
+
+## 2026-07-01 – Repo-Struktur: Landing an / , Web-App an /app (tawel.app)
+
+Ein Repo, ein Cloudflare-Pages-Deploy („nailguard") liefert künftig beides:
+`tawel.app` (Landing) und `tawel.app/app` (Web-App). Pages serviert das Repo-Root
+statisch (kein Build-Schritt), daher gilt Ordnerstruktur = URL-Struktur.
+
+- **Web-App nach `app/` verschoben** (`git mv` – Historie bleibt): index.html,
+  app.js, style.css, i18n.js, sw.js, manifest.webmanifest, vendor/, models/, icons/.
+  → served unter `/app`. Alle App-Asset-Pfade sind relativ (`./…`), lösen daher
+  unter `/app/` unverändert auf; auch Service-Worker-Scope (`./`) bleibt korrekt.
+- **Landing an der Root** (`index.html`) + `datenschutz.html` / `impressum.html`.
+- **Gemeinsames Design-System, EINE Quelle**: Die Landing verlinkt `/app/style.css`
+  (absolut) – exakt dieselbe Datei wie die App. Tokens **und** das atmende
+  Ring-Bauteil (`.stage/.halo/.ring`) werden geteilt, nicht nachgebaut. Warum die
+  Datei in `app/` und nicht an der Root liegt: So bleibt die App self-contained und
+  der **Tauri-Bundle unberührt** – ein Root-`style.css` hätte im App-`../`-Import
+  die Bundle-Wurzel verlassen.
+- **Tauri weiter lauffähig**: `spike/build-frontend.sh` kopiert jetzt aus `app/`
+  (statt Root) nach `spike-dist/`; `tauri.conf.json` (frontendDist `../spike-dist`)
+  und die Rust-Seite bleiben unverändert. CI-Icon-Quelle → `app/icons/icon-512.png`.
+  Verifiziert: spike-dist wird korrekt zusammengesetzt (index.html + Pill-Assets +
+  relative Pfade intakt).
+- **Prototyp entfernt**: `desktop.html` + `landing.js` (custom `/api/waitlist`) sind
+  durch die neue Landing + MailerLite ersetzt. Der App-Link „zur Warteliste" zeigt
+  nun auf `/#warteliste`. SW-Precache entsprechend bereinigt (v5 → v6). Die
+  Pages-Function `functions/api/waitlist.js` bleibt liegen (aktuell ungenutzt).
+- **Warteliste = MailerLite** (Universal-Script im `<head>` jeder Seite,
+  Embed-Form `CmB4SX` auf heller Karte). **Kein CSP-Meta auf den Landing-Seiten**,
+  damit das Drittanbieter-Embed lädt; die App behält ihre strikte CSP.
+- **Legal**: `/datenschutz` + `/impressum` sind bewusst schlichte Platzhalter
+  („Inhalt folgt / wird rechtlich ergänzt") – keine erfundenen Rechtstexte.

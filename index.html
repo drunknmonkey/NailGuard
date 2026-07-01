@@ -4,435 +4,153 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:;"
-    />
-    <meta
       name="description"
-      content="Nail Guard – privacy-first webcam coach against nail biting. Lokaler Browser-Coach gegen Nägelkauen. Camera data never leaves your browser."
+      content="Tawel bemerkt sanft, wenn deine Hand zum Mund wandert – und erinnert dich mit einem ruhigen Glühen statt mit einem Alarm. Ruhig aufhören, an den Nägeln zu kauen. Bald für macOS."
     />
     <meta name="theme-color" content="#1E3B34" />
-    <title>Nail Guard</title>
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <title>Tawel – Ruhig aufhören, an den Nägeln zu kauen.</title>
+
+    <link rel="icon" href="/app/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/app/icons/apple-touch-icon.png" />
+
+    <!-- Schriften wie in der App (Fraunces · Atkinson Hyperlegible · Spline Sans Mono) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Atkinson+Hyperlegible:wght@400;700&family=Spline+Sans+Mono:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css" />
+
+    <!-- Gemeinsames Design-System: exakt dieselbe Datei wie die App unter /app -->
+    <link rel="stylesheet" href="/app/style.css" />
+
+    <!-- MailerLite Universal -->
+    <script>
+      (function (w, d, e, u, f, l, n) {
+        w[f] =
+          w[f] ||
+          function () {
+            (w[f].q = w[f].q || []).push(arguments);
+          };
+        (l = d.createElement(e)), (l.async = 1), (l.src = u);
+        (n = d.getElementsByTagName(e)[0]), n.parentNode.insertBefore(l, n);
+      })(window, document, "script", "https://assets.mailerlite.com/js/universal.js", "ml");
+      ml("account", "2482602");
+    </script>
   </head>
-  <body data-state="calm">
-    <main class="app-shell">
-      <header class="topbar" aria-label="App Status" data-i18n-aria-label="aria.topbar">
-        <p class="wordmark" id="appTitle">Nail<span>Guard</span></p>
+
+  <body class="tawel-landing">
+    <main class="app-shell landing">
+      <header class="topbar" aria-label="Tawel">
+        <p class="wordmark">tawel</p>
         <div class="topbar-actions">
-          <div class="lang-switch" id="langSwitch" role="group" aria-label="Sprache" data-i18n-aria-label="aria.languageToggle">
-            <button class="lang-option" type="button" data-locale="de" lang="de">DE</button>
-            <button class="lang-option" type="button" data-locale="en" lang="en">EN</button>
-          </div>
+          <a class="primary-action waitlist-jump" href="#warteliste">Auf die Warteliste</a>
         </div>
       </header>
 
-      <section class="start-panel" id="startPanel">
-        <div class="start-copy">
-          <h2 id="startTitle">Ein ruhiger Coach für fokussierte Momente.</h2>
-          <p id="startBody">
-            Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen.
-            Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.
+      <!-- ─ Hero ─ -->
+      <section class="hero">
+        <div class="hero-copy">
+          <h2 class="hero-title"><span class="accent">Ruhig</span> aufhören, an den Nägeln zu kauen.</h2>
+          <p class="hero-sub">
+            Tawel bemerkt sanft, wenn deine Hand zum Mund wandert – und erinnert dich mit einem
+            ruhigen Glühen statt mit einem Alarm.
           </p>
-          <p class="privacy-note" id="startPrivacyNote">
-            MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen.
-            Kameradaten bleiben im Browser.
+          <div class="hero-cta">
+            <a class="primary-action" href="#warteliste">Auf die Warteliste</a>
+            <p class="hero-hint">Bald verfügbar für macOS</p>
+          </div>
+        </div>
+        <div class="stage" aria-hidden="true">
+          <div class="halo"></div>
+          <div class="ring"></div>
+          <div class="ring inner"></div>
+        </div>
+      </section>
+
+      <!-- ─ Problem ─ -->
+      <section class="landing-section">
+        <p class="eyebrow">Das Problem</p>
+        <h2>Ein leises Problem verdient keine laute Lösung.</h2>
+        <p>
+          Nägelkauen passiert automatisch. Du merkst es meist erst, wenn es schon geschehen ist.
+          Die üblichen Hilfsmittel setzen auf Abschreckung, Bitterlack oder grelle Warnungen – sie
+          bekämpfen ein leises Problem mit Lärm.
+        </p>
+      </section>
+
+      <!-- ─ So funktioniert's ─ -->
+      <section class="landing-section">
+        <p class="eyebrow">So funktioniert's</p>
+        <h2>Ein warmes Glühen am Rand deines Bildschirms.</h2>
+        <p>
+          Tawel läuft still auf deinem Mac und erkennt über die Kamera, wenn deine Hand zum Gesicht
+          kommt. Kein Alarm, kein Vollbild-Schreck – nur ein warmes, atmendes Glühen am Rand deines
+          Bildschirms. Es kommt auf, während deine Hand sich hebt, und verschwindet wieder, sobald
+          du innehältst.
+        </p>
+      </section>
+
+      <!-- ─ Value-Pillars ─ -->
+      <section class="landing-section">
+        <div class="landing-grid">
+          <article class="coach-card">
+            <h2>Ruhe statt Alarm</h2>
+            <p>
+              Ein atmender Ring, kein greller Warnton. Tawel arbeitet mit deiner Aufmerksamkeit,
+              nicht gegen deine Nerven.
+            </p>
+          </article>
+          <article class="coach-card">
+            <h2>Diskret in Meetings</h2>
+            <p>
+              Das Signal erscheint nur für dich. In geteilten Bildschirmen und Aufnahmen bleibt es
+              unsichtbar – niemand im Call sieht, dass Tawel läuft.
+            </p>
+          </article>
+          <article class="coach-card">
+            <h2>Privat von Grund auf</h2>
+            <p>
+              Die Erkennung läuft vollständig lokal auf deinem Mac. Kein Cloud-Upload, kein Video
+              verlässt dein Gerät.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─ Preis-Ehrlichkeit ─ -->
+      <section class="landing-section">
+        <div class="card price-card">
+          <p class="eyebrow">Ehrlicher Preis</p>
+          <p class="price-line">Einmal kaufen, für immer behalten.</p>
+          <p>
+            Kein Abo. Tawel ist ein Werkzeug, das sich selbst überflüssig machen möchte.
           </p>
         </div>
-        <div class="start-actions">
-          <button class="primary-action" id="startButton" type="button" data-i18n="start.button">Kamera starten</button>
-          <a class="text-action desktop-link" href="./desktop.html" data-i18n="start.desktopLink">Desktop-App kommt bald – zur Warteliste</a>
-        </div>
-        <ol class="start-steps" aria-label="So funktioniert's">
-          <li>
-            <strong data-i18n="start.step1">Kamera erlauben</strong>
-            <span data-i18n="start.step1Desc">Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.</span>
-          </li>
-          <li>
-            <strong data-i18n="start.step2">Kurz kalibrieren</strong>
-            <span data-i18n="start.step2Desc">Finger zum Mund führen: Nail Guard lernt deinen persönlichen Abstand.</span>
-          </li>
-          <li>
-            <strong data-i18n="start.step3">Einfach weiterarbeiten</strong>
-            <span data-i18n="start.step3Desc">Sanfte Hinweise wenn nötig, sonst läuft alles unsichtbar im Hintergrund.</span>
-          </li>
-        </ol>
       </section>
 
-      <section class="workspace" id="workspace" hidden>
-        <section class="mode-view focus-view active" id="focusView" data-view="focus">
-          <div class="stage" aria-hidden="true">
-            <div class="halo"></div>
-            <div class="ring"></div>
-            <div class="ring inner"></div>
-          </div>
-
-          <div class="state-block" aria-live="polite">
-            <p class="state-word" id="stateWord">Ruhig</p>
-            <p class="state-hint" id="stateHint">Nail Guard begleitet dich im Hintergrund — alles bleibt auf deinem Gerät</p>
-          </div>
-
-          <div class="stats">
-            <div class="stat">
-              <div class="value" id="focusStreak">00:00:00</div>
-              <div class="label" data-i18n="focus.quietTime">Ruhige Zeit</div>
-            </div>
-            <div class="stat">
-              <div class="value" id="focusConfirmed">0</div>
-              <div class="label" data-i18n="focus.momentsToday">Momente heute</div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="primary-action secondary-action" id="pauseButton" type="button">Pausieren</button>
-            <button type="button" data-mode-link="neutral" data-i18n="focus.openOffice">Office Mode</button>
-          </div>
-        </section>
-
-        <section class="mode-view review-view" id="reviewView" data-view="review">
-          <div class="view-inner">
-            <h2 id="reviewDate">Heute</h2>
-
-            <div class="card">
-              <h3 data-i18n="review.statQuiet">Ruhige Zeit</h3>
-              <div class="big-row">
-                <span class="value" id="statLongest">0 min</span>
-                <span class="delta" id="quietDelta"></span>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="review.hourTitle">Momente im Tagesverlauf</h3>
-              <div class="bars" id="hourBars" aria-label="Momente pro Stunde" data-i18n-aria-label="aria.hourBars"></div>
-              <div class="bar-x" id="hourLabels"></div>
-              <div class="legend">
-                <span><i class="legend-calm"></i><span data-i18n="review.legendCalm">ruhig</span></span>
-                <span><i class="legend-peak"></i><span data-i18n="review.legendPeak">häufige Momente</span></span>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="review.feedbackTitle">Dein Feedback</h3>
-              <div class="fb-row"><span data-i18n="review.statConfirmed">Treffer</span><span class="n" id="statConfirmed">0</span></div>
-              <div class="fb-row"><span data-i18n="review.statFace">Gesicht berührt</span><span class="n" id="statFace">0</span></div>
-              <div class="fb-row"><span data-i18n="review.statFalse">Fehlalarme</span><span class="n" id="statFalse">0</span></div>
-            </div>
-
-            <div class="card streak">
-              <div class="ring-mini" id="streakDays">0</div>
-              <p id="streakText"></p>
-            </div>
-
-            <button class="text-action reset-action" id="resetStatsButton" type="button" data-i18n="review.reset">Statistik zurücksetzen</button>
-          </div>
-        </section>
-
-        <section class="mode-view calibration-view" id="calibrationView" data-view="calibration">
-          <div class="view-inner wide">
-            <h2 data-i18n="settings.title">Einstellungen</h2>
-
-            <div class="card">
-              <h3 data-i18n="settings.cameraTitle">Kamera</h3>
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.cameraSelectLabel">Gerät</div>
-                </div>
-                <div class="set-control">
-                  <select id="cameraSelect" aria-label="Kamera auswählen" data-i18n-aria-label="settings.cameraSelectLabel"></select>
-                </div>
-              </div>
-              <div class="video-frame">
-                <video id="video" playsinline muted autoplay></video>
-                <canvas id="overlay" aria-hidden="true"></canvas>
-                <div class="warm-overlay" id="warmOverlay" aria-hidden="true"></div>
-                <div class="proximity-meter" aria-label="Nähe zum Mund" data-i18n-aria-label="aria.proximity">
-                  <span id="proximityBar"></span>
-                </div>
-              </div>
-              <div class="signal-row">
-                <span id="faceSignal" data-i18n="signals.faceWaiting">Gesicht: wartet</span>
-                <span id="handSignal" data-i18n="signals.handWaiting">Hand: wartet</span>
-                <span id="nearSignal" data-i18n="signals.nearCalm">Nähe: ruhig</span>
-                <span id="distanceSignal" data-i18n="signals.distanceEmpty">Distanz: --</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.detectionTitle">Erkennung</h3>
-
-              <div class="calibration-presets" aria-label="Voreinstellung" data-i18n-aria-label="aria.presets">
-                <button class="preset-button" type="button" data-preset="soft" data-i18n="presets.soft">Sanft</button>
-                <button class="preset-button active" type="button" data-preset="normal" data-i18n="presets.normal">Normal</button>
-                <button class="preset-button" type="button" data-preset="precise" data-i18n="presets.precise">Präzise</button>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.sensitivity">Sensitivität</div>
-                  <div class="desc" data-i18n="settings.sensitivityDesc">Wie nah die Hand dem Mund kommen darf</div>
-                </div>
-                <div class="set-control">
-                  <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" aria-label="Sensitivität" data-i18n-aria-label="calibration.sensitivity" />
-                  <output id="distanceValue">0.090</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.holdTime">Haltezeit</div>
-                  <div class="desc" data-i18n="settings.holdDesc">Dauer bis zur Intervention</div>
-                </div>
-                <div class="set-control">
-                  <input id="holdSeconds" type="range" min="0.5" max="6" step="0.1" value="2" aria-label="Haltezeit" data-i18n-aria-label="calibration.holdTime" />
-                  <output id="holdValue">2.0 s</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.cooldown">Cooldown</div>
-                  <div class="desc" data-i18n="settings.cooldownDesc">Pause zwischen zwei Interventionen</div>
-                </div>
-                <div class="set-control">
-                  <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" aria-label="Cooldown" data-i18n-aria-label="calibration.cooldown" />
-                  <output id="cooldownValue">15 s</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.faceTouch">Gesichtsberührung melden</div>
-                  <div class="desc" data-i18n="settings.faceTouchDesc">Reagiert auf jede Berührung des Gesichts, nicht nur am Mund</div>
-                </div>
-                <input id="faceTouchToggle" class="switch" type="checkbox" aria-label="Gesichtsberührung melden" data-i18n-aria-label="calibration.faceTouch" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.autoTune">Automatisch anpassen</div>
-                  <div class="desc" data-i18n="calibration.autoTuneHint">Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.</div>
-                </div>
-                <input id="autoTuneToggle" class="switch" type="checkbox" checked aria-label="Automatisch anpassen" data-i18n-aria-label="calibration.autoTune" />
-              </div>
-
-              <div class="set-row">
-                <div class="actions">
-                  <button class="mini-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Kalibrierung neu starten</button>
-                  <button class="mini-action" id="testWarningButton" type="button" data-i18n="calibration.testWarning">Mini-Reset testen</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.cuesTitle">Hinweise</h3>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.warmth">Farbwarnung</div>
-                  <div class="desc" data-i18n="settings.warmthDesc">Ring wärmt sich auf, wenn die Hand näher kommt</div>
-                </div>
-                <input id="warmthToggle" class="switch" type="checkbox" checked aria-label="Farbwarnung" data-i18n-aria-label="calibration.warmth" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.overlay">Overlay</div>
-                  <div class="desc" data-i18n="settings.overlayDesc">Zeigt erkannte Punkte im Kamerabild</div>
-                </div>
-                <input id="overlayToggle" class="switch" type="checkbox" checked aria-label="Overlay" data-i18n-aria-label="calibration.overlay" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.sound">Ton</div>
-                  <div class="desc" data-i18n="settings.soundDesc">Leiser Klang bei Intervention</div>
-                </div>
-                <input id="soundToggle" class="switch" type="checkbox" aria-label="Ton" data-i18n-aria-label="calibration.sound" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.soundChoice">Klang</div>
-                </div>
-                <div class="set-control">
-                  <select id="soundPreset">
-                    <option value="bubblePop" data-i18n="sounds.bubblePop">Bubble Pop</option>
-                    <option value="doubleTap" data-i18n="sounds.doubleTap">Doppel-Klopfen</option>
-                    <option value="breathBell" data-i18n="sounds.breathBell">Atem-Glocke</option>
-                    <option value="tinyRobot" data-i18n="sounds.tinyRobot">Mini-Roboter</option>
-                    <option value="boing" data-i18n="sounds.boing">Boing</option>
-                  </select>
-                  <button class="mini-action" id="testSoundButton" type="button" data-i18n="calibration.testSound">Test</button>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.volume">Lautstärke</div>
-                </div>
-                <div class="set-control">
-                  <input id="soundVolume" type="range" min="0" max="1" step="0.05" value="0.35" aria-label="Lautstärke" data-i18n-aria-label="calibration.volume" />
-                  <output id="volumeValue">35%</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.vibration">Vibration</div>
-                  <div class="desc" data-i18n="settings.vibrationDesc">Kurzes Vibrieren bei Intervention</div>
-                </div>
-                <input id="vibrationToggle" class="switch" type="checkbox" checked aria-label="Vibration" data-i18n-aria-label="calibration.vibration" />
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.privacyTitle">Privatsphäre</h3>
-              <div class="privacy-card-note">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 4v3.6c0 3.4 2.3 5.9 5.5 6.9 3.2-1 5.5-3.5 5.5-6.9V4L8 1.5Z" stroke="#5E7C6C" stroke-width="1.4" stroke-linejoin="round"/></svg>
-                <span data-i18n="settings.privacyBody">Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen.</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.officeTitle">Office Mode</h3>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.officeDot">Status-Punkt anzeigen</div>
-                  <div class="desc" data-i18n="settings.officeDotDesc">Kleiner Punkt zeigt den Erkennungszustand in der Tarnansicht</div>
-                </div>
-                <input id="officeDotToggle" class="switch" type="checkbox" checked aria-label="Status-Punkt anzeigen" data-i18n-aria-label="settings.officeDot" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.officeLayout">Tarn-Layout</div>
-                  <div class="desc" data-i18n="settings.officeLayoutDesc">Die Tarnansicht ist ein schlichter Texteditor</div>
-                </div>
-                <button class="mini-action" type="button" disabled data-i18n="settings.officeLayoutValue">Notizen.txt</button>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="neutral.subtle">Sehr dezente Einblendung</div>
-                  <div class="desc" data-i18n="settings.officeSubtleDesc">Interventionen erscheinen nur als kleine Notiz am Rand</div>
-                </div>
-                <input id="neutralSubtleToggle" class="switch" type="checkbox" checked aria-label="Sehr dezente Einblendung" data-i18n-aria-label="neutral.subtle" />
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.dataTitle">Daten</h3>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.dataExport">Exportieren</div>
-                  <div class="desc" data-i18n="settings.dataExportDesc">Statistiken, Streak und Einstellungen als JSON-Datei sichern</div>
-                </div>
-                <button class="mini-action" id="exportDataButton" type="button" data-i18n="settings.dataExport">Exportieren</button>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.dataImport">Importieren</div>
-                  <div class="desc" data-i18n="settings.dataImportDesc">Backup-Datei einlesen; vorhandene Daten werden ersetzt</div>
-                </div>
-                <button class="mini-action" id="importDataButton" type="button" data-i18n="settings.dataImport">Importieren</button>
-                <input id="importDataInput" type="file" accept=".json,application/json" hidden />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Office Mode = funktionierender, schlichter Texteditor (Tarnung).
-             Bewusst NICHT im Markendesign. Der Erkennungs-Status sitzt als
-             kleiner Punkt in der Statusleiste; Verlassen per Klick darauf
-             oder per Esc. -->
-        <section class="mode-view neutral-view" id="neutralView" data-view="neutral">
-          <div class="editor">
-            <div class="editor-bar">
-              <span class="editor-doc">Notizen.txt</span>
-              <span class="editor-tool" data-i18n="office.menuFile">Datei</span>
-              <span class="editor-tool" data-i18n="office.menuEdit">Bearbeiten</span>
-              <span class="editor-tool" data-i18n="office.menuFormat">Format</span>
-              <span class="editor-spacer"></span>
-              <span class="editor-tool office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle" title="Office Mode beenden">✕</span>
-            </div>
-            <textarea
-              class="editor-area"
-              id="neutralNotes"
-              spellcheck="false"
-              aria-label="Notizen"
-              data-i18n-placeholder="office.placeholder"
-              placeholder="Schreiben …"
-            ></textarea>
-            <div class="editor-foot">
-              <span class="editor-count" id="editorWordCount">0 Wörter</span>
-              <span class="editor-spacer"></span>
-              <span data-i18n="office.autosaved">Automatisch gespeichert</span>
-              <span class="office-dot office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle" title="Office Mode beenden (oder Esc)"></span>
-            </div>
-          </div>
-        </section>
-
-        <nav class="mode-tabs" aria-label="App-Modus" data-i18n-aria-label="aria.modeTabs">
-          <button class="mode-tab active" type="button" data-mode="focus" data-i18n="tabs.focus">Focus</button>
-          <button class="mode-tab" type="button" data-mode="review" data-i18n="tabs.review">Review</button>
-          <button class="mode-tab" type="button" data-mode="calibration" data-i18n="tabs.calibration">Einstellungen</button>
-        </nav>
-      </section>
-
-      <section class="neutral-intervention" id="neutralIntervention" aria-live="polite" hidden>
-        <strong id="neutralInterventionTitle">Mini-Reset</strong>
-        <span id="neutralInterventionText">Zurück zum Fokus</span>
-      </section>
-
-      <section class="onboarding-panel" id="onboardingPanel" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" hidden>
-        <div class="onboarding-content">
-          <p class="eyebrow" data-i18n="onboarding.eyebrow">Kurze Kalibrierung</p>
-          <h2 id="onboardingTitle">Schau kurz in die Kamera</h2>
-          <p id="onboardingBody">Setz dich bequem hin und schau in die Kamera, bis dein Gesicht erkannt wird.</p>
-          <p class="onboarding-signal" id="onboardingSignal" aria-live="polite"></p>
-          <div class="onboarding-progress" id="onboardingProgress" aria-hidden="true">
-            <span class="dot" data-step="1"></span>
-            <span class="dot" data-step="2"></span>
-            <span class="dot" data-step="3"></span>
-            <span class="dot" data-step="4"></span>
-          </div>
-          <div class="onboarding-actions">
-            <button class="text-action" id="onboardingSkipButton" type="button" data-i18n="onboarding.skip">Überspringen</button>
-            <button class="primary-action" id="onboardingFinishButton" type="button" data-i18n="onboarding.finish" hidden>Los geht's</button>
-          </div>
+      <!-- ─ Warteliste ─ -->
+      <section class="landing-section" id="warteliste">
+        <div class="card waitlist-card">
+          <p class="eyebrow">Warteliste</p>
+          <h2>Sei dabei, wenn Tawel erscheint.</h2>
+          <p>
+            Trag dich in die Warteliste ein und sichere dir den Early-Bird-Preis zum Start. Kein
+            Spam – nur eine Nachricht.
+          </p>
+          <div class="ml-embedded" data-form="CmB4SX"></div>
         </div>
       </section>
 
-      <section class="alert-panel" id="alertPanel" role="dialog" aria-modal="true" aria-labelledby="alertTitle" hidden>
-        <div class="alert-content">
-          <h2 id="alertTitle" data-i18n="alert.title">Kurz innehalten</h2>
-          <p id="alertReplacement">Atme einmal tief ein und wieder aus. Was war das gerade?</p>
-          <div class="alert-actions">
-            <button id="confirmBitingButton" type="button" data-i18n="alert.hit">Treffer</button>
-            <button id="faceTouchButton" type="button" data-i18n="alert.face">Gesicht berührt</button>
-            <button id="falseAlarmButton" type="button" data-i18n="alert.false">Fehlalarm</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="error-message" id="errorMessage" role="alert" hidden>
-        <p id="errorText"></p>
-        <ul id="errorHints"></ul>
-      </section>
+      <!-- ─ Footer ─ -->
+      <footer class="site-footer">
+        <a href="/datenschutz">Datenschutz</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="/impressum">Impressum</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="mailto:hi@tawel.app">hi@tawel.app</a>
+        <p class="tagline">Tawel · Ruhig aufhören · Mit Sorgfalt gemacht</p>
+      </footer>
     </main>
-
-    <script type="module" src="./app.js"></script>
   </body>
 </html>

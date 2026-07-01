@@ -1,4 +1,4 @@
-const CACHE_NAME = "nail-guard-v5";
+const CACHE_NAME = "nail-guard-v6";
 
 const APP_SHELL = [
   "./",
@@ -6,8 +6,6 @@ const APP_SHELL = [
   "./style.css",
   "./app.js",
   "./i18n.js",
-  "./desktop.html",
-  "./landing.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",

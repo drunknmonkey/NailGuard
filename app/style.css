@@ -1402,3 +1402,181 @@ body[data-office-dot="off"] .office-dot {
     animation: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   Tawel – Landingpage (tawel.app Root)
+
+   Bewusst KEINE eigenen Tokens/Ring: diese Datei (/app/style.css) ist die
+   gemeinsame Quelle der Wahrheit. Die Landingpage teilt sich dieselben
+   CSS-Variablen und dasselbe atmende Ring-Bauteil (.stage/.halo/.ring) mit
+   der App – so laufen Landing und App nicht auseinander.
+   ════════════════════════════════════════════════════════════ */
+
+.landing.app-shell {
+  padding-bottom: 3rem;
+}
+
+.landing .topbar .wordmark {
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+.landing-section {
+  margin: clamp(2rem, 6vw, 3.4rem) 0;
+}
+
+.landing-section > .eyebrow {
+  margin-bottom: 0.5rem;
+}
+
+.landing-section h2 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  line-height: 1.2;
+  margin-bottom: 0.6rem;
+}
+
+.landing-section p {
+  color: var(--moss);
+  line-height: 1.65;
+  max-width: 42rem;
+  margin: 0;
+}
+
+/* ─ Hero: atmender Ring + Kernbotschaft ─ */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 3.5rem);
+  padding: clamp(1.4rem, 4vw, 3rem) 0 0.5rem;
+}
+
+.hero-copy {
+  max-width: 34rem;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 5.2vw, 3.05rem);
+  line-height: 1.08;
+  margin: 0 0 0.9rem;
+}
+
+.hero-title .accent {
+  color: var(--moss);
+  font-style: italic;
+}
+
+.hero-sub {
+  color: var(--moss);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  margin: 0 0 1.4rem;
+  max-width: 32rem;
+}
+
+.hero-cta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-hint {
+  color: var(--moss);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.hero .stage {
+  width: min(44vw, 240px);
+}
+
+/* ─ Preis-Ehrlichkeit ─ */
+.price-card {
+  text-align: center;
+  padding: clamp(1.6rem, 4vw, 2.4rem);
+}
+
+.price-card .price-line {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  margin: 0 0 0.5rem;
+  color: var(--pine);
+}
+
+.price-card p {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ─ Warteliste: MailerLite auf hellem Karten-Hintergrund ─ */
+.waitlist-card .ml-embedded {
+  margin-top: 1.1rem;
+}
+
+/* ─ Footer ─ */
+.site-footer {
+  margin-top: 3rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.2rem;
+  color: var(--moss);
+  font-size: 0.85rem;
+}
+
+.site-footer a {
+  color: var(--moss);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: var(--pine);
+}
+
+.site-footer .sep {
+  opacity: 0.45;
+}
+
+.site-footer .tagline {
+  flex-basis: 100%;
+  margin: 0.4rem 0 0;
+  font-family: var(--font-display);
+  color: var(--pine);
+}
+
+/* ─ Schlichte Platzhalterseiten (Datenschutz/Impressum) ─ */
+.legal {
+  max-width: 44rem;
+}
+
+.legal h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  margin: 1.5rem 0 0.8rem;
+}
+
+.legal .placeholder-note {
+  padding: 1rem 1.15rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--breath) 18%, var(--paper));
+  color: var(--moss);
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .hero .stage {
+    order: -1;
+    width: min(58vw, 200px);
+  }
+}
