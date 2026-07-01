@@ -491,7 +491,7 @@ const detection = {
       : 0;
 
     els.proximityBar.style.width = `${Math.round(proximityRatio * 100)}%`;
-    els.proximityBar.style.background = proximityRatio > 0.85 ? "#D9914F" : "#A8C7B4";
+    els.proximityBar.style.background = proximityRatio > 0.85 ? "var(--warm)" : "var(--breath)";
 
     if (state.paused) {
       state.nearSince = null;
@@ -1307,16 +1307,23 @@ function computeMinFaceDistance(faceLandmarks, fingertips) {
   return min;
 }
 
+// Canvas kennt keine CSS-Variablen: Design-Tokens einmalig auflösen und cachen.
+const tokenCache = {};
+function tokenColor(name) {
+  tokenCache[name] ??= getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return tokenCache[name];
+}
+
 function drawOverlay() {
   const ctx = els.overlay.getContext("2d");
   clearOverlay();
 
   if (state.mouthCenter) {
-    drawPoint(ctx, state.mouthCenter, 8, "#D9914F");
+    drawPoint(ctx, state.mouthCenter, 8, tokenColor("--warm"));
   }
 
   for (const fingertip of state.fingertips) {
-    drawPoint(ctx, fingertip, 6, "#A8C7B4");
+    drawPoint(ctx, fingertip, 6, tokenColor("--breath"));
     if (state.mouthCenter) drawLine(ctx, state.mouthCenter, fingertip);
   }
 }
