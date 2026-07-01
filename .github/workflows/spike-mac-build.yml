@@ -11,6 +11,7 @@ on:
     paths:
       - "src-tauri/**"
       - "spike/**"
+      - "app/**"
       - ".github/workflows/spike-mac-build.yml"
 
 jobs:
@@ -39,7 +40,7 @@ jobs:
         run: npm install -g @tauri-apps/cli@^2
 
       - name: Generate app icons
-        run: tauri icon icons/icon-512.png
+        run: tauri icon app/icons/icon-512.png
 
       - name: Build unsigned bundle
         run: tauri build
