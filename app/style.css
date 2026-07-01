@@ -166,15 +166,26 @@ button {
   transition: background var(--dur-soft) var(--ease-calm), border-color var(--dur-soft) var(--ease-calm);
 }
 
-button:hover {
+button:hover:not(:disabled) {
   border-color: var(--pine);
 }
 
+button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--pine) 8%, var(--paper));
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Fokus-Ring markenkonform: Ember als Aufmerksamkeitsfarbe der Marke */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--pine);
+  outline: 2px solid var(--ember);
   outline-offset: 3px;
 }
 
@@ -344,9 +355,14 @@ body.office-mode .wordmark {
   color: var(--paper);
 }
 
-.primary-action:hover {
+.primary-action:hover:not(:disabled) {
   background: var(--pine-deep);
   border-color: var(--pine-deep);
+}
+
+.primary-action:active:not(:disabled) {
+  background: color-mix(in srgb, var(--pine-deep) 88%, black);
+  border-color: color-mix(in srgb, var(--pine-deep) 88%, black);
 }
 
 .secondary-action.paused {
@@ -764,6 +780,14 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
+input[type="range"]:hover::-webkit-slider-thumb {
+  background: var(--pine-deep);
+}
+
+input[type="range"]:hover::-moz-range-thumb {
+  background: var(--pine-deep);
+}
+
 select {
   min-height: 38px;
   padding: 0 var(--space-3);
@@ -772,6 +796,12 @@ select {
   background: var(--paper);
   color: var(--pine);
   font-size: var(--text-sm);
+  cursor: pointer;
+  transition: border-color var(--dur-soft) var(--ease-calm);
+}
+
+select:hover {
+  border-color: var(--pine);
 }
 
 .mini-action {
@@ -999,6 +1029,12 @@ body[data-view="office"] .editor {
   line-height: var(--leading-relaxed);
 }
 
+/* Tastatur-Fokus sichtbar, aber tarnungs-neutral (kein Marken-Ember) */
+.editor-area:focus-visible {
+  outline: 2px solid var(--office-ink);
+  outline-offset: -2px;
+}
+
 .editor-area::placeholder {
   color: var(--office-placeholder);
 }
@@ -1139,9 +1175,18 @@ body[data-office-dot="off"] .office-dot {
   border: 1.5px solid var(--line-dark);
 }
 
-.alert-actions button:hover {
+.alert-actions button:hover:not(:disabled) {
   border-color: var(--paper);
   background: color-mix(in srgb, var(--paper) 7%, transparent);
+}
+
+.alert-actions button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--paper) 14%, transparent);
+}
+
+/* Auf dem Pine-Schleier ist Paper der klar sichtbare Fokus-Ring */
+.alert-actions button:focus-visible {
+  outline-color: var(--paper);
 }
 
 /* ═══ Onboarding ═══ */
@@ -1281,6 +1326,12 @@ body[data-office-dot="off"] .office-dot {
   color: var(--pine);
 }
 
+/* Reiter sind Textmarken, kein Pill: gedrückt nur Farbe, keine Fläche */
+.mode-tab:active {
+  background: transparent;
+  color: var(--pine);
+}
+
 .mode-tab.active {
   color: var(--pine);
   font-weight: 700;
@@ -1360,7 +1411,7 @@ body[data-office-dot="off"] .office-dot {
 }
 
 .waitlist-form input[type="email"]:focus {
-  outline: 2px solid var(--pine);
+  outline: 2px solid var(--ember);
   outline-offset: 1px;
 }
 
