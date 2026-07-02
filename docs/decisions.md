@@ -136,3 +136,25 @@ Vollständiger Befund: `docs/design-audit.md`.
 - **Kontrast-Fixes minimal-invasiv**: `--moss` #5E7C6C→#567163 (4.05→4.7:1),
   `--office-muted`/`--office-placeholder` nachgedunkelt. Grafik-Sanftheit
   (Breath-Balken, Still-Ring) bewusst unter 3:1 belassen — Designabsicht.
+
+---
+
+## 2026-07-02 – Ring-Tempo-Rampen über die Web Animations API
+
+Premium-Roadmap Punkt 1 (docs/design-audit.md): `animation-duration` ist per
+CSS nicht interpolierbar – der Ring sprang beim Zustandswechsel hart ins neue
+Tempo (4.6s → 2.6s → 1.6s).
+
+- **Entschieden: WAAPI führt den Atem** (`ringBreath` in app.js, `id:
+  "ring-breath"`); Zustandswechsel gleiten über `playbackRate` in einer
+  sinusförmigen 2s-Rampe ans Ziel. Die Atem-Phase bleibt erhalten (kein
+  Reset auf Phase 0). Raten: calm 1 · warm 1.77 · ember 2.88 · paused 0 –
+  paused atmet aus in den Stillstand statt einzufrieren, Fortsetzen atmet an.
+- **CSS bleibt der Fallback**: `body.ring-waapi` schaltet nur dann die
+  CSS-Animation ab, wenn WAAPI aktiv ist. Ohne `Element.animate` (sehr alte
+  WebViews), ohne JS (Landing) oder bei „Bewegung reduzieren" läuft exakt
+  der bisherige CSS-Pfad. Die erwogene rAF-getriebene Phasen-Alternative ist
+  damit unnötig: WAAPI ist in WKWebView seit Safari 13.1 verlässlich, und
+  der Fallback deckt den Rest ab.
+- `prefers-reduced-motion` wird live respektiert (matchMedia-Listener:
+  Rampen aus → CSS-reduced-Pfad, und zurück).

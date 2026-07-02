@@ -461,6 +461,15 @@ body[data-state="paused"] .ring {
   animation-play-state: paused;
 }
 
+/* Tempo-Rampen: führt app.js den Atem über die Web Animations API
+   (body.ring-waapi), gleitet playbackRate phasen-erhaltend ins neue Tempo –
+   die CSS-Animation setzt aus, damit nichts doppelt läuft. Ohne WAAPI oder
+   bei „Bewegung reduzieren" bleibt der CSS-Pfad unverändert aktiv. */
+body.ring-waapi .halo,
+body.ring-waapi .ring {
+  animation: none;
+}
+
 /* Zustandstext: unter dem Ring, auf ruhiger Fläche */
 .state-block {
   display: flex;
