@@ -1636,6 +1636,78 @@ body[data-office-dot="off"] .office-dot {
   margin-top: var(--space-4);
 }
 
+/* MailerLite-Embed in den App-Stil holen. Das Embed bringt eigenes CSS mit
+   (teils !important), daher gezielte !important-Overrides auf Elementebene –
+   robust über Element-Typen statt ML-Klassennamen, damit ein Markup-Update
+   des Embeds höchstens auf den ML-Default degradiert, nie bricht.
+   NICHT von hier erreichbar (Embed-Grenzen): reCAPTCHA-Badge, Inhalte des
+   Success-Screens, Lade-Spinner des Buttons. */
+.ml-embedded input[type="email"] {
+  min-height: 42px !important;
+  padding: 0 var(--space-4) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--paper) !important;
+  color: var(--pine) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+}
+
+/* Ember-Fokus wie überall – nicht das Browser-Blau des Embeds */
+.ml-embedded input[type="email"]:focus,
+.ml-embedded input[type="email"]:focus-visible {
+  outline: 2px solid var(--ember) !important;
+  outline-offset: 1px !important;
+  border-color: var(--line) !important;
+  box-shadow: none !important;
+}
+
+.ml-embedded button[type="submit"] {
+  padding: var(--space-3) var(--space-6) !important;
+  border: 1px solid var(--pine) !important;
+  border-radius: var(--radius-full) !important;
+  background: var(--pine) !important;
+  color: var(--paper) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+  font-weight: 400 !important;
+  cursor: pointer;
+  transition: background var(--dur-soft) var(--ease-calm), border-color var(--dur-soft) var(--ease-calm);
+}
+
+.ml-embedded button[type="submit"]:hover:not(:disabled) {
+  background: var(--pine-deep) !important;
+  border-color: var(--pine-deep) !important;
+}
+
+.ml-embedded button[type="submit"]:active:not(:disabled) {
+  background: color-mix(in srgb, var(--pine-deep) 88%, black) !important;
+}
+
+.ml-embedded button[type="submit"]:focus-visible {
+  outline: 2px solid var(--ember) !important;
+  outline-offset: 3px !important;
+}
+
+.ml-embedded button[type="submit"]:disabled {
+  opacity: 0.55 !important;
+  cursor: default;
+}
+
+/* Validierungs-/Fehlermeldung: lesbar im Markenton statt Embed-Rot */
+.ml-embedded .ml-form-embedSubmitError,
+.ml-embedded label[class*="error"],
+.ml-embedded div[class*="error"] {
+  color: var(--ember-text) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+}
+
+/* Wortmarke als Link (Legal-Seiten): kein Unterstrich, Marke bleibt ruhig */
+.landing a.wordmark {
+  text-decoration: none;
+}
+
 /* ─ Footer ─ */
 .site-footer {
   margin-top: var(--space-8);
