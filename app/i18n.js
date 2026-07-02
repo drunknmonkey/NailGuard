@@ -12,11 +12,11 @@ const translations = {
     "state.warm": "Achtsam",
     "state.warmHint": "Deine Hand ist nah am Gesicht",
     "state.ember": "Innehalten",
-    "state.emberHint": "",
+    "state.emberHint": "Ein ruhiger Atemzug genügt",
     "state.paused": "Pausiert",
-    "state.pausedHint": "Beobachtung ist ausgesetzt",
+    "state.pausedHint": "Alles ruht, bis du fortsetzt",
 
-    "status.loadingModel": "Modell lädt …",
+    "status.loadingModel": "Erkennung wird vorbereitet …",
     "status.openingCamera": "Kamera wird geöffnet …",
 
     "aria.topbar": "App Status",
@@ -56,16 +56,16 @@ const translations = {
     "focus.quietTime": "Ruhige Zeit",
     "focus.momentsToday": "Momente heute",
 
-    "signals.faceWaiting": "Gesicht: wartet",
+    "signals.faceWaiting": "Gesicht: bereit, sobald du im Bild bist",
     "signals.faceDetected": "Gesicht: erkannt",
-    "signals.faceSearching": "Gesicht: sucht",
-    "signals.handWaiting": "Hand: wartet",
+    "signals.faceSearching": "Gesicht: noch nicht im Bild",
+    "signals.handWaiting": "Hand: bereit, sobald sie im Bild ist",
     "signals.handDetected": "Hand: {count} erkannt",
-    "signals.handSearching": "Hand: sucht",
-    "signals.nearWaiting": "Nähe: wartet",
+    "signals.handSearching": "Hand: noch nicht im Bild",
+    "signals.nearWaiting": "Nähe: misst, sobald beides im Bild ist",
     "signals.nearCalm": "Nähe: ruhig",
     "signals.nearClose": "Nähe: nahe",
-    "signals.distanceEmpty": "Distanz: --",
+    "signals.distanceEmpty": "Distanz: sobald deine Hand im Bild ist",
     "signals.distance": "Distanz: {value}",
 
     "settings.title": "Einstellungen",
@@ -174,13 +174,13 @@ const translations = {
     "onboarding.step4Title": "Alles eingestellt",
     "onboarding.step4Body":
       "Die Empfindlichkeit ist jetzt auf deine Kamera und Sitzposition abgestimmt. Du kannst sie jederzeit unter Einstellungen ändern.",
-    "onboarding.waitingFace": "Gesicht: wird gesucht …",
+    "onboarding.waitingFace": "Die Kamera sucht dich noch …",
     "onboarding.foundFace": "Gesicht erkannt",
-    "onboarding.waitingHand": "Hand: wird gesucht …",
+    "onboarding.waitingHand": "Die Kamera sucht deine Hand noch …",
     "onboarding.foundHand": "Hand erkannt",
     "onboarding.moveCloser": "Finger noch näher zum Mund …",
     "onboarding.holdNearMouth": "Gut, kurz so halten …",
-    "onboarding.captured": "Erfasst!",
+    "onboarding.captured": "Erfasst — das war's schon.",
 
     "landing.eyebrow": "Nail Guard Desktop",
     "landing.title": "Nail Guard Desktop",
@@ -225,7 +225,7 @@ const translations = {
 
     "errors.cameraBlocked": "Kamerazugriff wurde blockiert.",
     "errors.cameraBlockedHint1":
-      "Im in-app Browser kann die Kamera je nach Berechtigungssituation blockiert sein.",
+      "In In-App-Browsern (etwa aus einer Messenger-App heraus) ist die Kamera oft nicht erlaubt.",
     "errors.cameraBlockedHint2":
       "Öffne {origin} in Chrome oder Safari und erlaube die Kamera in der Adressleiste.",
     "errors.cameraBlockedHint3":
@@ -242,7 +242,7 @@ const translations = {
     "errors.importFailedHint1":
       "Bitte eine unveränderte nailguard-backup-….json Datei aus dem Export verwenden.",
     "errors.generic": "Die App konnte nicht starten.",
-    "errors.genericHint1": "Prüfe die Internetverbindung für den ersten MediaPipe-Download.",
+    "errors.genericHint1": "Beim allerersten Start braucht die Erkennung einmal Internet — danach läuft alles lokal.",
     "errors.genericHint2": "Prüfe die Browser-Kamerafreigabe.",
     "errors.genericHint3": "Lade die Seite neu und versuche es erneut.",
   },
@@ -256,11 +256,11 @@ const translations = {
     "state.warm": "Mindful",
     "state.warmHint": "Your hand is close to your face",
     "state.ember": "Hold on",
-    "state.emberHint": "",
+    "state.emberHint": "One calm breath is enough",
     "state.paused": "Paused",
-    "state.pausedHint": "Monitoring is paused",
+    "state.pausedHint": "Everything rests until you resume",
 
-    "status.loadingModel": "Loading model …",
+    "status.loadingModel": "Getting detection ready …",
     "status.openingCamera": "Opening camera …",
 
     "aria.topbar": "App status",
@@ -300,16 +300,16 @@ const translations = {
     "focus.quietTime": "Quiet time",
     "focus.momentsToday": "Moments today",
 
-    "signals.faceWaiting": "Face: waiting",
+    "signals.faceWaiting": "Face: ready once you're in view",
     "signals.faceDetected": "Face: detected",
-    "signals.faceSearching": "Face: searching",
-    "signals.handWaiting": "Hand: waiting",
+    "signals.faceSearching": "Face: not in view yet",
+    "signals.handWaiting": "Hand: ready once it's in view",
     "signals.handDetected": "Hands: {count} detected",
-    "signals.handSearching": "Hand: searching",
-    "signals.nearWaiting": "Proximity: waiting",
+    "signals.handSearching": "Hand: not in view yet",
+    "signals.nearWaiting": "Proximity: measures once both are in view",
     "signals.nearCalm": "Proximity: calm",
     "signals.nearClose": "Proximity: close",
-    "signals.distanceEmpty": "Distance: --",
+    "signals.distanceEmpty": "Distance: once your hand is in view",
     "signals.distance": "Distance: {value}",
 
     "settings.title": "Settings",
@@ -417,13 +417,13 @@ const translations = {
     "onboarding.step4Title": "All set",
     "onboarding.step4Body":
       "Sensitivity is now tuned to your camera and seating position. You can change it anytime in Settings.",
-    "onboarding.waitingFace": "Face: searching …",
+    "onboarding.waitingFace": "The camera is still looking for you …",
     "onboarding.foundFace": "Face detected",
-    "onboarding.waitingHand": "Hand: searching …",
+    "onboarding.waitingHand": "Still looking for your hand …",
     "onboarding.foundHand": "Hand detected",
     "onboarding.moveCloser": "Bring your finger closer to your mouth …",
     "onboarding.holdNearMouth": "Good, hold it there …",
-    "onboarding.captured": "Got it!",
+    "onboarding.captured": "Got it — that's all.",
 
     "landing.eyebrow": "Nail Guard Desktop",
     "landing.title": "Nail Guard Desktop",
@@ -485,7 +485,7 @@ const translations = {
     "errors.importFailedHint1":
       "Please use an unmodified nailguard-backup-….json file from the export.",
     "errors.generic": "The app could not start.",
-    "errors.genericHint1": "Check your internet connection for the first MediaPipe download.",
+    "errors.genericHint1": "The very first start needs an internet connection — after that everything runs locally.",
     "errors.genericHint2": "Check the browser's camera permission.",
     "errors.genericHint3": "Reload the page and try again.",
   },
