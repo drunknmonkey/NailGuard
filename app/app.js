@@ -173,6 +173,88 @@ const state = {
   onboarding: null,
 };
 
+// ═══ Ring-Atem: Tempo-Rampen über die Web Animations API ═══
+// CSS kann animation-duration nicht interpolieren: beim Zustandswechsel
+// (4.6s → 2.6s → 1.6s) springt der Ring hart ins neue Tempo. Deshalb führt
+// app.js die Atem-Animation als WAAPI-Objekt und gleitet die Geschwindigkeit
+// über playbackRate ans Ziel – die Atem-Phase bleibt dabei erhalten (kein
+// Reset auf Phase 0). paused atmet aus in den Stillstand (Rate 0) statt
+// einzufrieren und atmet beim Fortsetzen sanft wieder an.
+// Ohne WAAPI oder bei „Bewegung reduzieren" bleibt der CSS-Pfad aktiv.
+const RING_BREATH = {
+  baseMs: 4600, // = --breath-dur im Ruhezustand
+  rampMs: 2000, // Dauer des Tempo-Übergangs
+  rates: { calm: 1, warm: 4.6 / 2.6, ember: 4.6 / 1.6, paused: 0 },
+};
+
+const ringBreath = {
+  animations: [],
+  rampId: null,
+  rate: 1,
+
+  init() {
+    const stage = document.querySelector(".focus-view .stage");
+    if (!stage || typeof stage.animate !== "function") return;
+
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    media.addEventListener?.("change", () => this.toggle(!media.matches));
+    if (!media.matches) this.toggle(true);
+  },
+
+  toggle(enabled) {
+    if (!enabled) {
+      window.cancelAnimationFrame(this.rampId);
+      for (const animation of this.animations) animation.cancel();
+      this.animations = [];
+      this.rate = 1;
+      document.body.classList.remove("ring-waapi");
+      return;
+    }
+    if (this.animations.length) return;
+
+    const keyframes = [
+      { transform: "scale(0.965)", easing: "cubic-bezier(0.37, 0, 0.63, 1)" },
+      { transform: "scale(1.035)", easing: "cubic-bezier(0.37, 0, 0.63, 1)" },
+      { transform: "scale(0.965)" },
+    ];
+    for (const el of document.querySelectorAll(".focus-view .stage .halo, .focus-view .stage .ring")) {
+      this.animations.push(
+        el.animate(keyframes, {
+          id: "ring-breath",
+          duration: RING_BREATH.baseMs,
+          iterations: Infinity,
+          // Innerer Ring atmet leicht versetzt – wie in der CSS-Fassung.
+          delay: el.classList.contains("inner") ? RING_BREATH.baseMs * -0.12 : 0,
+        }),
+      );
+    }
+    document.body.classList.add("ring-waapi");
+    this.applyRate(RING_BREATH.rates[state.appState] ?? 1);
+  },
+
+  setState(appState) {
+    if (!this.animations.length) return;
+    const target = RING_BREATH.rates[appState] ?? 1;
+    window.cancelAnimationFrame(this.rampId);
+    if (Math.abs(target - this.rate) < 0.001) return;
+
+    const from = this.rate;
+    const start = performance.now();
+    const step = (now) => {
+      const progress = Math.min(1, (now - start) / RING_BREATH.rampMs);
+      const eased = 0.5 - Math.cos(Math.PI * progress) / 2; // sinusförmig, wie --ease-breath
+      this.applyRate(from + (target - from) * eased);
+      if (progress < 1) this.rampId = window.requestAnimationFrame(step);
+    };
+    this.rampId = window.requestAnimationFrame(step);
+  },
+
+  applyRate(rate) {
+    this.rate = rate;
+    for (const animation of this.animations) animation.playbackRate = rate;
+  },
+};
+
 init();
 
 function init() {
@@ -186,6 +268,7 @@ function init() {
   renderAll();
   setInterval(renderStats, 15_000);
   setInterval(renderFocusTick, 1_000);
+  ringBreath.init();
   registerServiceWorker();
 }
 
@@ -871,6 +954,7 @@ function refreshAppState(force = false) {
 
   state.appState = next;
   document.body.dataset.state = next;
+  ringBreath.setState(next);
   els.stateWord.textContent = t(`state.${next}`);
   els.stateHint.textContent = t(`state.${next}Hint`);
 }
