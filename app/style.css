@@ -29,7 +29,7 @@
   --paper: #FAFCFA;
   /* — Text — */
   --pine: #1E3B34;
-  --moss: #5E7C6C;
+  --moss: #567163; /* AA-fest: 4.7:1 auf Mist, 5.2:1 auf Paper (vorher 4.05/4.45) */
   /* — Zustandsfarben (Ring/Flächen) — */
   --breath: #A8C7B4;
   --warm: #D9914F;
@@ -55,8 +55,8 @@
   --office-ink: #2B2F36;
   --office-ink-soft: #3A4149;
   --office-text: #5B616B;
-  --office-muted: #8A929B;
-  --office-placeholder: #B8BDC4;
+  --office-muted: #68707A; /* AA-fest: 4.9:1 auf Office-Bar (vorher 3.05) */
+  --office-placeholder: #6F7780; /* AA-fest: 4.5:1 auf Weiß (vorher 1.9) */
   --office-dot-calm: #9CB8A8;
   --office-dot-paused: #B9C0C7;
 

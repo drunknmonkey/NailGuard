@@ -117,3 +117,22 @@ statisch (kein Build-Schritt), daher gilt Ordnerstruktur = URL-Struktur.
   damit das Drittanbieter-Embed lädt; die App behält ihre strikte CSP.
 - **Legal**: `/datenschutz` + `/impressum` sind bewusst schlichte Platzhalter
   („Inhalt folgt / wird rechtlich ergänzt") – keine erfundenen Rechtstexte.
+
+---
+
+## 2026-07-01 – Design-Audit: Token-System, Zustände, WCAG-Kontrast
+
+Systematisierung von „Atem & Ruhe" (keine Neugestaltung), drei gestapelte PRs.
+Vollständiger Befund: `docs/design-audit.md`.
+
+- **Token-System im :root** ist ab jetzt die einzige Quelle für Farben, Typo-
+  Stufen (`--text-*`/`--leading-*`), Abstände (`--space-1…8`, 4px-Grid), Radien,
+  Schatten und Motion (`--dur-*`/`--ease-*`). Keine Streuwerte mehr im
+  Stylesheet-Körper; Canvas/JS lesen Tokens über `getComputedStyle`.
+- **Office Mode** bleibt bewusst markenfremd (Tarnung), bekommt aber eine eigene
+  `--office-*`-Gruppe — Tarnfarben zentral statt gestreut.
+- **Fokus-Ringe markenkonform Ember** (statt Pine/Browser-Default); auf dem
+  Pine-Schleier Paper; im Office System-Ink. Disabled-/Active-Zustände ergänzt.
+- **Kontrast-Fixes minimal-invasiv**: `--moss` #5E7C6C→#567163 (4.05→4.7:1),
+  `--office-muted`/`--office-placeholder` nachgedunkelt. Grafik-Sanftheit
+  (Breath-Balken, Still-Ring) bewusst unter 3:1 belassen — Designabsicht.
