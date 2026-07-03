@@ -146,6 +146,8 @@ const translations = {
     "neutral.subtle": "Sehr dezente Einblendung",
     "neutral.exitTitle": "Office Mode beenden",
 
+    "office.escHintTitle": "Office Mode aktiv",
+    "office.escHintText": "Zurück mit Esc – oder per Klick auf den Punkt in der Fußzeile",
     "office.menuFile": "Datei",
     "office.menuEdit": "Bearbeiten",
     "office.menuFormat": "Format",
@@ -392,6 +394,8 @@ const translations = {
     "neutral.subtle": "Very subtle notifications",
     "neutral.exitTitle": "Exit Office Mode",
 
+    "office.escHintTitle": "Office Mode on",
+    "office.escHintText": "Leave with Esc — or click the dot in the footer",
     "office.menuFile": "File",
     "office.menuEdit": "Edit",
     "office.menuFormat": "Format",
