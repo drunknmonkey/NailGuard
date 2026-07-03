@@ -79,16 +79,30 @@
         </p>
       </section>
 
-      <!-- ─ So funktioniert's ─ -->
-      <section class="landing-section">
-        <p class="eyebrow">So funktioniert's</p>
-        <h2>Ein warmes Glühen am Rand deines Bildschirms.</h2>
-        <p>
-          Tawel läuft still auf deinem Mac und erkennt über die Kamera, wenn deine Hand zum Gesicht
-          kommt. Kein Alarm, kein Vollbild-Schreck – nur ein warmes, atmendes Glühen am Rand deines
-          Bildschirms. Es kommt auf, während deine Hand sich hebt, und verschwindet wieder, sobald
-          du innehältst.
-        </p>
+      <!-- ─ So funktioniert's: Text + stilles Produkt-Visual ─ -->
+      <section class="landing-section how-section">
+        <div class="how-copy">
+          <p class="eyebrow">So funktioniert's</p>
+          <h2>Ein warmes Glühen am Rand deines Bildschirms.</h2>
+          <p>
+            Tawel läuft still auf deinem Mac und erkennt über die Kamera, wenn deine Hand zum Gesicht
+            kommt. Kein Alarm, kein Vollbild-Schreck – nur ein warmes, atmendes Glühen am Rand deines
+            Bildschirms. Es kommt auf, während deine Hand sich hebt, und verschwindet wieder, sobald
+            du innehältst.
+          </p>
+        </div>
+        <!-- Rein dekoratives CSS-Visual: stilisierter Bildschirm, in dem das
+             Ember-Glühen ruhig vom Rand hereinatmet – kein Bild-Asset. -->
+        <figure class="glow-demo" aria-hidden="true">
+          <div class="demo-screen">
+            <span class="demo-line w-lg"></span>
+            <span class="demo-line w-md"></span>
+            <span class="demo-line w-lg"></span>
+            <span class="demo-line w-sm"></span>
+            <span class="demo-line w-md"></span>
+            <div class="demo-glow"></div>
+          </div>
+        </figure>
       </section>
 
       <!-- ─ Value-Pillars ─ -->
@@ -144,6 +158,8 @@
 
       <!-- ─ Footer ─ -->
       <footer class="site-footer">
+        <a href="/app/">Web-Version ausprobieren</a>
+        <span class="sep" aria-hidden="true">·</span>
         <a href="/datenschutz">Datenschutz</a>
         <span class="sep" aria-hidden="true">·</span>
         <a href="/impressum">Impressum</a>
