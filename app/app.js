@@ -17,6 +17,7 @@ const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
 const ONBOARDING_KEY = "nail-guard.onboarding.v1";
+const OFFICE_HINT_KEY = "nail-guard.office-hint.v1";
 const LOCALE_KEY = "nail-guard.locale.v1";
 
 // Alle Keys, die Export/Import berücksichtigen. Fremde Keys in einer
@@ -929,7 +930,28 @@ function switchMode(mode) {
   if (state.activeMode !== "neutral") {
     window.clearTimeout(state.neutralInterventionTimer);
     els.neutralIntervention.hidden = true;
+  } else {
+    maybeShowOfficeHint();
   }
+}
+
+// Erstnutzungs-Hinweis: Der Rückweg aus dem Office Mode ist absichtlich
+// unsichtbar (Tarnung). Beim allerersten Wechsel deshalb einmalig eine
+// dezente, von selbst verschwindende Notiz – über das bestehende neutrale
+// Einblendungs-Element, damit die Tarnung optisch gewahrt bleibt.
+function maybeShowOfficeHint() {
+  if (localStorage.getItem(OFFICE_HINT_KEY)) return;
+  localStorage.setItem(OFFICE_HINT_KEY, "seen");
+
+  window.clearTimeout(state.neutralInterventionTimer);
+  els.neutralInterventionTitle.textContent = t("office.escHintTitle");
+  els.neutralInterventionText.textContent = t("office.escHintText");
+  els.neutralIntervention.classList.remove("prominent");
+  els.neutralIntervention.hidden = false;
+
+  state.neutralInterventionTimer = window.setTimeout(() => {
+    els.neutralIntervention.hidden = true;
+  }, 4600);
 }
 
 function renderAll() {
