@@ -57,7 +57,11 @@ Erkennungslogik und Layout unangetastet.
   Top-5 #5; `robots.txt` steht noch auf `Disallow: /` (Pre-Launch-Stealth) —
   für eine Warteliste kontraproduktiv, gehört vor den Launch geöffnet.
 
-## Top-5 Klasse-2-Vorschläge (nur Vorschlag — nichts davon umgesetzt)
+## Top-5 Klasse-2-Vorschläge
+
+**→ UMSETZUNG (2026-07-02): Alle fünf von Paul freigegeben und umgesetzt** —
+#1+#2 in PR `ux/settings-structure`, #4 in PR `ux/office-first-hint`,
+#3+#5 in PR `landing/visual-and-path` (Details: docs/decisions.md).
 
 1. **Einstellungen umsortieren: Alltag nach oben (M)**
    Problem: Häufigste Wege (Ton, Hinweise) liegen hinter Kamera-Preview +

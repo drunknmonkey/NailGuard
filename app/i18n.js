@@ -70,6 +70,8 @@ const translations = {
 
     "settings.title": "Einstellungen",
     "settings.cameraTitle": "Kamera",
+    "settings.cameraDetails": "Vorschau & Live-Signale",
+    "settings.fineTune": "Feinjustierung",
     "settings.cameraSelectLabel": "Gerät",
     "settings.cameraDevice": "Kamera",
     "settings.detectionTitle": "Erkennung",
@@ -314,6 +316,8 @@ const translations = {
 
     "settings.title": "Settings",
     "settings.cameraTitle": "Camera",
+    "settings.cameraDetails": "Preview & live signals",
+    "settings.fineTune": "Fine-tuning",
     "settings.cameraSelectLabel": "Device",
     "settings.cameraDevice": "Camera",
     "settings.detectionTitle": "Detection",
