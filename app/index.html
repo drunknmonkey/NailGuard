@@ -141,98 +141,6 @@
             <h2 data-i18n="settings.title">Einstellungen</h2>
 
             <div class="card">
-              <h3 data-i18n="settings.cameraTitle">Kamera</h3>
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.cameraSelectLabel">Gerät</div>
-                </div>
-                <div class="set-control">
-                  <select id="cameraSelect" aria-label="Kamera auswählen" data-i18n-aria-label="settings.cameraSelectLabel"></select>
-                </div>
-              </div>
-              <div class="video-frame">
-                <video id="video" playsinline muted autoplay></video>
-                <canvas id="overlay" aria-hidden="true"></canvas>
-                <div class="warm-overlay" id="warmOverlay" aria-hidden="true"></div>
-                <div class="proximity-meter" aria-label="Nähe zum Mund" data-i18n-aria-label="aria.proximity">
-                  <span id="proximityBar"></span>
-                </div>
-              </div>
-              <div class="signal-row">
-                <span id="faceSignal" data-i18n="signals.faceWaiting">Gesicht: bereit, sobald du im Bild bist</span>
-                <span id="handSignal" data-i18n="signals.handWaiting">Hand: bereit, sobald sie im Bild ist</span>
-                <span id="nearSignal" data-i18n="signals.nearCalm">Nähe: ruhig</span>
-                <span id="distanceSignal" data-i18n="signals.distanceEmpty">Distanz: sobald deine Hand im Bild ist</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.detectionTitle">Erkennung</h3>
-
-              <div class="calibration-presets" aria-label="Voreinstellung" data-i18n-aria-label="aria.presets">
-                <button class="preset-button" type="button" data-preset="soft" data-i18n="presets.soft">Sanft</button>
-                <button class="preset-button active" type="button" data-preset="normal" data-i18n="presets.normal">Normal</button>
-                <button class="preset-button" type="button" data-preset="precise" data-i18n="presets.precise">Präzise</button>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.sensitivity">Empfindlichkeit</div>
-                  <div class="desc" data-i18n="settings.sensitivityDesc">Wie nah die Hand dem Mund kommen darf</div>
-                </div>
-                <div class="set-control">
-                  <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
-                  <output id="distanceValue">0.090</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.holdTime">Haltezeit</div>
-                  <div class="desc" data-i18n="settings.holdDesc">Dauer, bis der Hinweis kommt</div>
-                </div>
-                <div class="set-control">
-                  <input id="holdSeconds" type="range" min="0.5" max="6" step="0.1" value="2" aria-label="Haltezeit" data-i18n-aria-label="calibration.holdTime" />
-                  <output id="holdValue">2.0 s</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.cooldown">Ruhepause</div>
-                  <div class="desc" data-i18n="settings.cooldownDesc">Pause, bis der nächste Hinweis kommen darf</div>
-                </div>
-                <div class="set-control">
-                  <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" aria-label="Ruhepause" data-i18n-aria-label="calibration.cooldown" />
-                  <output id="cooldownValue">15 s</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.faceTouch">Gesichtsberührung melden</div>
-                  <div class="desc" data-i18n="settings.faceTouchDesc">Reagiert auf jede Berührung des Gesichts, nicht nur am Mund</div>
-                </div>
-                <input id="faceTouchToggle" class="switch" type="checkbox" aria-label="Gesichtsberührung melden" data-i18n-aria-label="calibration.faceTouch" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.autoTune">Automatisch anpassen</div>
-                  <div class="desc" data-i18n="calibration.autoTuneHint">Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.</div>
-                </div>
-                <input id="autoTuneToggle" class="switch" type="checkbox" checked aria-label="Automatisch anpassen" data-i18n-aria-label="calibration.autoTune" />
-              </div>
-
-              <div class="set-row">
-                <div class="actions">
-                  <button class="mini-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Abstand neu einrichten</button>
-                  <button class="mini-action" id="testWarningButton" type="button" data-i18n="calibration.testWarning">Probe-Hinweis ansehen</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
               <h3 data-i18n="settings.cuesTitle">Hinweise</h3>
 
               <div class="set-row">
@@ -292,6 +200,104 @@
                 </div>
                 <input id="vibrationToggle" class="switch" type="checkbox" checked aria-label="Vibration" data-i18n-aria-label="calibration.vibration" />
               </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="settings.detectionTitle">Erkennung</h3>
+
+              <div class="calibration-presets" aria-label="Voreinstellung" data-i18n-aria-label="aria.presets">
+                <button class="preset-button" type="button" data-preset="soft" data-i18n="presets.soft">Sanft</button>
+                <button class="preset-button active" type="button" data-preset="normal" data-i18n="presets.normal">Normal</button>
+                <button class="preset-button" type="button" data-preset="precise" data-i18n="presets.precise">Präzise</button>
+              </div>
+
+              <details class="settings-details">
+                <summary data-i18n="settings.fineTune">Feinjustierung</summary>
+                <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="calibration.sensitivity">Empfindlichkeit</div>
+                  <div class="desc" data-i18n="settings.sensitivityDesc">Wie nah die Hand dem Mund kommen darf</div>
+                </div>
+                <div class="set-control">
+                  <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
+                  <output id="distanceValue">0.090</output>
+                </div>
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="calibration.holdTime">Haltezeit</div>
+                  <div class="desc" data-i18n="settings.holdDesc">Dauer, bis der Hinweis kommt</div>
+                </div>
+                <div class="set-control">
+                  <input id="holdSeconds" type="range" min="0.5" max="6" step="0.1" value="2" aria-label="Haltezeit" data-i18n-aria-label="calibration.holdTime" />
+                  <output id="holdValue">2.0 s</output>
+                </div>
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="calibration.cooldown">Ruhepause</div>
+                  <div class="desc" data-i18n="settings.cooldownDesc">Pause, bis der nächste Hinweis kommen darf</div>
+                </div>
+                <div class="set-control">
+                  <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" aria-label="Ruhepause" data-i18n-aria-label="calibration.cooldown" />
+                  <output id="cooldownValue">15 s</output>
+                </div>
+              </div>
+              </details>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="calibration.faceTouch">Gesichtsberührung melden</div>
+                  <div class="desc" data-i18n="settings.faceTouchDesc">Reagiert auf jede Berührung des Gesichts, nicht nur am Mund</div>
+                </div>
+                <input id="faceTouchToggle" class="switch" type="checkbox" aria-label="Gesichtsberührung melden" data-i18n-aria-label="calibration.faceTouch" />
+              </div>
+
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="calibration.autoTune">Automatisch anpassen</div>
+                  <div class="desc" data-i18n="calibration.autoTuneHint">Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.</div>
+                </div>
+                <input id="autoTuneToggle" class="switch" type="checkbox" checked aria-label="Automatisch anpassen" data-i18n-aria-label="calibration.autoTune" />
+              </div>
+
+              <div class="set-row">
+                <div class="actions">
+                  <button class="mini-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Abstand neu einrichten</button>
+                  <button class="mini-action" id="testWarningButton" type="button" data-i18n="calibration.testWarning">Probe-Hinweis ansehen</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="settings.cameraTitle">Kamera</h3>
+              <div class="set-row">
+                <div class="txt">
+                  <div class="name" data-i18n="settings.cameraSelectLabel">Gerät</div>
+                </div>
+                <div class="set-control">
+                  <select id="cameraSelect" aria-label="Kamera auswählen" data-i18n-aria-label="settings.cameraSelectLabel"></select>
+                </div>
+              </div>
+              <details class="settings-details">
+                <summary data-i18n="settings.cameraDetails">Vorschau &amp; Live-Signale</summary>
+                <div class="video-frame">
+                <video id="video" playsinline muted autoplay></video>
+                <canvas id="overlay" aria-hidden="true"></canvas>
+                <div class="warm-overlay" id="warmOverlay" aria-hidden="true"></div>
+                <div class="proximity-meter" aria-label="Nähe zum Mund" data-i18n-aria-label="aria.proximity">
+                  <span id="proximityBar"></span>
+                </div>
+              </div>
+              <div class="signal-row">
+                <span id="faceSignal" data-i18n="signals.faceWaiting">Gesicht: bereit, sobald du im Bild bist</span>
+                <span id="handSignal" data-i18n="signals.handWaiting">Hand: bereit, sobald sie im Bild ist</span>
+                <span id="nearSignal" data-i18n="signals.nearCalm">Nähe: ruhig</span>
+                <span id="distanceSignal" data-i18n="signals.distanceEmpty">Distanz: sobald deine Hand im Bild ist</span>
+              </div>
+              </details>
             </div>
 
             <div class="card">

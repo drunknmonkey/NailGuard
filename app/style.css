@@ -690,6 +690,56 @@ body[data-state="paused"] .state-word { color: var(--moss); }
   border-bottom: none;
 }
 
+/* Progressive Disclosure: selten Gebrauchtes ruht hinter einer ruhigen Zeile
+   (Kamera-Vorschau, Feinjustierungs-Slider). Native <details>, kein JS. */
+.settings-details {
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-details:last-child {
+  border-bottom: none;
+}
+
+.settings-details > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  color: var(--moss);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--dur-soft) var(--ease-calm);
+}
+
+.settings-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-details > summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--moss);
+  border-bottom: 1.5px solid var(--moss);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-soft) var(--ease-calm);
+  flex-shrink: 0;
+}
+
+.settings-details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.settings-details > summary:hover {
+  color: var(--pine);
+}
+
+.settings-details > summary:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 3px;
+}
+
 .set-row .txt {
   flex: 1;
 }

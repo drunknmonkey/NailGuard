@@ -158,3 +158,29 @@ Tempo (4.6s → 2.6s → 1.6s).
   der Fallback deckt den Rest ab.
 - `prefers-reduced-motion` wird live respektiert (matchMedia-Listener:
   Rampen aus → CSS-reduced-Pfad, und zurück).
+
+---
+
+## 2026-07-02 – UX-Audit Top-5 umgesetzt (drei PRs)
+
+Alle fünf Klasse-2-Vorschläge aus docs/ux-audit.md von Paul freigegeben und
+umgesetzt. Stapel: basiert auf PR #17/#18 (Merge-Reihenfolge beachten).
+
+- **Top-5 #1+#2 (Settings-Struktur):** Karten-Reihenfolge jetzt Alltag zuerst
+  (Hinweise → Erkennung → Kamera → Privatsphäre → Office → Daten). Kamera-
+  Vorschau + Live-Signale sowie die drei Erkennungs-Slider ruhen hinter
+  nativen `<details>`-Zeilen („Vorschau & Live-Signale" / „Feinjustierung") –
+  Progressive Disclosure ohne JS, Presets sind die primäre Wahl. Erkennung
+  läuft bei eingeklappter Vorschau unverändert (Video-Element bleibt aktiv;
+  Overlay-Canvas skaliert bei 0×0 einfach leer).
+- **Top-5 #4 (Office-Erstnutzung):** Beim allerersten Wechsel in den Office
+  Mode erscheint einmalig die dezente Notiz „Zurück mit Esc …" über das
+  bestehende neutral-intervention-Element (localStorage-Flag
+  `nail-guard.office-hint.v1`); Tarnung bleibt, Erwartungsbruch entschärft.
+- **Top-5 #3 (Landing-Visual):** „So funktioniert's" wird zweispaltig mit
+  einem stillen CSS-Produkt-Visual (stilisierter Bildschirm + atmendes
+  Ember-Glühen am Rand) – zeigt das Kernversprechen statt es nur zu
+  beschreiben. Reine Token-CSS, kein Bild-Asset, reduced-motion respektiert.
+- **Top-5 #5 (Weg + Auffindbarkeit):** Entschieden: dezenter Footer-Link
+  „Web-Version ausprobieren" → /app auf der Landing. `robots.txt` geöffnet:
+  Landing indexierbar, `/app/` bleibt ausgenommen (Werkzeug, kein Content).
