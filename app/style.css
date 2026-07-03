@@ -1814,7 +1814,13 @@ body[data-office-dot="off"] .office-dot {
 @media (max-width: 720px) {
   .hero {
     grid-template-columns: 1fr;
-    justify-items: start;
+    justify-items: center;
+  }
+
+  .hero-copy,
+  .hero-cta {
+    justify-self: start;
+    width: 100%;
   }
 
   .hero .stage {
