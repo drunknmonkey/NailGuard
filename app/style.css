@@ -1822,3 +1822,72 @@ body[data-office-dot="off"] .office-dot {
     width: min(58vw, 200px);
   }
 }
+
+/* ─ „So funktioniert's": Text + stilles Produkt-Visual ─
+   Reines Token-CSS statt Bild-Asset: ein stilisierter Bildschirm, in dem
+   das Ember-Glühen ruhig vom Rand hereinatmet (das Kernversprechen). */
+.how-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 3.5rem);
+}
+
+.glow-demo {
+  margin: 0;
+}
+
+.demo-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  aspect-ratio: 16 / 10;
+  padding: var(--space-5) var(--space-5) 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+}
+
+/* Angedeutete Dokumentzeilen: der Bildschirm bleibt Arbeitsfläche */
+.demo-line {
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--breath) 26%, var(--paper));
+}
+
+.demo-line.w-lg { width: 82%; }
+.demo-line.w-md { width: 64%; }
+.demo-line.w-sm { width: 42%; }
+
+/* Das Glühen: wächst als warme Vignette vom unteren Rand herein
+   und atmet im Ruhe-Tempo des Rings */
+.demo-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 130% 75% at 50% 118%,
+    color-mix(in srgb, var(--ember) 42%, transparent),
+    transparent 62%
+  );
+  animation: demo-breathe var(--breath-dur) var(--ease-breath) infinite;
+}
+
+@keyframes demo-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 720px) {
+  .how-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-glow {
+    animation: none;
+  }
+}

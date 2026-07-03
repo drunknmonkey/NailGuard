@@ -1,2 +1,3 @@
+# Landing indexierbar (Warteliste), die Web-App selbst ist Werkzeug, kein Content.
 User-agent: *
-Disallow: /
+Disallow: /app/
