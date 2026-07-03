@@ -117,9 +117,6 @@ const els = {
   officeDotToggle: document.querySelector("#officeDotToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
-  confirmBitingButton: document.querySelector("#confirmBitingButton"),
-  falseAlarmButton: document.querySelector("#falseAlarmButton"),
-  faceTouchButton: document.querySelector("#faceTouchButton"),
   resetStatsButton: document.querySelector("#resetStatsButton"),
   exportDataButton: document.querySelector("#exportDataButton"),
   importDataButton: document.querySelector("#importDataButton"),
@@ -169,6 +166,7 @@ const state = {
   settings: loadSettings(),
   stats: loadStats(),
   neutralInterventionTimer: null,
+  browserInterventionTimer: null,
   appState: "calm",
   handNear: false,
   onboarding: null,
@@ -370,9 +368,6 @@ function bindEvents() {
     });
   }
 
-  els.confirmBitingButton.addEventListener("click", () => resolveIntervention("confirmed"));
-  els.falseAlarmButton.addEventListener("click", () => resolveIntervention("falseAlarm"));
-  els.faceTouchButton.addEventListener("click", () => resolveIntervention("faceTouch"));
   els.resetStatsButton.addEventListener("click", resetStats);
   els.exportDataButton.addEventListener("click", exportData);
   els.importDataButton.addEventListener("click", () => els.importDataInput.click());
@@ -682,7 +677,7 @@ function triggerIntervention(reason, confidence, options = {}) {
   if (state.activeMode === "neutral") {
     showNeutralIntervention();
   } else {
-    showBrowserIntervention(replacement);
+    showBrowserIntervention();
   }
   notifyUser();
 
@@ -692,9 +687,15 @@ function triggerIntervention(reason, confidence, options = {}) {
   }));
 }
 
-function showBrowserIntervention(replacement) {
+// Keine Abfrage mehr: die Ruhepause zeigt sich kurz und verschwindet von
+// selbst (wie die Office-Mode-Einblendung), Treffer werden dabei still
+// mitgezählt statt erfragt (Entscheidung 2026-06-28, siehe decisions.md).
+function showBrowserIntervention() {
   els.alertReplacement.textContent = t("alert.body");
   els.alertPanel.hidden = false;
+
+  window.clearTimeout(state.browserInterventionTimer);
+  state.browserInterventionTimer = window.setTimeout(resolveInterventionSilently, 4600);
 }
 
 function showNeutralIntervention() {
@@ -715,19 +716,20 @@ function showNeutralIntervention() {
   }, state.settings.neutralSubtleInterventions ? 3200 : 4600);
 }
 
-function resolveIntervention(kind) {
+// Ersetzt die frühere Treffer/Fehlalarm/Gesichtsberührung-Abfrage: jede
+// erkannte Nähe gilt automatisch als Treffer, ohne Nachfrage. Kein
+// Datenverlust im Tracking (Review-Zähler + „Ruhige Zeit" bleiben aktuell),
+// nur die Klassifizierung per Klick entfällt. autoTuneFromFeedback wird
+// bewusst NICHT mehr aufgerufen: das Feintuning beruhte auf dem Gegensignal
+// „Fehlalarm", das es ohne Abfrage nicht mehr gibt – würde man "confirmed"
+// weiterhin automatisch füttern, würde die Empfindlichkeit ungebremst zum
+// Maximum driften.
+function resolveInterventionSilently() {
   ensureTodayStats();
 
   if (state.currentIntervention?.countStats !== false) {
-    if (kind === "confirmed") {
-      state.stats.confirmed += 1;
-      state.stats.lastConfirmedAt = Date.now();
-    } else if (kind === "falseAlarm") {
-      state.stats.falseAlarms += 1;
-    } else if (kind === "faceTouch") {
-      state.stats.faceTouches += 1;
-    }
-    autoTuneFromFeedback(kind);
+    state.stats.confirmed += 1;
+    state.stats.lastConfirmedAt = Date.now();
   }
 
   state.alertOpen = false;

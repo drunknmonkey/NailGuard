@@ -184,3 +184,43 @@ umgesetzt. Stapel: basiert auf PR #17/#18 (Merge-Reihenfolge beachten).
 - **Top-5 #5 (Weg + Auffindbarkeit):** Entschieden: dezenter Footer-Link
   „Web-Version ausprobieren" → /app auf der Landing. `robots.txt` geöffnet:
   Landing indexierbar, `/app/` bleibt ausgenommen (Werkzeug, kein Content).
+
+---
+
+## 2026-07-03 – Treffer-Abfrage vollständig entfernt
+
+Umsetzung der Notion-Entscheidung vom 2026-06-28 ("Treffer-Abfrage im
+Fokusmodus überarbeiten"): die Nachfrage "war das wirklich ein Treffer?"
+(Treffer/Gesicht berührt/Fehlalarm) sollte komplett weg, nicht ersetzt werden.
+
+- **Bestandsaufnahme:** Es ist EINE gemeinsame Komponente (`#alertPanel` +
+  `triggerIntervention()`/`showBrowserIntervention()`), keine drei getrennten
+  Implementierungen. Sie erscheint an drei Stellen, weil die Erkennung
+  tab-unabhängig weiterläuft (`evaluateProximity()` prüft nicht `activeMode`)
+  – ein Treffer während Focus, Review oder Einstellungen aktiv ist, zeigt
+  denselben fixen Vollbild-Overlay. Der "Probe-Hinweis ansehen"-Button in
+  den Einstellungen nutzt denselben Pfad (`countStats:false`).
+- **Entfernt:** die drei Buttons (`.alert-actions`) inkl. i18n-Keys
+  (`alert.hit/face/false`) und die Frage "Was war das gerade?" aus
+  `alert.body`. `role="dialog"/aria-modal` → `role="status"/aria-live`, da
+  nichts mehr auf Eingabe wartet.
+- **Tracking bleibt lückenlos:** `resolveInterventionSilently()` (vormals
+  `resolveIntervention(kind)`) zählt jeden Trigger automatisch als Treffer
+  (`stats.confirmed`, `lastConfirmedAt`) – dieselben Daten, die Review-Zähler
+  und die "Ruhige Zeit"-Uhr im Fokusmodus speisen. Ausgelöst per Timer
+  (4.6s) statt per Klick; kein toter Zustand möglich, das Panel schließt
+  sich garantiert selbst (vorher konnte ein ignoriertes Panel unbegrenzt
+  offen bleiben – das ist mit behoben).
+- **Bewusst NICHT mehr aufgerufen: `autoTuneFromFeedback()`.** Die
+  Feinjustierung beruhte auf dem Gegensignal "Fehlalarm" (macht strenger),
+  ausbalanciert gegen "Treffer" (macht empfindlicher). Ohne Abfrage gäbe es
+  nur noch das "Treffer"-Signal – bei jedem Trigger automatisch gefüttert,
+  würde die Empfindlichkeit ungebremst zum Maximum (holdSeconds → 0.5s,
+  distanceThreshold → 0.14) driften. Die Funktion bleibt im Code (für eine
+  spätere, andere Rückmeldequelle), wird aber aktuell nirgends mehr
+  aufgerufen. **Offene Folgefrage (nicht Teil dieses Fixes):** Der
+  „Automatisch anpassen"-Schalter in den Einstellungen hat dadurch aktuell
+  keine Wirkung mehr – ob er entfernt, umbeschriftet oder durch eine neue
+  stille Rückmeldequelle ersetzt wird, ist eine eigene Produktentscheidung.
+- Office Mode (`showNeutralIntervention`) war schon vorher still (nie eine
+  Abfrage) und bleibt unverändert.
