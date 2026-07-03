@@ -177,11 +177,11 @@
 
               <div class="set-row">
                 <div class="txt">
-                  <div class="name" data-i18n="calibration.sensitivity">Sensitivität</div>
+                  <div class="name" data-i18n="calibration.sensitivity">Empfindlichkeit</div>
                   <div class="desc" data-i18n="settings.sensitivityDesc">Wie nah die Hand dem Mund kommen darf</div>
                 </div>
                 <div class="set-control">
-                  <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" aria-label="Sensitivität" data-i18n-aria-label="calibration.sensitivity" />
+                  <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
                   <output id="distanceValue">0.090</output>
                 </div>
               </div>
@@ -189,7 +189,7 @@
               <div class="set-row">
                 <div class="txt">
                   <div class="name" data-i18n="calibration.holdTime">Haltezeit</div>
-                  <div class="desc" data-i18n="settings.holdDesc">Dauer bis zur Intervention</div>
+                  <div class="desc" data-i18n="settings.holdDesc">Dauer, bis der Hinweis kommt</div>
                 </div>
                 <div class="set-control">
                   <input id="holdSeconds" type="range" min="0.5" max="6" step="0.1" value="2" aria-label="Haltezeit" data-i18n-aria-label="calibration.holdTime" />
@@ -199,11 +199,11 @@
 
               <div class="set-row">
                 <div class="txt">
-                  <div class="name" data-i18n="calibration.cooldown">Cooldown</div>
-                  <div class="desc" data-i18n="settings.cooldownDesc">Pause zwischen zwei Interventionen</div>
+                  <div class="name" data-i18n="calibration.cooldown">Ruhepause</div>
+                  <div class="desc" data-i18n="settings.cooldownDesc">Pause, bis der nächste Hinweis kommen darf</div>
                 </div>
                 <div class="set-control">
-                  <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" aria-label="Cooldown" data-i18n-aria-label="calibration.cooldown" />
+                  <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" aria-label="Ruhepause" data-i18n-aria-label="calibration.cooldown" />
                   <output id="cooldownValue">15 s</output>
                 </div>
               </div>
@@ -226,8 +226,8 @@
 
               <div class="set-row">
                 <div class="actions">
-                  <button class="mini-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Kalibrierung neu starten</button>
-                  <button class="mini-action" id="testWarningButton" type="button" data-i18n="calibration.testWarning">Mini-Reset testen</button>
+                  <button class="mini-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Abstand neu einrichten</button>
+                  <button class="mini-action" id="testWarningButton" type="button" data-i18n="calibration.testWarning">Probe-Hinweis ansehen</button>
                 </div>
               </div>
             </div>
@@ -254,7 +254,7 @@
               <div class="set-row">
                 <div class="txt">
                   <div class="name" data-i18n="calibration.sound">Ton</div>
-                  <div class="desc" data-i18n="settings.soundDesc">Leiser Klang bei Intervention</div>
+                  <div class="desc" data-i18n="settings.soundDesc">Leiser Klang beim Hinweis</div>
                 </div>
                 <input id="soundToggle" class="switch" type="checkbox" aria-label="Ton" data-i18n-aria-label="calibration.sound" />
               </div>
@@ -288,7 +288,7 @@
               <div class="set-row">
                 <div class="txt">
                   <div class="name" data-i18n="calibration.vibration">Vibration</div>
-                  <div class="desc" data-i18n="settings.vibrationDesc">Kurzes Vibrieren bei Intervention</div>
+                  <div class="desc" data-i18n="settings.vibrationDesc">Kurzes Vibrieren beim Hinweis</div>
                 </div>
                 <input id="vibrationToggle" class="switch" type="checkbox" checked aria-label="Vibration" data-i18n-aria-label="calibration.vibration" />
               </div>
@@ -324,7 +324,7 @@
               <div class="set-row">
                 <div class="txt">
                   <div class="name" data-i18n="neutral.subtle">Sehr dezente Einblendung</div>
-                  <div class="desc" data-i18n="settings.officeSubtleDesc">Interventionen erscheinen nur als kleine Notiz am Rand</div>
+                  <div class="desc" data-i18n="settings.officeSubtleDesc">Hinweise erscheinen nur als kleine Notiz am Rand</div>
                 </div>
                 <input id="neutralSubtleToggle" class="switch" type="checkbox" checked aria-label="Sehr dezente Einblendung" data-i18n-aria-label="neutral.subtle" />
               </div>
@@ -398,7 +398,7 @@
 
       <section class="onboarding-panel" id="onboardingPanel" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" hidden>
         <div class="onboarding-content">
-          <p class="eyebrow" data-i18n="onboarding.eyebrow">Kurze Kalibrierung</p>
+          <p class="eyebrow" data-i18n="onboarding.eyebrow">Kurz einrichten</p>
           <h2 id="onboardingTitle">Schau kurz in die Kamera</h2>
           <p id="onboardingBody">Setz dich bequem hin und schau in die Kamera, bis dein Gesicht erkannt wird.</p>
           <p class="onboarding-signal" id="onboardingSignal" aria-live="polite"></p>
