@@ -159,10 +159,7 @@ const translations = {
       "Besprechung Donnerstag\n- Angebot bis Ende der Woche fertigstellen\n- Rückmeldung an das Team\n- Termine für nächste Woche abstimmen\n",
 
     "alert.title": "Kurz innehalten",
-    "alert.body": "Atme einmal tief ein und wieder aus. Was war das gerade?",
-    "alert.hit": "Treffer",
-    "alert.false": "Fehlalarm",
-    "alert.face": "Gesicht berührt",
+    "alert.body": "Atme einmal tief ein und wieder aus.",
 
     "onboarding.eyebrow": "Kurz einrichten",
     "onboarding.skip": "Überspringen",
@@ -407,10 +404,7 @@ const translations = {
       "Meeting Thursday\n- Finish the proposal by end of week\n- Reply to the team\n- Align on next week's schedule\n",
 
     "alert.title": "Hold on for a moment",
-    "alert.body": "Take one deep breath in and out. What was that just now?",
-    "alert.hit": "Hit",
-    "alert.false": "False alarm",
-    "alert.face": "Face touch",
+    "alert.body": "Take one deep breath in and out.",
 
     "onboarding.eyebrow": "Quick setup",
     "onboarding.skip": "Skip",

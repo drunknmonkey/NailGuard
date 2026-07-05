@@ -421,15 +421,12 @@
         </div>
       </section>
 
-      <section class="alert-panel" id="alertPanel" role="dialog" aria-modal="true" aria-labelledby="alertTitle" hidden>
+      <!-- Kein Dialog mehr: reine, selbst verschwindende Ruhepause-Anzeige.
+           role="status" statt "dialog", da nichts mehr auf Eingabe wartet. -->
+      <section class="alert-panel" id="alertPanel" role="status" aria-live="polite" aria-labelledby="alertTitle" hidden>
         <div class="alert-content">
           <h2 id="alertTitle" data-i18n="alert.title">Kurz innehalten</h2>
-          <p id="alertReplacement">Atme einmal tief ein und wieder aus. Was war das gerade?</p>
-          <div class="alert-actions">
-            <button id="confirmBitingButton" type="button" data-i18n="alert.hit">Treffer</button>
-            <button id="faceTouchButton" type="button" data-i18n="alert.face">Gesicht berührt</button>
-            <button id="falseAlarmButton" type="button" data-i18n="alert.false">Fehlalarm</button>
-          </div>
+          <p id="alertReplacement">Atme einmal tief ein und wieder aus.</p>
         </div>
       </section>
 
