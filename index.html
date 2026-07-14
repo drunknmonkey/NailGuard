@@ -13,13 +13,9 @@
     <link rel="icon" href="/app/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/app/icons/apple-touch-icon.png" />
 
-    <!-- Schriften wie in der App (Fraunces · Atkinson Hyperlegible · Spline Sans Mono) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Atkinson+Hyperlegible:wght@400;700&family=Spline+Sans+Mono:wght@300;400;500&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Schriften wie in der App: self-hosted (kein Google-Fonts-CDN), @font-face in style.css -->
+    <link rel="preload" href="/app/fonts/fraunces-300-500-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/app/fonts/atkinson-hyperlegible-400-latin.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Gemeinsames Design-System: exakt dieselbe Datei wie die App unter /app -->
     <link rel="stylesheet" href="/app/style.css" />
