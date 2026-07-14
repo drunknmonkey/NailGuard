@@ -1415,7 +1415,10 @@ body[data-office-dot="off"] .office-dot {
   margin-bottom: var(--space-4);
 }
 
-.waitlist-jump {
+/* Pill-Link: gibt Ankern die Button-Geometrie (die base-button-Regel
+   greift nur für <button>) – immer mit .primary-action/.ghost-action
+   kombinieren */
+.pill-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1423,6 +1426,19 @@ body[data-office-dot="off"] .office-dot {
   border-radius: var(--radius-full);
   text-decoration: none;
   font-size: var(--text-sm);
+}
+
+/* Sekundär-CTA: ruhige Outline neben dem Pine-Button */
+.ghost-action {
+  border: 1px solid color-mix(in srgb, var(--moss) 60%, transparent);
+  background: transparent;
+  color: var(--pine);
+  transition: border-color var(--dur-soft) var(--ease-calm), background var(--dur-soft) var(--ease-calm);
+}
+
+.ghost-action:hover {
+  border-color: var(--pine);
+  background: var(--paper);
 }
 
 .landing-grid {
@@ -1657,29 +1673,27 @@ body[data-office-dot="off"] .office-dot {
 .hero-hint {
   color: var(--moss);
   font-size: var(--text-sm);
-  margin: 0;
+  margin: var(--space-3) 0 0;
 }
 
+/* Hero-Ring: zeigt das Produktversprechen (das warme Glühen) statt des
+   blassen Ruhezustands – Ember-Ton, präsenterer Glow, Atmung bleibt im
+   Ruhe-Tempo (4,6s), damit es nie grell wirkt */
 .hero .stage {
+  --ring-color: var(--ember);
   width: min(44vw, 240px);
 }
 
-/* ─ Preis-Ehrlichkeit ─ */
-.price-card {
-  text-align: center;
-  padding: clamp(1.6rem, 4vw, 2.4rem);
+.hero .halo {
+  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color) 42%, transparent) 0%, transparent 72%);
 }
 
-.price-card .price-line {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.4vw, 2rem);
-  margin: 0 0 var(--space-2);
-  color: var(--pine);
+.hero .ring {
+  border-width: 2px;
 }
 
-.price-card p {
-  margin-left: auto;
-  margin-right: auto;
+.hero .ring.inner {
+  opacity: 0.7;
 }
 
 /* ─ Warteliste: MailerLite auf hellem Karten-Hintergrund ─ */
