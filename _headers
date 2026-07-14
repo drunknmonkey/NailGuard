@@ -1,0 +1,11 @@
+# Cloudflare Pages Cache-Regeln.
+# style.css wird von vier Seiten geteilt (Landing, App, Legal) – sie muss
+# bei jedem Besuch revalidieren (ETag/304), sonst trifft nach einem Deploy
+# neues HTML auf altes CSS (Klassen fehlen, Fonts fallen auf Fallbacks).
+/app/style.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Fonts ändern sich nie in-place: neue Schnitte bekommen neue Dateinamen
+# (familie-gewichte-subset.woff2) – deshalb dauerhaft cachebar.
+/app/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
