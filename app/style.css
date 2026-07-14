@@ -1825,6 +1825,11 @@ body[data-office-dot="off"] .office-dot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  /* Zentriert (Pauls Wunsch): als Abschluss unter der Trennlinie liest
+     sich die Fußzeile wie ein Kolophon und darf die linke Seiten-Achse
+     verlassen */
+  justify-content: center;
+  text-align: center;
   gap: var(--space-2) var(--space-5);
   color: var(--moss);
   font-size: var(--text-sm);
