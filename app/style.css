@@ -1858,41 +1858,36 @@ body[data-office-dot="off"] .office-dot {
   margin: 0;
 }
 
+/* Stilisierter Bildschirm: dunkler Bezel wie ein Display, innen ruhige
+   Arbeitsfläche – das Produkt wird gezeigt, nicht angedeutet */
 .demo-screen {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   aspect-ratio: 16 / 10;
-  padding: var(--space-5) var(--space-5) 0;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: clamp(6px, 1vw, 9px) solid var(--frame-dark);
   border-radius: var(--radius-lg);
   background: var(--paper);
 }
 
-/* Angedeutete Dokumentzeilen: der Bildschirm bleibt Arbeitsfläche */
-.demo-line {
-  height: 9px;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--breath) 26%, var(--paper));
+/* Angedeutete Menüleiste, damit der Rahmen als Bildschirm liest */
+.demo-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8%;
+  background: color-mix(in srgb, var(--mist) 65%, var(--paper));
+  border-bottom: 1px solid var(--line);
 }
 
-.demo-line.w-lg { width: 82%; }
-.demo-line.w-md { width: 64%; }
-.demo-line.w-sm { width: 42%; }
-
-/* Das Glühen: wächst als warme Vignette vom unteren Rand herein
-   und atmet im Ruhe-Tempo des Rings */
+/* Das Glühen: atmet als warmer Saum vom Bildschirmrand herein –
+   exakt das Produktversprechen aus dem Text daneben */
 .demo-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse 130% 75% at 50% 118%,
-    color-mix(in srgb, var(--ember) 42%, transparent),
-    transparent 62%
-  );
+  box-shadow:
+    inset 0 0 clamp(18px, 4vw, 36px) color-mix(in srgb, var(--ember) 62%, transparent),
+    inset 0 0 5px color-mix(in srgb, var(--ember) 40%, transparent);
   animation: demo-breathe var(--breath-dur) var(--ease-breath) infinite;
 }
 
