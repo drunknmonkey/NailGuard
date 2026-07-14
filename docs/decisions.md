@@ -308,3 +308,47 @@ Verifiziert (Playwright, lokal): Landing + Testseite bei 390px und
 1280px, App-Startscreen und Datenschutz-Seite ohne Konsolenfehler,
 `document.fonts.check` bestätigt lokale Ladung aller Schnitte; einziger
 externer Request bleibt MailerLite auf der Landing.
+
+---
+
+## 2026-07-14 – Nachjustierung nach Pauls Sichtung: Schrift, Ring, Footer
+
+Folge-Änderungen auf demselben Branch/PR (#25).
+
+- **Schrift-Entscheidung: Variante C – Instrument Sans durchgängig.**
+  Global über die Font-Tokens (Landing + App teilen weiter EIN
+  Design-System); `--font-display`/`--font-body` bleiben als getrennte
+  Tokens erhalten (Rollen lesbar, Display-Wechsel bliebe eine Zeile).
+  Konsequenz für die Hierarchie: Ohne Serifen-Kontrast trägt das
+  GEWICHT die Auszeichnung – alle Headlines (h2, Hero, State-Word,
+  Wordmark, Legal-h1, Toast) von 400/500 auf 600, große Grade mit
+  leicht negativem letter-spacing; Tagline 500. Die Größenstufen
+  (--text-*) blieben unverändert: Instrument Sans hat eine größere
+  x-Höhe als Fraunces, wirkt bei gleicher Stufe also eher größer.
+  **Hero-Akzent „Ruhig": Farbe (Moss) + Gewicht 500 statt Kursive** –
+  es liegt kein echter Italic-Schnitt vor, und ein synthetischer
+  Browser-Schrägsatz sähe nachlässig aus. Fraunces/Atkinson/Sora aus
+  dem Repo entfernt (Font-Budget: nur noch Instrument Sans + Mono,
+  ~66 KB), /schrift-test gelöscht. App-Screens (Focus/Review/Settings,
+  echt gestartet mit Fake-Kamera) gegengeprüft – Hierarchie trägt.
+- **Grundsatz Ring-Farbe: Der Ring auf der Landing zeigt den
+  RUHEZUSTAND (grün). Ember bleibt der Warnfarbe vorbehalten.** Der
+  Ember-Hero-Ring aus der Politur-Runde zeigte Tawel im Alarm statt im
+  Normalbetrieb („calm over alarm" verletzt). Korrektur: grüne Palette,
+  aber Präsenz über Sättigung/Stärke statt Farbwechsel – Breath
+  Richtung Pine vertieft (color-mix 45/55), 2px-Linie, 45%-Halo,
+  Ruhe-Atmung. Kein Ember-Akzent im Ring: das warme Glühen gehört ins
+  „So funktioniert's"-Visual, wo der Text es erklärt.
+- **Fußzeile zentriert** (Pauls Wunsch). Im Gesamtbild geprüft: liest
+  sich als Kolophon unter der Trennlinie – der einzige bewusste
+  Ausbruch aus der linken Achse, stört nicht.
+- **MailerLite-Restprüfung:** Paul hat Formulartitel + reCAPTCHA in
+  MailerLite entfernt. Das CSS ist darauf ausgelegt (display:none auf
+  die Kopfzeile wird zum No-Op, der reCAPTCHA-Selektor greift ins
+  Leere, keine Abstände hängen an den entfernten Blöcken – Margins
+  liegen auf Input/Button selbst). Das Embed lädt in der Sandbox
+  weiterhin nicht (assets.mailerlite.com blockiert), am echten Markup
+  verifizieren war also NICHT möglich. Auf pages.dev zu sichten:
+  Input-Pill mit Ember-Fokusring, Pine-Button (hover/active), Checkbox
+  pine + lesbares Label in Moss, linke Achse mit der Karten-Überschrift,
+  kein Leerraum wo Titel/reCAPTCHA saßen, Fehler-/Erfolgszustand.
