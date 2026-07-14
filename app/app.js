@@ -687,15 +687,17 @@ function triggerIntervention(reason, confidence, options = {}) {
   }));
 }
 
-// Keine Abfrage mehr: die Ruhepause zeigt sich kurz und verschwindet von
-// selbst (wie die Office-Mode-Einblendung), Treffer werden dabei still
-// mitgezählt statt erfragt (Entscheidung 2026-06-28, siehe decisions.md).
+// Keine Abfrage mehr: dieselbe kleine, dezente Notiz wie im Office Mode
+// (nur im Marken-Look statt im Tarn-Look) statt eines Vollbild-Dialogs.
+// Verschwindet von selbst, Treffer werden dabei still mitgezählt statt
+// erfragt (Entscheidung 2026-06-28, siehe decisions.md). 3200ms = dieselbe
+// Dauer wie die Office-Einblendung im Standard-("dezent")-Zustand.
 function showBrowserIntervention() {
   els.alertReplacement.textContent = t("alert.body");
   els.alertPanel.hidden = false;
 
   window.clearTimeout(state.browserInterventionTimer);
-  state.browserInterventionTimer = window.setTimeout(resolveInterventionSilently, 4600);
+  state.browserInterventionTimer = window.setTimeout(resolveInterventionSilently, 3200);
 }
 
 function showNeutralIntervention() {

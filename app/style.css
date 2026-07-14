@@ -1179,46 +1179,35 @@ body[data-office-dot="off"] .office-dot {
   padding: var(--space-5) var(--space-6);
 }
 
-/* ═══ Intervention: voller Kontrast ═══ */
-.alert-panel {
+/* ═══ Kurz innehalten: kleine, dezente Notiz (kein Vollbild mehr) ═══
+   Bewusst dieselbe Geometrie/Position wie .neutral-intervention (Office
+   Mode) – nur im Marken-Look (Paper/Pine/Moss) statt im Tarn-Look. */
+.calm-toast {
   position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--pine);
-  animation: veil-in var(--dur-calm) var(--ease-calm);
+  z-index: 30;
+  left: 50%;
+  top: 18px;
+  display: grid;
+  gap: 2px;
+  min-width: min(320px, calc(100% - 32px));
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--paper) 96%, transparent);
+  color: var(--pine);
+  box-shadow: var(--shadow-lifted);
+  transform: translateX(-50%);
 }
 
-@keyframes veil-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.alert-content {
-  text-align: center;
-  max-width: 24rem;
-  padding: var(--space-7);
-}
-
-.alert-content .eyebrow {
-  display: none;
-}
-
-.alert-content h2 {
+.calm-toast strong {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-size: var(--text-2xl);
-  color: var(--paper);
-  margin-bottom: var(--space-3);
+  font-weight: 500;
+  font-size: var(--text-base);
 }
 
-.alert-content p {
-  color: var(--paper-dim);
-  font-size: var(--text-base);
-  line-height: var(--leading-relaxed);
-  margin-bottom: 0;
+.calm-toast span {
+  color: var(--moss);
+  font-size: var(--text-sm);
 }
 
 /* ═══ Onboarding ═══ */
@@ -1540,7 +1529,6 @@ body[data-office-dot="off"] .office-dot {
 @media (prefers-reduced-motion: reduce) {
   .halo,
   .ring,
-  .alert-panel,
   .onboarding-content {
     animation: none;
   }
