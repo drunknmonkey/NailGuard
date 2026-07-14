@@ -1,4 +1,4 @@
-const CACHE_NAME = "nail-guard-v7";
+const CACHE_NAME = "nail-guard-v8";
 
 const APP_SHELL = [
   "./",
@@ -6,9 +6,7 @@ const APP_SHELL = [
   "./style.css",
   "./app.js",
   "./i18n.js",
-  "./fonts/fraunces-300-500-latin.woff2",
-  "./fonts/atkinson-hyperlegible-400-latin.woff2",
-  "./fonts/atkinson-hyperlegible-700-latin.woff2",
+  "./fonts/instrument-sans-400-700-latin.woff2",
   "./fonts/spline-sans-mono-300-500-latin.woff2",
   "./manifest.webmanifest",
   "./icons/icon.svg",

@@ -41,7 +41,7 @@ Referenz: `docs/nailguard-design-referenz.html`
 | `--ember` | #C46A4A | Ring Alarm |
 | `--still` | #B8C2BC | Ring pausiert |
 
-Schriften: Fraunces (Display) · Atkinson Hyperlegible (Body) · Spline Sans Mono (Zahlen)
+Schriften: Instrument Sans (Display 600 + Body 400) · Spline Sans Mono (Zahlen)
 
 ### Zustands-Maschine
 

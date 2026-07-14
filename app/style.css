@@ -7,7 +7,7 @@
    Zustände  --breath (ruhig) / --warm (Hand nähert sich) / --ember (Intervention)
              Für TEXT in Warnzuständen die dunklen Varianten
              --warm-text / --ember-text verwenden (Lesbarkeit).
-   Schriften Fraunces (Display) · Atkinson Hyperlegible (Body)
+   Schriften Instrument Sans (Display 600 · Body 400)
              · Spline Sans Mono (Zahlen, tabular-nums)
 
    Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
@@ -23,32 +23,16 @@
 
 /* ═══ Schriften: self-hosted (Datenschutz – kein Google-Fonts-CDN) ═══
    Latin-Subset genügt für Deutsch (äöüß, „" – liegen in U+0000-00FF
-   bzw. U+2000-206F). Kursive Schnitte werden wie bisher vom Browser
-   synthetisiert (Hero-Akzent). Dateien: app/fonts/. */
+   bzw. U+2000-206F). Instrument Sans trägt Headlines UND Body
+   (Pauls Schrift-Entscheidung, Variante C der Testseite) – die
+   Hierarchie kommt aus Gewicht/Größe statt Serifen-Kontrast.
+   Dateien: app/fonts/. */
 @font-face {
-  font-family: "Fraunces";
+  font-family: "Instrument Sans";
   font-style: normal;
-  font-weight: 300 500;
+  font-weight: 400 700;
   font-display: swap;
-  src: url("fonts/fraunces-300-500-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: "Atkinson Hyperlegible";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("fonts/atkinson-hyperlegible-400-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: "Atkinson Hyperlegible";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("fonts/atkinson-hyperlegible-700-latin.woff2") format("woff2");
+  src: url("fonts/instrument-sans-400-700-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
@@ -100,8 +84,11 @@
   --office-dot-calm: #9CB8A8;
   --office-dot-paused: #B9C0C7;
 
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  /* Display und Body teilen sich Instrument Sans – die Tokens bleiben
+     getrennt, damit die Rollen im Code lesbar bleiben und ein späterer
+     Display-Wechsel eine Ein-Zeilen-Änderung ist */
+  --font-display: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --font-data: "Spline Sans Mono", ui-monospace, "SF Mono", monospace;
 
   /* — Typo-Stufen (feste Größe + Zeilenhöhe, keine Streuwerte) — */
@@ -183,7 +170,9 @@ p {
 
 h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  /* Ohne Serifen-Kontrast trägt das Gewicht die Hierarchie */
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-size: var(--text-lg);
   margin-bottom: var(--space-2);
 }
@@ -246,7 +235,7 @@ a:focus-visible {
 
 .wordmark {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--text-md);
   color: var(--pine);
   margin: 0;
@@ -521,7 +510,8 @@ body.ring-waapi .ring {
 
 .state-word {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-size: var(--text-xl);
   transition: color var(--dur-calm) var(--ease-calm);
   margin: 0;
@@ -1241,7 +1231,7 @@ body[data-office-dot="off"] .office-dot {
 
 .calm-toast strong {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--text-base);
 }
 
@@ -1506,7 +1496,7 @@ body[data-office-dot="off"] .office-dot {
 
 .landing .topbar h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--text-md);
   margin: 0;
 }
@@ -1644,15 +1634,19 @@ body[data-office-dot="off"] .office-dot {
 
 .hero-title {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   font-size: clamp(2rem, 5.2vw, 3.05rem);
   line-height: var(--leading-tight);
   margin: 0 0 var(--space-4);
 }
 
+/* Akzent über Farbe + leichteres Gewicht statt Kursive: Instrument Sans
+   liegt ohne echten Italic-Schnitt vor, ein synthetischer Schrägsatz
+   würde die Sorgfalt der Marke unterlaufen */
 .hero-title .accent {
   color: var(--moss);
-  font-style: italic;
+  font-weight: 500;
 }
 
 .hero-sub {
@@ -1851,6 +1845,7 @@ body[data-office-dot="off"] .office-dot {
   flex-basis: 100%;
   margin: var(--space-2) 0 0;
   font-family: var(--font-display);
+  font-weight: 500;
   color: var(--pine);
 }
 
@@ -1861,7 +1856,8 @@ body[data-office-dot="off"] .office-dot {
 
 .legal h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-size: clamp(1.6rem, 4vw, 2.2rem);
   margin: var(--space-6) 0 var(--space-3);
 }
