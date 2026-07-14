@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="Interne Schrift-Testseite – nicht verlinkt." />
+    <meta name="theme-color" content="#1E3B34" />
+    <title>Schrift-Test – Tawel (intern)</title>
+
+    <link rel="icon" href="/app/icons/icon.svg" type="image/svg+xml" />
+
+    <!-- Schriften: self-hosted. Bestand kommt aus style.css, die beiden
+         Testkandidaten werden NUR auf dieser Seite geladen. -->
+    <link rel="preload" href="/app/fonts/fraunces-300-500-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/app/fonts/atkinson-hyperlegible-400-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/app/style.css" />
+
+    <style>
+      /* Testkandidaten – bewusst nicht in style.css, damit Landing und App
+         sie nie laden */
+      @font-face {
+        font-family: "Sora";
+        font-style: normal;
+        font-weight: 300 600;
+        font-display: swap;
+        src: url("/app/fonts/sora-300-600-latin.woff2") format("woff2");
+      }
+
+      @font-face {
+        font-family: "Instrument Sans";
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url("/app/fonts/instrument-sans-400-700-latin.woff2") format("woff2");
+      }
+
+      /* Seitengerüst: drei gestapelte Hero-Varianten, je beschriftet */
+      .test-intro {
+        margin: var(--space-6) 0 var(--space-4);
+        max-width: 42rem;
+      }
+
+      .test-intro h1 {
+        font-family: var(--font-display);
+        font-weight: 400;
+        font-size: clamp(1.5rem, 3.5vw, 2rem);
+        margin: 0 0 var(--space-2);
+      }
+
+      .test-intro p {
+        color: var(--moss);
+        line-height: var(--leading-relaxed);
+        margin: 0;
+      }
+
+      .variant {
+        border-top: 1px solid var(--line);
+        padding: var(--space-5) 0 var(--space-7);
+      }
+
+      .variant-label {
+        display: inline-block;
+        padding: var(--space-1) var(--space-3);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-full);
+        background: var(--paper);
+        color: var(--moss);
+        font-size: var(--text-xs);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* Die Varianten überschreiben nur die Font-Tokens – alles andere
+         (Größen, Farben, Ring, CTA) bleibt exakt der echte Hero. */
+      .variant-b {
+        --font-display: "Sora", system-ui, -apple-system, sans-serif;
+      }
+
+      .variant-b .hero-title {
+        font-weight: 500;
+        letter-spacing: -0.015em;
+      }
+
+      .variant-c {
+        --font-display: "Instrument Sans", system-ui, -apple-system, sans-serif;
+        --font-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
+        /* font-family wird von body geerbt (dort ausgewertet) – für den
+           Fließtext deshalb hier direkt neu setzen */
+        font-family: var(--font-body);
+      }
+
+      .variant-c .hero-title {
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+    </style>
+  </head>
+  <body class="tawel-landing">
+    <main class="app-shell landing">
+      <header class="topbar" aria-label="Tawel Schrift-Test">
+        <p class="wordmark">tawel</p>
+      </header>
+
+      <div class="test-intro">
+        <h1>Schrift-Test (intern)</h1>
+        <p>
+          Der Hero in drei Varianten untereinander. Alle Schriften liegen lokal im Repo –
+          diese Seite ist nirgends verlinkt und trägt noindex.
+        </p>
+      </div>
+
+      <!-- ─ Variante A ─ -->
+      <section class="variant variant-a">
+        <p class="variant-label">A · Status quo — Fraunces (Headline) + Atkinson Hyperlegible (Body)</p>
+        <div class="hero">
+          <div class="hero-copy">
+            <h2 class="hero-title"><span class="accent">Ruhig</span> aufhören, an den Nägeln zu kauen.</h2>
+            <p class="hero-sub">
+              Tawel bemerkt sanft, wenn deine Hand zum Mund wandert – und erinnert dich mit einem
+              ruhigen Glühen statt mit einem Alarm.
+            </p>
+            <div class="hero-cta">
+              <a class="primary-action pill-link" href="#a">Auf die Warteliste</a>
+              <a class="ghost-action pill-link" href="#a">Web-Version ausprobieren</a>
+            </div>
+            <p class="hero-hint">Bald verfügbar für macOS</p>
+          </div>
+          <div class="stage" aria-hidden="true">
+            <div class="halo"></div>
+            <div class="ring"></div>
+            <div class="ring inner"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─ Variante B ─ -->
+      <section class="variant variant-b">
+        <p class="variant-label">B · Sora (Headline) + Atkinson Hyperlegible (Body)</p>
+        <div class="hero">
+          <div class="hero-copy">
+            <h2 class="hero-title"><span class="accent">Ruhig</span> aufhören, an den Nägeln zu kauen.</h2>
+            <p class="hero-sub">
+              Tawel bemerkt sanft, wenn deine Hand zum Mund wandert – und erinnert dich mit einem
+              ruhigen Glühen statt mit einem Alarm.
+            </p>
+            <div class="hero-cta">
+              <a class="primary-action pill-link" href="#b">Auf die Warteliste</a>
+              <a class="ghost-action pill-link" href="#b">Web-Version ausprobieren</a>
+            </div>
+            <p class="hero-hint">Bald verfügbar für macOS</p>
+          </div>
+          <div class="stage" aria-hidden="true">
+            <div class="halo"></div>
+            <div class="ring"></div>
+            <div class="ring inner"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─ Variante C ─ -->
+      <section class="variant variant-c">
+        <p class="variant-label">C · Instrument Sans durchgängig (Headline + Body)</p>
+        <div class="hero">
+          <div class="hero-copy">
+            <h2 class="hero-title"><span class="accent">Ruhig</span> aufhören, an den Nägeln zu kauen.</h2>
+            <p class="hero-sub">
+              Tawel bemerkt sanft, wenn deine Hand zum Mund wandert – und erinnert dich mit einem
+              ruhigen Glühen statt mit einem Alarm.
+            </p>
+            <div class="hero-cta">
+              <a class="primary-action pill-link" href="#c">Auf die Warteliste</a>
+              <a class="ghost-action pill-link" href="#c">Web-Version ausprobieren</a>
+            </div>
+            <p class="hero-hint">Bald verfügbar für macOS</p>
+          </div>
+          <div class="stage" aria-hidden="true">
+            <div class="halo"></div>
+            <div class="ring"></div>
+            <div class="ring inner"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
