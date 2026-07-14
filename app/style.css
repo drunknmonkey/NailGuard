@@ -1707,6 +1707,54 @@ body[data-office-dot="off"] .office-dot {
    des Embeds höchstens auf den ML-Default degradiert, nie bricht.
    NICHT von hier erreichbar (Embed-Grenzen): reCAPTCHA-Badge, Inhalte des
    Success-Screens, Lade-Spinner des Buttons. */
+
+/* Embed-eigene Kopfzeile (Überschrift + Intro) ausblenden – die Karte hat
+   ihre eigene; Paul entfernt sie zusätzlich in MailerLite */
+.ml-embedded [class*="embedContent"],
+.ml-embedded h4 {
+  display: none !important;
+}
+
+/* Embed auf die linke Achse der Karte: keine eigene Fläche, kein
+   Innenabstand, keine Zentrierung – die Warteliste-Karte liefert das */
+.ml-embedded [class*="embedWrapper"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.ml-embedded [class*="embedBody"],
+.ml-embedded [class*="embedContainer"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Fließtext im Embed (Checkbox-Label, Einwilligung, Hinweise) im Markenton */
+.ml-embedded label,
+.ml-embedded p {
+  color: var(--moss) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+  line-height: var(--leading-normal) !important;
+}
+
+.ml-embedded input[type="checkbox"] {
+  accent-color: var(--pine);
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* reCAPTCHA (falls im Formular aktiv): so dezent wie möglich – etwas
+   verkleinert, linksbündig; ist es in MailerLite deaktiviert, fehlt der
+   Block einfach und hinterlässt keinen Leerraum */
+.ml-embedded [class*="recaptcha"] {
+  margin: var(--space-3) 0 !important;
+  transform: scale(0.85);
+  transform-origin: 0 0;
+}
+
 .ml-embedded input[type="email"] {
   min-height: 42px !important;
   padding: 0 var(--space-4) !important;
