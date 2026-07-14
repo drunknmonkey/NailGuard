@@ -16,8 +16,9 @@
     <!-- Schriften wie in der App: self-hosted (kein Google-Fonts-CDN), @font-face in style.css -->
     <link rel="preload" href="/app/fonts/instrument-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin />
 
-    <!-- Gemeinsames Design-System: exakt dieselbe Datei wie die App unter /app -->
-    <link rel="stylesheet" href="/app/style.css" />
+    <!-- Gemeinsames Design-System: exakt dieselbe Datei wie die App unter /app.
+         ?v= bricht veraltete Cache-Einträge auf (neues HTML + altes CSS) -->
+    <link rel="stylesheet" href="/app/style.css?v=20260714" />
 
     <!-- MailerLite Universal -->
     <script>
