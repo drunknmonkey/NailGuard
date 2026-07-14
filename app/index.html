@@ -421,13 +421,11 @@
         </div>
       </section>
 
-      <!-- Kein Dialog mehr: reine, selbst verschwindende Ruhepause-Anzeige.
-           role="status" statt "dialog", da nichts mehr auf Eingabe wartet. -->
-      <section class="alert-panel" id="alertPanel" role="status" aria-live="polite" aria-labelledby="alertTitle" hidden>
-        <div class="alert-content">
-          <h2 id="alertTitle" data-i18n="alert.title">Kurz innehalten</h2>
-          <p id="alertReplacement">Atme einmal tief ein und wieder aus.</p>
-        </div>
+      <!-- Kleine, dezente Notiz statt Vollbild-Dialog – dieselbe stille
+           Behandlung wie die Office-Mode-Einblendung, nur im Marken-Look. -->
+      <section class="calm-toast" id="alertPanel" aria-live="polite" hidden>
+        <strong id="alertTitle" data-i18n="alert.title">Kurz innehalten</strong>
+        <span id="alertReplacement">Atme einmal tief ein und wieder aus.</span>
       </section>
 
       <section class="error-message" id="errorMessage" role="alert" hidden>

@@ -224,3 +224,29 @@ Fokusmodus überarbeiten"): die Nachfrage "war das wirklich ein Treffer?"
   stille Rückmeldequelle ersetzt wird, ist eine eigene Produktentscheidung.
 - Office Mode (`showNeutralIntervention`) war schon vorher still (nie eine
   Abfrage) und bleibt unverändert.
+
+---
+
+## 2026-07-03 – Nachjustierung: Vollbild-Fläche durch kleine Notiz ersetzt
+
+Direktes Live-Feedback von Paul nach dem obigen Fix: die grüne
+Vollbild-Fläche ("Kurz innehalten") blieb in Focus/Review/Settings
+bestehen (nur ohne Buttons), während Office Mode schon immer nur eine
+kleine, dezente Notiz zeigte — spürbare Inkonsistenz, und ein
+Vollbild-Overlay widerspricht dem eigenen Markenversprechen
+("kein Vollbild-Schreck", siehe Landing-Copy).
+
+- **Entschieden (auf Nachfrage bestätigt): dieselbe Behandlung wie Office
+  Mode überall.** `.alert-panel` (voller Bildschirm, Pine-Hintergrund,
+  `position:fixed; inset:0`) → `.calm-toast`: kleine Karte oben mittig
+  (320px, `--paper`-Hintergrund, Pine/Moss-Text), exakt dieselbe Geometrie
+  wie `.neutral-intervention`, nur im Marken-Look statt im Tarn-Look.
+  Ring, Statistiken und Bedienelemente bleiben während der Anzeige
+  sichtbar und nutzbar.
+- Anzeigedauer 4,6s → 3200ms, angeglichen an die Office-Standarddauer
+  (`neutralSubtleInterventions` ist standardmäßig aktiv).
+- Markup vereinfacht (`<h2>` → `<strong>`, kein `role="status"` mehr nötig,
+  nur noch `aria-live="polite"` wie bei der Office-Notiz).
+- Verifiziert (Playwright): Toast-Box 320×62px statt Vollbild, in Focus
+  UND Review identisch, Tracking (`stats.confirmed`, `lastConfirmedAt`)
+  weiterhin lückenlos.
