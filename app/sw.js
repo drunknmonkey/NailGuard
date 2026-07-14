@@ -1,4 +1,4 @@
-const CACHE_NAME = "nail-guard-v6";
+const CACHE_NAME = "nail-guard-v8";
 
 const APP_SHELL = [
   "./",
@@ -6,6 +6,8 @@ const APP_SHELL = [
   "./style.css",
   "./app.js",
   "./i18n.js",
+  "./fonts/instrument-sans-400-700-latin.woff2",
+  "./fonts/spline-sans-mono-300-500-latin.woff2",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",
@@ -19,12 +21,6 @@ const APP_SHELL = [
   "./vendor/mediapipe/tasks-vision/wasm/vision_wasm_nosimd_internal.wasm",
   "./models/face_landmarker.task",
   "./models/hand_landmarker.task",
-];
-
-// Web fonts: stable URLs, safe to cache.
-const RUNTIME_HOSTS = [
-  "fonts.googleapis.com",
-  "fonts.gstatic.com",
 ];
 
 self.addEventListener("install", (event) => {
@@ -58,11 +54,6 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin === self.location.origin) {
     event.respondWith(staleWhileRevalidate(request));
-    return;
-  }
-
-  if (RUNTIME_HOSTS.includes(url.hostname)) {
-    event.respondWith(cacheFirst(request));
   }
 });
 
@@ -92,14 +83,3 @@ async function staleWhileRevalidate(request) {
   return cached ?? (await networkPromise) ?? Response.error();
 }
 
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-
-  const response = await fetch(request);
-  if (response.ok || response.type === "opaque") {
-    cache.put(request, response.clone());
-  }
-  return response;
-}

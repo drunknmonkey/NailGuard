@@ -7,7 +7,7 @@
    Zustände  --breath (ruhig) / --warm (Hand nähert sich) / --ember (Intervention)
              Für TEXT in Warnzuständen die dunklen Varianten
              --warm-text / --ember-text verwenden (Lesbarkeit).
-   Schriften Fraunces (Display) · Atkinson Hyperlegible (Body)
+   Schriften Instrument Sans (Display 600 · Body 400)
              · Spline Sans Mono (Zahlen, tabular-nums)
 
    Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
@@ -20,6 +20,30 @@
    Der Office Mode verwendet dieses Design BEWUSST NICHT (Tarnung).
    Referenz: docs/nailguard-design-referenz.html
    ════════════════════════════════════════════════════════════ */
+
+/* ═══ Schriften: self-hosted (Datenschutz – kein Google-Fonts-CDN) ═══
+   Latin-Subset genügt für Deutsch (äöüß, „" – liegen in U+0000-00FF
+   bzw. U+2000-206F). Instrument Sans trägt Headlines UND Body
+   (Pauls Schrift-Entscheidung, Variante C der Testseite) – die
+   Hierarchie kommt aus Gewicht/Größe statt Serifen-Kontrast.
+   Dateien: app/fonts/. */
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/instrument-sans-400-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Spline Sans Mono";
+  font-style: normal;
+  font-weight: 300 500;
+  font-display: swap;
+  src: url("fonts/spline-sans-mono-300-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
   color-scheme: light;
@@ -60,8 +84,11 @@
   --office-dot-calm: #9CB8A8;
   --office-dot-paused: #B9C0C7;
 
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  /* Display und Body teilen sich Instrument Sans – die Tokens bleiben
+     getrennt, damit die Rollen im Code lesbar bleiben und ein späterer
+     Display-Wechsel eine Ein-Zeilen-Änderung ist */
+  --font-display: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --font-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --font-data: "Spline Sans Mono", ui-monospace, "SF Mono", monospace;
 
   /* — Typo-Stufen (feste Größe + Zeilenhöhe, keine Streuwerte) — */
@@ -143,7 +170,9 @@ p {
 
 h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  /* Ohne Serifen-Kontrast trägt das Gewicht die Hierarchie */
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-size: var(--text-lg);
   margin-bottom: var(--space-2);
 }
@@ -206,7 +235,7 @@ a:focus-visible {
 
 .wordmark {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--text-md);
   color: var(--pine);
   margin: 0;
@@ -481,7 +510,8 @@ body.ring-waapi .ring {
 
 .state-word {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-size: var(--text-xl);
   transition: color var(--dur-calm) var(--ease-calm);
   margin: 0;
@@ -1201,7 +1231,7 @@ body[data-office-dot="off"] .office-dot {
 
 .calm-toast strong {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--text-base);
 }
 
@@ -1375,7 +1405,10 @@ body[data-office-dot="off"] .office-dot {
   margin-bottom: var(--space-4);
 }
 
-.waitlist-jump {
+/* Pill-Link: gibt Ankern die Button-Geometrie (die base-button-Regel
+   greift nur für <button>) – immer mit .primary-action/.ghost-action
+   kombinieren */
+.pill-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1383,6 +1416,19 @@ body[data-office-dot="off"] .office-dot {
   border-radius: var(--radius-full);
   text-decoration: none;
   font-size: var(--text-sm);
+}
+
+/* Sekundär-CTA: ruhige Outline neben dem Pine-Button */
+.ghost-action {
+  border: 1px solid color-mix(in srgb, var(--moss) 60%, transparent);
+  background: transparent;
+  color: var(--pine);
+  transition: border-color var(--dur-soft) var(--ease-calm), background var(--dur-soft) var(--ease-calm);
+}
+
+.ghost-action:hover {
+  border-color: var(--pine);
+  background: var(--paper);
 }
 
 .landing-grid {
@@ -1450,7 +1496,7 @@ body[data-office-dot="off"] .office-dot {
 
 .landing .topbar h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--text-md);
   margin: 0;
 }
@@ -1588,15 +1634,19 @@ body[data-office-dot="off"] .office-dot {
 
 .hero-title {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   font-size: clamp(2rem, 5.2vw, 3.05rem);
   line-height: var(--leading-tight);
   margin: 0 0 var(--space-4);
 }
 
+/* Akzent über Farbe + leichteres Gewicht statt Kursive: Instrument Sans
+   liegt ohne echten Italic-Schnitt vor, ein synthetischer Schrägsatz
+   würde die Sorgfalt der Marke unterlaufen */
 .hero-title .accent {
   color: var(--moss);
-  font-style: italic;
+  font-weight: 500;
 }
 
 .hero-sub {
@@ -1617,29 +1667,29 @@ body[data-office-dot="off"] .office-dot {
 .hero-hint {
   color: var(--moss);
   font-size: var(--text-sm);
-  margin: 0;
+  margin: var(--space-3) 0 0;
 }
 
+/* Hero-Ring: zeigt den RUHEZUSTAND (grün) – Ember bleibt der Warnfarbe
+   vorbehalten (die zeigt das „So funktioniert's"-Visual in ihrem echten
+   Kontext). Präsenz kommt nicht aus einem Farbwechsel, sondern aus
+   Sättigung und Stärke: Breath Richtung Pine vertieft, 2px-Linie,
+   kräftigerer Halo. Atmung im Ruhe-Tempo (4,6s) wie in der App. */
 .hero .stage {
+  --ring-color: color-mix(in srgb, var(--breath) 45%, var(--pine));
   width: min(44vw, 240px);
 }
 
-/* ─ Preis-Ehrlichkeit ─ */
-.price-card {
-  text-align: center;
-  padding: clamp(1.6rem, 4vw, 2.4rem);
+.hero .halo {
+  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color) 45%, transparent) 0%, transparent 72%);
 }
 
-.price-card .price-line {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.4vw, 2rem);
-  margin: 0 0 var(--space-2);
-  color: var(--pine);
+.hero .ring {
+  border-width: 2px;
 }
 
-.price-card p {
-  margin-left: auto;
-  margin-right: auto;
+.hero .ring.inner {
+  opacity: 0.7;
 }
 
 /* ─ Warteliste: MailerLite auf hellem Karten-Hintergrund ─ */
@@ -1653,6 +1703,54 @@ body[data-office-dot="off"] .office-dot {
    des Embeds höchstens auf den ML-Default degradiert, nie bricht.
    NICHT von hier erreichbar (Embed-Grenzen): reCAPTCHA-Badge, Inhalte des
    Success-Screens, Lade-Spinner des Buttons. */
+
+/* Embed-eigene Kopfzeile (Überschrift + Intro) ausblenden – die Karte hat
+   ihre eigene; Paul entfernt sie zusätzlich in MailerLite */
+.ml-embedded [class*="embedContent"],
+.ml-embedded h4 {
+  display: none !important;
+}
+
+/* Embed auf die linke Achse der Karte: keine eigene Fläche, kein
+   Innenabstand, keine Zentrierung – die Warteliste-Karte liefert das */
+.ml-embedded [class*="embedWrapper"] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.ml-embedded [class*="embedBody"],
+.ml-embedded [class*="embedContainer"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Fließtext im Embed (Checkbox-Label, Einwilligung, Hinweise) im Markenton */
+.ml-embedded label,
+.ml-embedded p {
+  color: var(--moss) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+  line-height: var(--leading-normal) !important;
+}
+
+.ml-embedded input[type="checkbox"] {
+  accent-color: var(--pine);
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* reCAPTCHA (falls im Formular aktiv): so dezent wie möglich – etwas
+   verkleinert, linksbündig; ist es in MailerLite deaktiviert, fehlt der
+   Block einfach und hinterlässt keinen Leerraum */
+.ml-embedded [class*="recaptcha"] {
+  margin: var(--space-3) 0 !important;
+  transform: scale(0.85);
+  transform-origin: 0 0;
+}
+
 .ml-embedded input[type="email"] {
   min-height: 42px !important;
   padding: 0 var(--space-4) !important;
@@ -1727,6 +1825,11 @@ body[data-office-dot="off"] .office-dot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  /* Zentriert (Pauls Wunsch): als Abschluss unter der Trennlinie liest
+     sich die Fußzeile wie ein Kolophon und darf die linke Seiten-Achse
+     verlassen */
+  justify-content: center;
+  text-align: center;
   gap: var(--space-2) var(--space-5);
   color: var(--moss);
   font-size: var(--text-sm);
@@ -1749,6 +1852,7 @@ body[data-office-dot="off"] .office-dot {
   flex-basis: 100%;
   margin: var(--space-2) 0 0;
   font-family: var(--font-display);
+  font-weight: 500;
   color: var(--pine);
 }
 
@@ -1759,7 +1863,8 @@ body[data-office-dot="off"] .office-dot {
 
 .legal h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   font-size: clamp(1.6rem, 4vw, 2.2rem);
   margin: var(--space-6) 0 var(--space-3);
 }
@@ -1804,41 +1909,36 @@ body[data-office-dot="off"] .office-dot {
   margin: 0;
 }
 
+/* Stilisierter Bildschirm: dunkler Bezel wie ein Display, innen ruhige
+   Arbeitsfläche – das Produkt wird gezeigt, nicht angedeutet */
 .demo-screen {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   aspect-ratio: 16 / 10;
-  padding: var(--space-5) var(--space-5) 0;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: clamp(6px, 1vw, 9px) solid var(--frame-dark);
   border-radius: var(--radius-lg);
   background: var(--paper);
 }
 
-/* Angedeutete Dokumentzeilen: der Bildschirm bleibt Arbeitsfläche */
-.demo-line {
-  height: 9px;
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--breath) 26%, var(--paper));
+/* Angedeutete Menüleiste, damit der Rahmen als Bildschirm liest */
+.demo-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8%;
+  background: color-mix(in srgb, var(--mist) 65%, var(--paper));
+  border-bottom: 1px solid var(--line);
 }
 
-.demo-line.w-lg { width: 82%; }
-.demo-line.w-md { width: 64%; }
-.demo-line.w-sm { width: 42%; }
-
-/* Das Glühen: wächst als warme Vignette vom unteren Rand herein
-   und atmet im Ruhe-Tempo des Rings */
+/* Das Glühen: atmet als warmer Saum vom Bildschirmrand herein –
+   exakt das Produktversprechen aus dem Text daneben */
 .demo-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse 130% 75% at 50% 118%,
-    color-mix(in srgb, var(--ember) 42%, transparent),
-    transparent 62%
-  );
+  box-shadow:
+    inset 0 0 clamp(18px, 4vw, 36px) color-mix(in srgb, var(--ember) 62%, transparent),
+    inset 0 0 5px color-mix(in srgb, var(--ember) 40%, transparent);
   animation: demo-breathe var(--breath-dur) var(--ease-breath) infinite;
 }
 

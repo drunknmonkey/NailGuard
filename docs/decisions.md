@@ -250,3 +250,105 @@ Vollbild-Overlay widerspricht dem eigenen Markenversprechen
 - Verifiziert (Playwright): Toast-Box 320×62px statt Vollbild, in Focus
   UND Review identisch, Tracking (`stats.confirmed`, `lastConfirmedAt`)
   weiterhin lückenlos.
+
+---
+
+## 2026-07-14 – Landingpage-Politur Runde 2 + Fonts self-hosted
+
+Sieben visuelle Fixes nach Pauls Feedback plus Schrift-Testseite,
+Leitprinzip Einfachheit (bei jedem Fix gefragt: kann etwas WEG?).
+Branch `landing/polish-runde-2`.
+
+- **Hero-Ring:** stand im blassen Ruhezustand (`--breath`) und war fast
+  unsichtbar. Zeigt jetzt das Produktversprechen: Ember-Ton, Halo
+  26% → 42%, Außenring 2px, Innenring-Opacity 0.55 → 0.7. Atmung
+  bewusst im Ruhe-Tempo (4,6s) belassen – präsent, nicht grell.
+  Gleiche `.stage/.halo/.ring`-Struktur wie in der App.
+- **Hero-CTA (Root-Cause):** Dem Anker fehlte die Klasse mit der
+  Button-Geometrie – die base-`button`-Regel greift nur für `<button>`,
+  `.primary-action` liefert nur Farben. Daher wirkte der Link wie ein
+  kaputter Fokus-Kasten. Utility umbenannt `.waitlist-jump` →
+  `.pill-link` (trägt jetzt drei Links) und am Hero-CTA ergänzt.
+- **Sekundärer CTA:** „Web-Version ausprobieren" → /app als neue
+  `.ghost-action` (ruhige Outline, transparent) neben dem Pine-Pill.
+  „Bald verfügbar für macOS" als eigene Zeile unter die Button-Reihe.
+- **Preis-Sektion: radikal vereinfacht.** Die zentrierte Karte brach als
+  einzige die linke Sektions-Achse. Karte weg, `.price-card`-CSS
+  ersatzlos raus – Eyebrow/H2/Subtext wie jede andere Sektion.
+- **MailerLite:** Embed-Kopfzeile per CSS ausgeblendet (Paul entfernt
+  sie zusätzlich in ML), Wrapper-Fläche/Zentrierung neutralisiert
+  (eine Achse mit der Karten-Überschrift), Checkbox `accent-color:
+  pine`, Labels in Moss/Body-Schrift, reCAPTCHA falls aktiv auf 85%
+  skaliert. Selektoren als `[class*=…]`-Attribute, gleiche
+  Robustheits-Linie wie die bestehenden Overrides. **Nicht lokal
+  verifizierbar** (assets.mailerlite.com in der Sandbox blockiert) –
+  Sichtprüfung auf pages.dev nötig.
+- **„So funktioniert's"-Visual:** Skeleton-Zeilen ersatzlos entfernt.
+  Jetzt ein stilisierter Bildschirm (Bezel via `--frame-dark`,
+  angedeutete Menüleiste) mit Ember-Saum, der als inset-Schatten vom
+  Rand hereinatmet – zeigt exakt das Versprechen aus dem Text daneben.
+  Gleiche Motion-Tokens, reduced-motion respektiert.
+- **Fonts self-hosted (global):** Alle vier Seiten luden von
+  fonts.googleapis.com (IP-Übermittlung an Google, Abmahnrisiko DE).
+  Latin-Subsets als woff2 unter `app/fonts/`, `@font-face` in
+  style.css, Preloads statt CDN-Links, App-CSP auf `'self'`
+  verschärft, Fonts im SW-Precache (v7), Google-Runtime-Caching aus
+  sw.js entfernt. Kursives Fraunces wird weiterhin vom Browser
+  synthetisiert (wie zuvor: die CDN-Einbindung lud auch keine Italics).
+- **Schrift-Testseite `/schrift-test`:** Hero dreimal gestapelt –
+  A Status quo, B Sora-Headline, C Instrument Sans durchgängig
+  (Kandidaten-Wahl aus den „z.B."-Vorgaben). Testfonts liegen lokal,
+  laden aber nur dort. Nicht verlinkt, noindex. Stolperstein
+  dokumentiert: `--font-body` am Wrapper zu überschreiben reicht nicht,
+  weil Fließtext den an `<body>` berechneten Wert erbt – `font-family`
+  muss am Wrapper direkt gesetzt werden. Paul entscheidet nach Ansicht;
+  global wird nichts umgestellt.
+
+Verifiziert (Playwright, lokal): Landing + Testseite bei 390px und
+1280px, App-Startscreen und Datenschutz-Seite ohne Konsolenfehler,
+`document.fonts.check` bestätigt lokale Ladung aller Schnitte; einziger
+externer Request bleibt MailerLite auf der Landing.
+
+---
+
+## 2026-07-14 – Nachjustierung nach Pauls Sichtung: Schrift, Ring, Footer
+
+Folge-Änderungen auf demselben Branch/PR (#25).
+
+- **Schrift-Entscheidung: Variante C – Instrument Sans durchgängig.**
+  Global über die Font-Tokens (Landing + App teilen weiter EIN
+  Design-System); `--font-display`/`--font-body` bleiben als getrennte
+  Tokens erhalten (Rollen lesbar, Display-Wechsel bliebe eine Zeile).
+  Konsequenz für die Hierarchie: Ohne Serifen-Kontrast trägt das
+  GEWICHT die Auszeichnung – alle Headlines (h2, Hero, State-Word,
+  Wordmark, Legal-h1, Toast) von 400/500 auf 600, große Grade mit
+  leicht negativem letter-spacing; Tagline 500. Die Größenstufen
+  (--text-*) blieben unverändert: Instrument Sans hat eine größere
+  x-Höhe als Fraunces, wirkt bei gleicher Stufe also eher größer.
+  **Hero-Akzent „Ruhig": Farbe (Moss) + Gewicht 500 statt Kursive** –
+  es liegt kein echter Italic-Schnitt vor, und ein synthetischer
+  Browser-Schrägsatz sähe nachlässig aus. Fraunces/Atkinson/Sora aus
+  dem Repo entfernt (Font-Budget: nur noch Instrument Sans + Mono,
+  ~66 KB), /schrift-test gelöscht. App-Screens (Focus/Review/Settings,
+  echt gestartet mit Fake-Kamera) gegengeprüft – Hierarchie trägt.
+- **Grundsatz Ring-Farbe: Der Ring auf der Landing zeigt den
+  RUHEZUSTAND (grün). Ember bleibt der Warnfarbe vorbehalten.** Der
+  Ember-Hero-Ring aus der Politur-Runde zeigte Tawel im Alarm statt im
+  Normalbetrieb („calm over alarm" verletzt). Korrektur: grüne Palette,
+  aber Präsenz über Sättigung/Stärke statt Farbwechsel – Breath
+  Richtung Pine vertieft (color-mix 45/55), 2px-Linie, 45%-Halo,
+  Ruhe-Atmung. Kein Ember-Akzent im Ring: das warme Glühen gehört ins
+  „So funktioniert's"-Visual, wo der Text es erklärt.
+- **Fußzeile zentriert** (Pauls Wunsch). Im Gesamtbild geprüft: liest
+  sich als Kolophon unter der Trennlinie – der einzige bewusste
+  Ausbruch aus der linken Achse, stört nicht.
+- **MailerLite-Restprüfung:** Paul hat Formulartitel + reCAPTCHA in
+  MailerLite entfernt. Das CSS ist darauf ausgelegt (display:none auf
+  die Kopfzeile wird zum No-Op, der reCAPTCHA-Selektor greift ins
+  Leere, keine Abstände hängen an den entfernten Blöcken – Margins
+  liegen auf Input/Button selbst). Das Embed lädt in der Sandbox
+  weiterhin nicht (assets.mailerlite.com blockiert), am echten Markup
+  verifizieren war also NICHT möglich. Auf pages.dev zu sichten:
+  Input-Pill mit Ember-Fokusring, Pine-Button (hover/active), Checkbox
+  pine + lesbares Label in Moss, linke Achse mit der Karten-Überschrift,
+  kein Leerraum wo Titel/reCAPTCHA saßen, Fehler-/Erfolgszustand.

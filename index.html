@@ -13,13 +13,8 @@
     <link rel="icon" href="/app/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/app/icons/apple-touch-icon.png" />
 
-    <!-- Schriften wie in der App (Fraunces · Atkinson Hyperlegible · Spline Sans Mono) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Atkinson+Hyperlegible:wght@400;700&family=Spline+Sans+Mono:wght@300;400;500&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Schriften wie in der App: self-hosted (kein Google-Fonts-CDN), @font-face in style.css -->
+    <link rel="preload" href="/app/fonts/instrument-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Gemeinsames Design-System: exakt dieselbe Datei wie die App unter /app -->
     <link rel="stylesheet" href="/app/style.css" />
@@ -44,7 +39,7 @@
       <header class="topbar" aria-label="Tawel">
         <p class="wordmark">tawel</p>
         <div class="topbar-actions">
-          <a class="primary-action waitlist-jump" href="#warteliste">Auf die Warteliste</a>
+          <a class="primary-action pill-link" href="#warteliste">Auf die Warteliste</a>
         </div>
       </header>
 
@@ -57,9 +52,10 @@
             ruhigen Glühen statt mit einem Alarm.
           </p>
           <div class="hero-cta">
-            <a class="primary-action" href="#warteliste">Auf die Warteliste</a>
-            <p class="hero-hint">Bald verfügbar für macOS</p>
+            <a class="primary-action pill-link" href="#warteliste">Auf die Warteliste</a>
+            <a class="ghost-action pill-link" href="/app/">Web-Version ausprobieren</a>
           </div>
+          <p class="hero-hint">Bald verfügbar für macOS</p>
         </div>
         <div class="stage" aria-hidden="true">
           <div class="halo"></div>
@@ -91,15 +87,10 @@
             du innehältst.
           </p>
         </div>
-        <!-- Rein dekoratives CSS-Visual: stilisierter Bildschirm, in dem das
-             Ember-Glühen ruhig vom Rand hereinatmet – kein Bild-Asset. -->
+        <!-- Rein dekoratives CSS-Visual: stilisierter Bildschirmrahmen, an
+             dessen Rand das Ember-Glühen atmet – kein Bild-Asset. -->
         <figure class="glow-demo" aria-hidden="true">
           <div class="demo-screen">
-            <span class="demo-line w-lg"></span>
-            <span class="demo-line w-md"></span>
-            <span class="demo-line w-lg"></span>
-            <span class="demo-line w-sm"></span>
-            <span class="demo-line w-md"></span>
             <div class="demo-glow"></div>
           </div>
         </figure>
@@ -132,15 +123,11 @@
         </div>
       </section>
 
-      <!-- ─ Preis-Ehrlichkeit ─ -->
+      <!-- ─ Preis-Ehrlichkeit: bewusst ohne Karte, gleiche Achse wie alle Sektionen ─ -->
       <section class="landing-section">
-        <div class="card price-card">
-          <p class="eyebrow">Ehrlicher Preis</p>
-          <p class="price-line">Einmal kaufen, für immer behalten.</p>
-          <p>
-            Kein Abo. Tawel ist ein Werkzeug, das sich selbst überflüssig machen möchte.
-          </p>
-        </div>
+        <p class="eyebrow">Ehrlicher Preis</p>
+        <h2>Einmal kaufen, für immer behalten.</h2>
+        <p>Kein Abo. Tawel ist ein Werkzeug, das sich selbst überflüssig machen möchte.</p>
       </section>
 
       <!-- ─ Warteliste ─ -->
