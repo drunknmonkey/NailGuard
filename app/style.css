@@ -1670,16 +1670,18 @@ body[data-office-dot="off"] .office-dot {
   margin: var(--space-3) 0 0;
 }
 
-/* Hero-Ring: zeigt das Produktversprechen (das warme Glühen) statt des
-   blassen Ruhezustands – Ember-Ton, präsenterer Glow, Atmung bleibt im
-   Ruhe-Tempo (4,6s), damit es nie grell wirkt */
+/* Hero-Ring: zeigt den RUHEZUSTAND (grün) – Ember bleibt der Warnfarbe
+   vorbehalten (die zeigt das „So funktioniert's"-Visual in ihrem echten
+   Kontext). Präsenz kommt nicht aus einem Farbwechsel, sondern aus
+   Sättigung und Stärke: Breath Richtung Pine vertieft, 2px-Linie,
+   kräftigerer Halo. Atmung im Ruhe-Tempo (4,6s) wie in der App. */
 .hero .stage {
-  --ring-color: var(--ember);
+  --ring-color: color-mix(in srgb, var(--breath) 45%, var(--pine));
   width: min(44vw, 240px);
 }
 
 .hero .halo {
-  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color) 42%, transparent) 0%, transparent 72%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--ring-color) 45%, transparent) 0%, transparent 72%);
 }
 
 .hero .ring {
