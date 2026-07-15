@@ -1,10 +1,26 @@
-# NailGuard – Entwicklungskontext
+# Tawel (Repo: NailGuard) – Entwicklungskontext
 
-## Was ist NailGuard?
+## Was ist Tawel?
 
-Datenschutzfreundlicher Webcam-Coach gegen Nägelkauen. MediaPipe läuft vollständig
-lokal im Browser (kein Cloud-Backend, kein Videospeicher). Ziel: Desktop-App via
-Tauri 2.x, Vertrieb als One-Time-Purchase über einen Merchant of Record.
+Ruhige, private Unterstützung gegen unbewusstes Hand-zum-Mund-Verhalten /
+Nägelkauen. MediaPipe läuft vollständig lokal im Browser (kein Cloud-Backend,
+kein Videospeicher). Produktname sichtbar überall **Tawel**; Repo und
+technische Bezeichner (localStorage-Keys, `nailguard:intervention`-Event)
+heißen historisch NailGuard und bleiben so (Migrationsrisiko ohne Nutzen).
+
+### Produktebenen
+
+- **Web-Version** (`/app`): dauerhaft kostenlos. Ehrliche Einschränkung
+  überall kommunizieren: Der Tab muss geöffnet und sichtbar bleiben –
+  im Hintergrund drosseln Browser Kamera und Verarbeitung.
+- **Mac-App** (via Tauri 2.x): das Kernprodukt, in Entwicklung. Soll
+  zuverlässig im Hintergrund laufen; Bildschirmrand-Glühen mit
+  Unsichtbarkeit in Calls/Screen-Sharing/Aufnahmen ist ein ZIEL (nur im
+  Spike validiert) – immer als „geplant/soll" formulieren, nie als Fakt.
+- **Preismodell offen**: Einmalkauf oder Jahresabo, Entscheidung steht
+  aus. Keine definitiven Preisaussagen auf Landing/App; Vertrieb
+  voraussichtlich über einen Merchant of Record.
+- **Keine Launch-Termine erfinden.** Warteliste ja, „bald verfügbar" nein.
 
 ## Architektur
 
@@ -51,11 +67,27 @@ Farben und den Pill-Ring im Tauri-Spike.
 
 ## App-Modi
 
-- **Focus** – Ring + Status + Timer, Hauptansicht
-- **Review** – Karten mit Tagesstatistik, Streak
+- **Fokus** (focus) – Ring + Status + Timer, Hauptansicht
+- **Rückblick** (review) – menschliche Tageszusammenfassung zuerst, dann
+  Karten mit Tagesstatistik und Streak
 - **Einstellungen** (calibration) – Kamera-Preview, Detection-Slider, Sound, Office-Optionen, Daten
-- **Office Mode** (neutral) – Tarn-Texteditor (Notizen.txt), kein NailGuard-Branding,
+- **Office Mode** (neutral) – Kernfeature: neutraler Texteditor (Notizen.txt), kein Tawel-Branding,
   Status-Punkt als einziges verräterisches Element. Verlassen: Klick auf Punkt oder Esc.
+  Nach außen nie „Tarnmodus" nennen – „Office Mode" oder „diskreter Arbeitsmodus".
+
+## Produkt-Grundsätze (Sprache)
+
+- **Kalibrierung ist keine KI**: Die App „lernt" nicht – sie „richtet den
+  persönlichen Abstand ein". Der 4-Schritt-Wizard bleibt erhalten und ist
+  über Einstellungen → „Abstand neu einrichten" wiederholbar.
+- **Kein Auto-Tune**: Der Schalter „Automatisch anpassen" wurde entfernt
+  (die Treffer-/Fehlalarm-Abfrage existiert nicht mehr, ohne Rückmeldung
+  wäre eine Lernfunktion ein leeres Versprechen). Nicht wieder einführen,
+  solange es keine belastbare Rückmeldequelle gibt.
+- **Datenschutz einheitlich und ohne Jargon**: Auswertung lokal;
+  Bilder/Videos werden weder gespeichert noch hochgeladen; beim Start
+  lädt die App nur eigene Dateien und Erkennungsmodelle – das sind keine
+  Kameradaten. Begriffe wie WASM/CSP/MediaPipe nicht in Startscreens.
 
 ## Konventionen
 

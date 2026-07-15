@@ -352,3 +352,64 @@ Folge-Änderungen auf demselben Branch/PR (#25).
   Input-Pill mit Ember-Fokusring, Pine-Button (hover/active), Checkbox
   pine + lesbares Label in Moss, linke Achse mit der Karten-Überschrift,
   kein Leerraum wo Titel/reCAPTCHA saßen, Fehler-/Erfolgszustand.
+
+---
+
+## 2026-07-15 – Produkt-, Copy- und UI-Cleanup (Rebranding abgeschlossen)
+
+Fokussierter Ehrlichkeits-Pass über Landing und Web-App, Branch
+`produkt/tawel-cleanup`. Produktentscheidungen dahinter:
+
+- **Rebranding sichtbar abgeschlossen:** Überall Tawel statt Nail Guard
+  (Titel, Meta, Wortmarke „tawel", Manifest, alle DE/EN-Strings,
+  Backup-Dateiname). Bewusst NICHT umbenannt: localStorage-Keys,
+  `nailguard:intervention`-Event, Spike-Ordner – Migrationsrisiko ohne
+  Nutzerwert. Verwaiste `landing.*`-Keys der gelöschten desktop.html
+  entfernt.
+- **Web-Version bleibt dauerhaft kostenlos** und wird ehrlich
+  positioniert: Sie arbeitet, solange der Tab geöffnet und sichtbar
+  ist; im Hintergrund drosseln Browser Kamera und Verarbeitung. Kein
+  „läuft unsichtbar im Hintergrund" mehr – weder auf der Landing noch
+  im App-Startscreen. Formulierung „zeitlich begrenzter Prototyp"
+  bewusst vermieden.
+- **Mac-App ist das Kernprodukt für den Hintergrundbetrieb** – auf der
+  Landing als „in Entwicklung" positioniert, ohne Launch-Termin.
+  Bildschirmrand-Glühen und Unsichtbarkeit in Calls/Screen-Sharing/
+  Aufnahmen sind als GEPLANT formuliert („soll", „geplant so, dass"),
+  weil bislang nur im Tauri-Spike validiert.
+- **Preismodell offen** (Einmalkauf oder Jahresabo): „Einmal kaufen,
+  für immer behalten", „Kein Abo" und „Early-Bird-Preis" von der
+  Landing entfernt. Neutral: Modell wird festgelegt, Warteliste erfährt
+  zuerst von Preis und Verfügbarkeit. Kein Preis erfunden.
+- **Datenschutz vereinheitlicht, ohne Jargon:** Auswertung lokal auf dem
+  Gerät/im Browser; Bilder/Videos werden weder gespeichert noch
+  hochgeladen; beim Start lädt die App nur eigene Dateien und
+  Erkennungsmodelle – das sind keine Kameradaten. MediaPipe/WASM aus dem
+  Startscreen entfernt; der HTML-Fallback behauptete noch „Modelle
+  werden extern geladen" (falsch seit PR #3) – korrigiert.
+- **Office Mode als Kernfeature auf die Landing** (eigener Pillar):
+  neutrale Notizseite, Erkennung läuft diskret weiter, Hinweise als
+  Randnotiz. Sprachregelung: nie „Tarnmodus" nach außen.
+- **Auto-Tune entfernt** (Schalter, Code, Texte): Die Treffer-/
+  Fehlalarm-Abfrage existiert seit PR #23 nicht mehr, `autoTuneFromFeedback`
+  hatte keinen Aufrufer – ein sichtbarer Schalter ohne Funktion wäre ein
+  leeres Lern-Versprechen. Gespeicherte `autoTune`-Settings bleiben
+  inert liegen (keine Migration). Nicht wieder einführen ohne
+  belastbare Rückmeldequelle.
+- **Erstkalibrierung bleibt** – ist aber keine lernende KI-Funktion und
+  wird auch nicht mehr so beschrieben: „richtet deinen persönlichen
+  Abstand ein" statt „lernt dich kennen". Wizard und „Abstand neu
+  einrichten" unverändert funktionsfähig (mit Fake-Kamera verifiziert).
+- **Rückblick beginnt menschlich:** Karte „Dein Tag in Kürze" vor den
+  Detailwerten; nur aus Daten berechenbare Sätze (Momente heute,
+  längste ruhige Phase ab 1 min, Tageszeit-Schwerpunkt ab 3 Momenten
+  mit eindeutigem Maximum, Gestern-Vergleich nur mit Gestern-Daten).
+  Die Karte „Dein Feedback" entfiel: „Fehlalarme" und „Gesicht berührt"
+  blieben seit Wegfall der Abfrage für immer 0 – tote Zähler.
+- **Navigation eingedeutscht:** Fokus / Rückblick / Einstellungen (DE);
+  EN behält Focus / Review / Settings. „Office Mode" bleibt in beiden
+  Sprachen ein Eigenname.
+- README komplett neu geschrieben (beschrieb noch die alte flache
+  Struktur, die Feedback-Abfrage, Auto-Tuning, 10 Office-Layouts und
+  Google-Fonts-Laden – alles nicht mehr wahr); CLAUDE.md um
+  Produktebenen und Sprach-Grundsätze ergänzt.
