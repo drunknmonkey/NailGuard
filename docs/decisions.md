@@ -413,3 +413,9 @@ Fokussierter Ehrlichkeits-Pass über Landing und Web-App, Branch
   Struktur, die Feedback-Abfrage, Auto-Tuning, 10 Office-Layouts und
   Google-Fonts-Laden – alles nicht mehr wahr); CLAUDE.md um
   Produktebenen und Sprach-Grundsätze ergänzt.
+
+**Nachtrag (Pauls Review):** Das Preisthema kommt vorerst GAR NICHT auf
+die Landing – die neutrale Preis-Sektion und der Preis-Halbsatz in der
+Warteliste wurden wieder entfernt. „Kostenlos" bei der Web-Version
+bleibt (das ist Produktversprechen, kein Preismodell). Sobald das
+Modell entschieden ist, bekommt der Preis eine eigene Sektion.
