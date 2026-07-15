@@ -1116,13 +1116,8 @@ function renderAppChrome() {
   const isNeutral = state.activeMode === "neutral";
   document.body.classList.toggle("office-mode", isNeutral);
 
-  if (isNeutral) {
-    els.appTitle.textContent = t("neutral.title");
-  } else {
-    const wordmark = document.createElement("span");
-    wordmark.textContent = "Guard";
-    els.appTitle.replaceChildren("Nail", wordmark);
-  }
+  // Wortmarke wie auf der Landing: klein geschriebenes „tawel"
+  els.appTitle.textContent = isNeutral ? t("neutral.title") : "tawel";
 
   els.startTitle.textContent = isNeutral ? t("start.titleNeutral") : t("start.title");
   els.startBody.textContent = isNeutral ? t("start.bodyNeutral") : t("start.body");
@@ -1227,12 +1222,14 @@ function exportData() {
     if (value !== null) data[key] = value;
   }
 
-  const payload = { app: "nail-guard", exportedAt: new Date().toISOString(), data };
+  // "app"-Feld ist informativ; der Import prüft nur die bekannten Keys,
+  // alte nail-guard-Backups bleiben deshalb weiterhin importierbar.
+  const payload = { app: "tawel", exportedAt: new Date().toISOString(), data };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `nailguard-backup-${todayKey()}.json`;
+  link.download = `tawel-backup-${todayKey()}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }

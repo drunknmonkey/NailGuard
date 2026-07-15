@@ -241,11 +241,6 @@ a:focus-visible {
   margin: 0;
 }
 
-.wordmark span {
-  color: var(--moss);
-  font-weight: 300;
-}
-
 /* Im Office Mode trägt auch die Kopfzeile kein Markendesign */
 body.office-mode .wordmark {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
