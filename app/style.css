@@ -1423,6 +1423,12 @@ body[data-office-dot="off"] .office-dot {
   margin-bottom: var(--space-4);
 }
 
+/* Zweispaltige Variante (Web heute / Mac-App geplant) */
+.landing-grid.two-up {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: var(--space-4);
+}
+
 .coach-card {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -1513,7 +1519,8 @@ body[data-office-dot="off"] .office-dot {
 
 /* ═══ Responsiv ═══ */
 @media (max-width: 880px) {
-  .landing-grid {
+  .landing-grid,
+  .landing-grid.two-up {
     grid-template-columns: 1fr;
   }
 
