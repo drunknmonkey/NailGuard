@@ -241,11 +241,6 @@ a:focus-visible {
   margin: 0;
 }
 
-.wordmark span {
-  color: var(--moss);
-  font-weight: 300;
-}
-
 /* Im Office Mode trägt auch die Kopfzeile kein Markendesign */
 body.office-mode .wordmark {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -654,21 +649,11 @@ body[data-state="paused"] .state-word { color: var(--moss); }
   background: var(--warm);
 }
 
-.fb-row {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--text-sm);
-}
-
-.fb-row:last-child {
-  border-bottom: none;
-}
-
-.fb-row .n {
-  font-family: var(--font-data);
-  font-variant-numeric: tabular-nums;
+/* Menschliche Tageszusammenfassung am Kopf des Rückblicks */
+.review-summary {
+  margin: 0;
+  color: var(--moss);
+  line-height: var(--leading-relaxed);
 }
 
 .streak {
@@ -1438,6 +1423,12 @@ body[data-office-dot="off"] .office-dot {
   margin-bottom: var(--space-4);
 }
 
+/* Zweispaltige Variante (Web heute / Mac-App geplant) */
+.landing-grid.two-up {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: var(--space-4);
+}
+
 .coach-card {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -1528,7 +1519,8 @@ body[data-office-dot="off"] .office-dot {
 
 /* ═══ Responsiv ═══ */
 @media (max-width: 880px) {
-  .landing-grid {
+  .landing-grid,
+  .landing-grid.two-up {
     grid-template-columns: 1fr;
   }
 

@@ -1,7 +1,7 @@
 {
-  "name": "Nail Guard",
-  "short_name": "Nail Guard",
-  "description": "Privacy-first webcam coach against nail biting. Camera data never leaves your browser.",
+  "name": "Tawel",
+  "short_name": "Tawel",
+  "description": "Tawel – calm, private support against nail biting. Camera analysis runs in your browser; images and videos never leave your device.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

@@ -4,11 +4,11 @@ export const SUPPORTED_LOCALES = ["de", "en"];
 
 const translations = {
   de: {
-    "app.title": "Nail Guard",
+    "app.title": "Tawel",
     "neutral.title": "Daily Board",
 
     "state.calm": "Ruhig",
-    "state.calmHint": "Nail Guard begleitet dich im Hintergrund — alles bleibt auf deinem Gerät",
+    "state.calmHint": "Tawel läuft ruhig mit — alles bleibt auf deinem Gerät",
     "state.warm": "Achtsam",
     "state.warmHint": "Deine Hand ist nah am Gesicht",
     "state.ember": "Innehalten",
@@ -28,27 +28,27 @@ const translations = {
 
     "start.title": "Ein ruhiger Coach für fokussierte Momente.",
     "start.body":
-      "Starte die Kamera, wähle deinen Modus und lass Nail Guard leise im Hintergrund mitlaufen. Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.",
+      "Starte die Kamera und lass Tawel ruhig mitlaufen, während du arbeitest. Kamerabilder und Videos werden weder gespeichert noch hochgeladen.",
     "start.privacy":
-      "MediaPipe Bibliothek, WASM und Modelle werden lokal von dieser Website geladen. Kameradaten bleiben im Browser.",
+      "Die Auswertung läuft komplett in deinem Browser. Beim Start lädt Tawel nur eigene App-Dateien und Erkennungsmodelle — niemals deine Kameradaten.",
     "start.titleNeutral": "Bereit für einen ruhigen Arbeitstag.",
     "start.bodyNeutral":
       "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen.",
     "start.privacyNeutral":
-      "Bibliothek und Modelle werden lokal von dieser Website geladen. Lokale Daten bleiben auf diesem Gerät.",
+      "Diese Seite lädt beim Start nur eigene Dateien. Lokale Daten bleiben auf diesem Gerät.",
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
-    "start.desktopLink": "Desktop-App kommt bald – zur Warteliste",
+    "start.desktopLink": "Mac-App in Entwicklung – zur Warteliste",
     "start.step1": "Kamera erlauben",
     "start.step1Desc": "Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.",
     "start.step2": "Kurz kalibrieren",
-    "start.step2Desc": "Finger zum Mund führen: Nail Guard lernt deinen persönlichen Abstand.",
+    "start.step2Desc": "Finger zum Mund führen: So richtet Tawel deinen persönlichen Abstand ein.",
     "start.step3": "Einfach weiterarbeiten",
-    "start.step3Desc": "Sanfte Hinweise wenn nötig, sonst läuft alles unsichtbar im Hintergrund.",
+    "start.step3Desc": "Sanfte Hinweise, wenn nötig — lass den Tab dafür sichtbar geöffnet.",
 
-    "tabs.focus": "Focus",
+    "tabs.focus": "Fokus",
     "tabs.calibration": "Einstellungen",
-    "tabs.review": "Review",
+    "tabs.review": "Rückblick",
 
     "focus.openOffice": "Office Mode",
     "focus.pause": "Pausieren",
@@ -78,7 +78,7 @@ const translations = {
     "settings.cuesTitle": "Hinweise",
     "settings.privacyTitle": "Privatsphäre",
     "settings.privacyBody":
-      "Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen.",
+      "Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen. Beim Start lädt die App nur eigene Dateien und Erkennungsmodelle — das sind keine Kameradaten.",
     "settings.sensitivityDesc": "Wie nah die Hand dem Mund kommen darf",
     "settings.holdDesc": "Dauer, bis der Hinweis kommt",
     "settings.cooldownDesc": "Pause, bis der nächste Hinweis kommen darf",
@@ -113,9 +113,6 @@ const translations = {
     "calibration.warmth": "Farbwarnung",
     "calibration.sound": "Ton",
     "calibration.vibration": "Vibration",
-    "calibration.autoTune": "Automatisch anpassen",
-    "calibration.autoTuneHint":
-      "Nail Guard justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.",
     "calibration.volume": "Lautstärke",
     "calibration.testSound": "Test",
     "calibration.recalibrate": "Abstand neu einrichten",
@@ -127,15 +124,22 @@ const translations = {
     "sounds.boing": "Boing",
 
     "review.today": "Heute, {date}",
+    "review.summaryTitle": "Dein Tag in Kürze",
+    "review.summaryMomentsNone": "Heute war noch kein erkannter Moment dabei.",
+    "review.summaryMomentsOne": "Heute hattest du einen erkannten Moment.",
+    "review.summaryMoments": "Heute hattest du {count} erkannte Momente.",
+    "review.summaryQuiet": "Deine längste ruhige Phase: {duration}.",
+    "review.summaryPeakMorning": "Die meisten Momente traten am Vormittag auf.",
+    "review.summaryPeakAfternoon": "Die meisten Momente traten am Nachmittag auf.",
+    "review.summaryPeakEvening": "Die meisten Momente traten am Abend auf.",
+    "review.summaryCalmer": "Heute war ruhiger als gestern.",
+    "review.summaryBusier": "Heute war lebhafter als gestern.",
+    "review.summarySame": "Heute war ähnlich ruhig wie gestern.",
     "review.statQuiet": "Ruhige Zeit",
     "review.vsYesterday": "vs. gestern",
     "review.hourTitle": "Momente im Tagesverlauf",
     "review.legendCalm": "ruhig",
     "review.legendPeak": "häufige Momente",
-    "review.feedbackTitle": "Dein Feedback",
-    "review.statConfirmed": "Treffer",
-    "review.statFalse": "Fehlalarme",
-    "review.statFace": "Gesicht berührt",
     "review.streakStrong": "{days} Tage in Folge",
     "review.streakStrongOne": "1 Tag",
     "review.streakRest": "mit weniger als fünf Momenten.",
@@ -171,7 +175,7 @@ const translations = {
     "onboarding.step2Body": "Heb eine Hand, sodass die Kamera deine Finger sehen kann.",
     "onboarding.step3Title": "Führe einen Finger zum Mund",
     "onboarding.step3Body":
-      "Führe einen Finger langsam zum Mund und halte ihn dort einen Moment. So lernt Nail Guard deinen Abstand zur Kamera kennen.",
+      "Führe einen Finger langsam zum Mund und halte ihn dort einen Moment. So richtet Tawel den passenden Erkennungsabstand für deine Sitzposition ein.",
     "onboarding.step4Title": "Alles eingestellt",
     "onboarding.step4Body":
       "Die Empfindlichkeit ist jetzt auf deine Kamera und Sitzposition abgestimmt. Du kannst sie jederzeit unter Einstellungen ändern.",
@@ -182,33 +186,6 @@ const translations = {
     "onboarding.moveCloser": "Finger noch näher zum Mund …",
     "onboarding.holdNearMouth": "Gut, kurz so halten …",
     "onboarding.captured": "Erfasst — das war's schon.",
-
-    "landing.eyebrow": "Nail Guard Desktop",
-    "landing.title": "Nail Guard Desktop",
-    "landing.heroTitle": "Der Ganztags-Begleiter gegen Nägelkauen.",
-    "landing.heroBody":
-      "Die Web-App wirkt, solange der Tab offen ist. Die Desktop-App begleitet dich den ganzen Arbeitstag: Sie startet beim Anmelden, läuft unauffällig in der Menüleiste und erinnert dich mit sanften System-Hinweisen – ohne dass ein einziges Bild deinen Rechner verlässt.",
-    "landing.prop1Title": "Den ganzen Tag",
-    "landing.prop1Body":
-      "Startet automatisch beim Anmelden und wacht im Hintergrund – kein offener Browser-Tab nötig.",
-    "landing.prop2Title": "100 % privat",
-    "landing.prop2Body":
-      "Die Auswertung läuft komplett lokal auf deinem Gerät. Keine Cloud, keine Accounts, kein Tracking.",
-    "landing.prop3Title": "Sanfte Hinweise",
-    "landing.prop3Body":
-      "System-Benachrichtigungen und dezente Bildschirm-Hinweise statt greller Alarme.",
-    "landing.waitlistTitle": "Komm auf die Warteliste",
-    "landing.waitlistBody":
-      "Trag deine E-Mail-Adresse ein und erfahre als Erste:r, wenn die Desktop-App für macOS und Windows bereit ist.",
-    "landing.emailLabel": "E-Mail-Adresse",
-    "landing.emailPlaceholder": "deine@email.de",
-    "landing.submit": "Eintragen",
-    "landing.success": "Danke! Du stehst auf der Liste.",
-    "landing.invalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
-    "landing.error": "Das hat gerade nicht geklappt. Bitte versuch es später noch einmal.",
-    "landing.notConfigured": "Die Warteliste ist noch nicht freigeschaltet. Schau bald wieder vorbei.",
-    "landing.privacy": "Deine E-Mail-Adresse wird nur für die Benachrichtigung zur Desktop-App verwendet.",
-    "landing.tryWeb": "Jetzt im Browser ausprobieren",
 
     replacements: [
       "Faust 10 Sekunden ballen",
@@ -241,7 +218,7 @@ const translations = {
       "Öffne die App über HTTPS oder lokal über http://localhost, nicht direkt als Datei.",
     "errors.importFailed": "Die Backup-Datei konnte nicht importiert werden.",
     "errors.importFailedHint1":
-      "Bitte eine unveränderte nailguard-backup-….json Datei aus dem Export verwenden.",
+      "Bitte eine unveränderte tawel-backup-….json Datei aus dem Export verwenden.",
     "errors.generic": "Die App konnte nicht starten.",
     "errors.genericHint1": "Beim allerersten Start braucht die Erkennung einmal Internet — danach läuft alles lokal.",
     "errors.genericHint2": "Prüfe die Browser-Kamerafreigabe.",
@@ -249,11 +226,11 @@ const translations = {
   },
 
   en: {
-    "app.title": "Nail Guard",
+    "app.title": "Tawel",
     "neutral.title": "Daily Board",
 
     "state.calm": "Calm",
-    "state.calmHint": "Nail Guard runs quietly in the background — everything stays on your device",
+    "state.calmHint": "Tawel runs quietly alongside you — everything stays on your device",
     "state.warm": "Mindful",
     "state.warmHint": "Your hand is close to your face",
     "state.ember": "Hold on",
@@ -273,23 +250,23 @@ const translations = {
 
     "start.title": "A calm coach for focused moments.",
     "start.body":
-      "Start the camera, pick your mode and let Nail Guard run quietly in the background. No webcam images or videos are stored or uploaded.",
+      "Start the camera and let Tawel run quietly while you work. Camera images and videos are never stored or uploaded.",
     "start.privacy":
-      "The MediaPipe library, WASM and models are served locally by this website. Camera data stays in your browser.",
+      "All analysis runs in your browser. On startup Tawel only loads its own app files and detection models — never your camera data.",
     "start.titleNeutral": "Ready for a calm workday.",
     "start.bodyNeutral":
       "This page runs locally in your browser. No images or videos are stored or uploaded.",
     "start.privacyNeutral":
-      "The library and models are served locally by this website. Local data stays on this device.",
+      "On startup this page only loads its own files. Local data stays on this device.",
     "start.button": "Start camera",
     "start.retry": "Try again",
-    "start.desktopLink": "Desktop app coming soon – join the waitlist",
+    "start.desktopLink": "Mac app in development – join the waitlist",
     "start.step1": "Allow camera",
     "start.step1Desc": "Detection runs entirely in your browser — nothing leaves your device.",
     "start.step2": "Quick calibration",
-    "start.step2Desc": "Bring a finger to your mouth: Nail Guard learns your personal distance.",
+    "start.step2Desc": "Bring a finger to your mouth: this sets up your personal distance.",
     "start.step3": "Just keep working",
-    "start.step3Desc": "Gentle nudges when needed; otherwise it runs invisibly in the background.",
+    "start.step3Desc": "Gentle nudges when needed — just keep this tab visible and open.",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Settings",
@@ -323,7 +300,7 @@ const translations = {
     "settings.cuesTitle": "Cues",
     "settings.privacyTitle": "Privacy",
     "settings.privacyBody":
-      "All processing happens entirely on your device. No image or video is ever stored or transmitted.",
+      "All processing happens entirely on your device. No image or video is ever stored or transmitted. On startup the app only loads its own files and detection models — that is never camera data.",
     "settings.sensitivityDesc": "How close your hand may come to your mouth",
     "settings.holdDesc": "Time until the nudge appears",
     "settings.cooldownDesc": "Pause before the next nudge may appear",
@@ -358,9 +335,6 @@ const translations = {
     "calibration.warmth": "Color cue",
     "calibration.sound": "Sound",
     "calibration.vibration": "Vibration",
-    "calibration.autoTune": "Auto-adjust",
-    "calibration.autoTuneHint":
-      "Nail Guard fine-tunes sensitivity and hold time based on your feedback (hit / false alarm).",
     "calibration.volume": "Volume",
     "calibration.testSound": "Test",
     "calibration.recalibrate": "Redo distance setup",
@@ -372,15 +346,22 @@ const translations = {
     "sounds.boing": "Boing",
 
     "review.today": "Today, {date}",
+    "review.summaryTitle": "Your day at a glance",
+    "review.summaryMomentsNone": "No detected moments so far today.",
+    "review.summaryMomentsOne": "You had one detected moment today.",
+    "review.summaryMoments": "You had {count} detected moments today.",
+    "review.summaryQuiet": "Your longest calm stretch: {duration}.",
+    "review.summaryPeakMorning": "Most moments happened in the morning.",
+    "review.summaryPeakAfternoon": "Most moments happened in the afternoon.",
+    "review.summaryPeakEvening": "Most moments happened in the evening.",
+    "review.summaryCalmer": "Today was calmer than yesterday.",
+    "review.summaryBusier": "Today was busier than yesterday.",
+    "review.summarySame": "Today was about as calm as yesterday.",
     "review.statQuiet": "Quiet time",
     "review.vsYesterday": "vs. yesterday",
     "review.hourTitle": "Moments through the day",
     "review.legendCalm": "calm",
     "review.legendPeak": "frequent moments",
-    "review.feedbackTitle": "Your feedback",
-    "review.statConfirmed": "Hits",
-    "review.statFalse": "False alarms",
-    "review.statFace": "Face touches",
     "review.streakStrong": "{days} days in a row",
     "review.streakStrongOne": "1 day",
     "review.streakRest": "with fewer than five moments.",
@@ -415,7 +396,7 @@ const translations = {
     "onboarding.step2Body": "Raise a hand so the camera can see your fingers.",
     "onboarding.step3Title": "Bring a finger to your mouth",
     "onboarding.step3Body":
-      "Slowly bring a finger to your mouth and hold it there for a moment. This teaches Nail Guard your distance from the camera.",
+      "Slowly bring a finger to your mouth and hold it there for a moment. This sets up the right detection distance for your seating position.",
     "onboarding.step4Title": "All set",
     "onboarding.step4Body":
       "Sensitivity is now tuned to your camera and seating position. You can change it anytime in Settings.",
@@ -426,33 +407,6 @@ const translations = {
     "onboarding.moveCloser": "Bring your finger closer to your mouth …",
     "onboarding.holdNearMouth": "Good, hold it there …",
     "onboarding.captured": "Got it — that's all.",
-
-    "landing.eyebrow": "Nail Guard Desktop",
-    "landing.title": "Nail Guard Desktop",
-    "landing.heroTitle": "Your all-day companion against nail biting.",
-    "landing.heroBody":
-      "The web app helps while the tab is open. The desktop app stays with you through the whole workday: it starts at login, sits quietly in the menu bar and nudges you with gentle system notifications – without a single image ever leaving your computer.",
-    "landing.prop1Title": "All day long",
-    "landing.prop1Body":
-      "Launches at login and watches in the background – no open browser tab required.",
-    "landing.prop2Title": "100% private",
-    "landing.prop2Body":
-      "All processing happens locally on your device. No cloud, no accounts, no tracking.",
-    "landing.prop3Title": "Gentle nudges",
-    "landing.prop3Body":
-      "System notifications and subtle on-screen cues instead of loud alarms.",
-    "landing.waitlistTitle": "Join the waitlist",
-    "landing.waitlistBody":
-      "Leave your email and be the first to know when the desktop app for macOS and Windows is ready.",
-    "landing.emailLabel": "Email address",
-    "landing.emailPlaceholder": "you@email.com",
-    "landing.submit": "Join",
-    "landing.success": "Thanks! You're on the list.",
-    "landing.invalid": "Please enter a valid email address.",
-    "landing.error": "That didn't work just now. Please try again later.",
-    "landing.notConfigured": "The waitlist isn't live yet. Please check back soon.",
-    "landing.privacy": "Your email is only used to notify you about the desktop app.",
-    "landing.tryWeb": "Try it in your browser now",
 
     replacements: [
       "Make a fist for 10 seconds",
@@ -485,7 +439,7 @@ const translations = {
       "Open the app via HTTPS or locally via http://localhost, not directly as a file.",
     "errors.importFailed": "The backup file could not be imported.",
     "errors.importFailedHint1":
-      "Please use an unmodified nailguard-backup-….json file from the export.",
+      "Please use an unmodified tawel-backup-….json file from the export.",
     "errors.generic": "The app could not start.",
     "errors.genericHint1": "The very first start needs an internet connection — after that everything runs locally.",
     "errors.genericHint2": "Check the browser's camera permission.",
