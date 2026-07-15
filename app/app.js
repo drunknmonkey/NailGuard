@@ -54,20 +54,6 @@ const CALIBRATION_PRESETS = {
   precise: { distanceThreshold: 0.115, holdSeconds: 1.2, cooldownSeconds: 10 },
 };
 
-// Small, bounded adjustments derived from the user's feedback on each
-// intervention. False alarms make detection stricter, confirmed hits
-// slightly more eager; face touches sit in between.
-const AUTO_TUNE = {
-  rules: {
-    falseAlarm: { thresholdFactor: 0.93, holdDelta: 0.2 },
-    faceTouch: { thresholdFactor: 0.97, holdDelta: 0 },
-    confirmed: { thresholdFactor: 1.02, holdDelta: -0.1 },
-  },
-  thresholdMin: 0.045,
-  thresholdMax: 0.14,
-  holdMin: 0.5,
-  holdMax: 4,
-};
 const els = {
   startPanel: document.querySelector("#startPanel"),
   workspace: document.querySelector("#workspace"),
@@ -112,7 +98,6 @@ const els = {
   testWarningButton: document.querySelector("#testWarningButton"),
   presetButtons: [...document.querySelectorAll(".preset-button")],
   vibrationToggle: document.querySelector("#vibrationToggle"),
-  autoTuneToggle: document.querySelector("#autoTuneToggle"),
   faceTouchToggle: document.querySelector("#faceTouchToggle"),
   officeDotToggle: document.querySelector("#officeDotToggle"),
   alertPanel: document.querySelector("#alertPanel"),
@@ -359,7 +344,7 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.autoTuneToggle, els.faceTouchToggle, els.officeDotToggle]) {
+  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.faceTouchToggle, els.officeDotToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
       if (!state.settings.showOverlay) clearOverlay();
@@ -721,11 +706,10 @@ function showNeutralIntervention() {
 // Ersetzt die frühere Treffer/Fehlalarm/Gesichtsberührung-Abfrage: jede
 // erkannte Nähe gilt automatisch als Treffer, ohne Nachfrage. Kein
 // Datenverlust im Tracking (Review-Zähler + „Ruhige Zeit" bleiben aktuell),
-// nur die Klassifizierung per Klick entfällt. autoTuneFromFeedback wird
-// bewusst NICHT mehr aufgerufen: das Feintuning beruhte auf dem Gegensignal
-// „Fehlalarm", das es ohne Abfrage nicht mehr gibt – würde man "confirmed"
-// weiterhin automatisch füttern, würde die Empfindlichkeit ungebremst zum
-// Maximum driften.
+// nur die Klassifizierung per Klick entfällt. Das frühere Auto-Tune
+// (Feinjustierung aus Treffer-/Fehlalarm-Rückmeldungen) wurde mitsamt
+// Schalter entfernt: ohne Abfrage gibt es kein Gegensignal „Fehlalarm"
+// mehr, eine Lernfunktion wäre ein leeres Versprechen.
 function resolveInterventionSilently() {
   ensureTodayStats();
 
@@ -741,34 +725,6 @@ function resolveInterventionSilently() {
   refreshAppState();
   saveStats();
   renderStats();
-}
-
-function autoTuneFromFeedback(kind) {
-  if (!state.settings.autoTune) return;
-  const rule = AUTO_TUNE.rules[kind];
-  if (!rule) return;
-
-  const threshold = clamp(
-    state.settings.distanceThreshold * rule.thresholdFactor,
-    AUTO_TUNE.thresholdMin,
-    AUTO_TUNE.thresholdMax,
-  );
-  const hold = clamp(state.settings.holdSeconds + rule.holdDelta, AUTO_TUNE.holdMin, AUTO_TUNE.holdMax);
-
-  state.settings = {
-    ...state.settings,
-    // Quantize to the slider grids so stored and displayed values stay identical
-    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
-    holdSeconds: quantize(hold, Number(els.holdSeconds.step) || 0.1),
-    calibrationPreset: "custom",
-  };
-  applySettingsToUi();
-  saveSettings();
-  renderSettings();
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
 }
 
 function quantize(value, step) {
@@ -1184,7 +1140,6 @@ function settingsFromUi() {
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
     vibration: els.vibrationToggle.checked,
-    autoTune: els.autoTuneToggle.checked,
     faceTouchAlert: els.faceTouchToggle.checked,
     officeStatusDot: els.officeDotToggle.checked,
     neutralSubtleInterventions: els.neutralSubtleToggle.checked,
@@ -1204,7 +1159,6 @@ function applySettingsToUi() {
     : "bubblePop";
   els.soundVolume.value = state.settings.soundVolume;
   els.vibrationToggle.checked = state.settings.vibration;
-  els.autoTuneToggle.checked = state.settings.autoTune;
   els.faceTouchToggle.checked = state.settings.faceTouchAlert;
   els.officeDotToggle.checked = state.settings.officeStatusDot;
   els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
@@ -1279,7 +1233,8 @@ function loadSettings() {
     soundVolume: 0.35,
     cameraDeviceId: null,
     vibration: true,
-    autoTune: true,
+    // Hinweis: ein evtl. gespeichertes "autoTune"-Feld aus früheren
+    // Versionen wird beim Laden mitgeschleppt, aber nirgends mehr gelesen.
     faceTouchAlert: false,
     officeStatusDot: true,
     neutralSubtleInterventions: true,

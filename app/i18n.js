@@ -113,9 +113,6 @@ const translations = {
     "calibration.warmth": "Farbwarnung",
     "calibration.sound": "Ton",
     "calibration.vibration": "Vibration",
-    "calibration.autoTune": "Automatisch anpassen",
-    "calibration.autoTuneHint":
-      "Tawel justiert Empfindlichkeit und Haltezeit anhand deiner Rückmeldungen (Treffer / Fehlalarm) nach.",
     "calibration.volume": "Lautstärke",
     "calibration.testSound": "Test",
     "calibration.recalibrate": "Abstand neu einrichten",
@@ -331,9 +328,6 @@ const translations = {
     "calibration.warmth": "Color cue",
     "calibration.sound": "Sound",
     "calibration.vibration": "Vibration",
-    "calibration.autoTune": "Auto-adjust",
-    "calibration.autoTuneHint":
-      "Tawel fine-tunes sensitivity and hold time based on your feedback (hit / false alarm).",
     "calibration.volume": "Volume",
     "calibration.testSound": "Test",
     "calibration.recalibrate": "Redo distance setup",
