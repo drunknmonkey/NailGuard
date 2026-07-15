@@ -37,17 +37,17 @@
         <div class="start-copy">
           <h2 id="startTitle">Ein ruhiger Coach für fokussierte Momente.</h2>
           <p id="startBody">
-            Starte die Kamera, wähle deinen Modus und lass Tawel leise im Hintergrund mitlaufen.
-            Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.
+            Starte die Kamera und lass Tawel ruhig mitlaufen, während du arbeitest.
+            Kamerabilder und Videos werden weder gespeichert noch hochgeladen.
           </p>
           <p class="privacy-note" id="startPrivacyNote">
-            MediaPipe Bibliothek, WASM und Modelle werden aktuell extern geladen.
-            Kameradaten bleiben im Browser.
+            Die Auswertung läuft komplett in deinem Browser. Beim Start lädt Tawel nur
+            eigene App-Dateien und Erkennungsmodelle — niemals deine Kameradaten.
           </p>
         </div>
         <div class="start-actions">
           <button class="primary-action" id="startButton" type="button" data-i18n="start.button">Kamera starten</button>
-          <a class="text-action desktop-link" href="/#warteliste" data-i18n="start.desktopLink">Desktop-App kommt bald – zur Warteliste</a>
+          <a class="text-action desktop-link" href="/#warteliste" data-i18n="start.desktopLink">Mac-App in Entwicklung – zur Warteliste</a>
         </div>
         <ol class="start-steps" aria-label="So funktioniert's">
           <li>
@@ -56,11 +56,11 @@
           </li>
           <li>
             <strong data-i18n="start.step2">Kurz kalibrieren</strong>
-            <span data-i18n="start.step2Desc">Finger zum Mund führen: Tawel lernt deinen persönlichen Abstand.</span>
+            <span data-i18n="start.step2Desc">Finger zum Mund führen: So richtet Tawel deinen persönlichen Abstand ein.</span>
           </li>
           <li>
             <strong data-i18n="start.step3">Einfach weiterarbeiten</strong>
-            <span data-i18n="start.step3Desc">Sanfte Hinweise wenn nötig, sonst läuft alles unsichtbar im Hintergrund.</span>
+            <span data-i18n="start.step3Desc">Sanfte Hinweise, wenn nötig — lass den Tab dafür sichtbar geöffnet.</span>
           </li>
         </ol>
       </section>
@@ -75,7 +75,7 @@
 
           <div class="state-block" aria-live="polite">
             <p class="state-word" id="stateWord">Ruhig</p>
-            <p class="state-hint" id="stateHint">Tawel begleitet dich im Hintergrund — alles bleibt auf deinem Gerät</p>
+            <p class="state-hint" id="stateHint">Tawel läuft ruhig mit — alles bleibt auf deinem Gerät</p>
           </div>
 
           <div class="stats">
@@ -293,7 +293,7 @@
               <h3 data-i18n="settings.privacyTitle">Privatsphäre</h3>
               <div class="privacy-card-note">
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 4v3.6c0 3.4 2.3 5.9 5.5 6.9 3.2-1 5.5-3.5 5.5-6.9V4L8 1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-                <span data-i18n="settings.privacyBody">Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen.</span>
+                <span data-i18n="settings.privacyBody">Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen. Beim Start lädt die App nur eigene Dateien und Erkennungsmodelle — das sind keine Kameradaten.</span>
               </div>
             </div>
 

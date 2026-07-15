@@ -8,7 +8,7 @@ const translations = {
     "neutral.title": "Daily Board",
 
     "state.calm": "Ruhig",
-    "state.calmHint": "Tawel begleitet dich im Hintergrund — alles bleibt auf deinem Gerät",
+    "state.calmHint": "Tawel läuft ruhig mit — alles bleibt auf deinem Gerät",
     "state.warm": "Achtsam",
     "state.warmHint": "Deine Hand ist nah am Gesicht",
     "state.ember": "Innehalten",
@@ -28,23 +28,23 @@ const translations = {
 
     "start.title": "Ein ruhiger Coach für fokussierte Momente.",
     "start.body":
-      "Starte die Kamera, wähle deinen Modus und lass Tawel leise im Hintergrund mitlaufen. Es werden keine Webcam-Bilder oder Videos gespeichert oder hochgeladen.",
+      "Starte die Kamera und lass Tawel ruhig mitlaufen, während du arbeitest. Kamerabilder und Videos werden weder gespeichert noch hochgeladen.",
     "start.privacy":
-      "MediaPipe Bibliothek, WASM und Modelle werden lokal von dieser Website geladen. Kameradaten bleiben im Browser.",
+      "Die Auswertung läuft komplett in deinem Browser. Beim Start lädt Tawel nur eigene App-Dateien und Erkennungsmodelle — niemals deine Kameradaten.",
     "start.titleNeutral": "Bereit für einen ruhigen Arbeitstag.",
     "start.bodyNeutral":
       "Diese Seite bleibt lokal in deinem Browser aktiv. Es werden keine Bilder oder Videos gespeichert oder hochgeladen.",
     "start.privacyNeutral":
-      "Bibliothek und Modelle werden lokal von dieser Website geladen. Lokale Daten bleiben auf diesem Gerät.",
+      "Diese Seite lädt beim Start nur eigene Dateien. Lokale Daten bleiben auf diesem Gerät.",
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
-    "start.desktopLink": "Desktop-App kommt bald – zur Warteliste",
+    "start.desktopLink": "Mac-App in Entwicklung – zur Warteliste",
     "start.step1": "Kamera erlauben",
     "start.step1Desc": "Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.",
     "start.step2": "Kurz kalibrieren",
-    "start.step2Desc": "Finger zum Mund führen: Tawel lernt deinen persönlichen Abstand.",
+    "start.step2Desc": "Finger zum Mund führen: So richtet Tawel deinen persönlichen Abstand ein.",
     "start.step3": "Einfach weiterarbeiten",
-    "start.step3Desc": "Sanfte Hinweise wenn nötig, sonst läuft alles unsichtbar im Hintergrund.",
+    "start.step3Desc": "Sanfte Hinweise, wenn nötig — lass den Tab dafür sichtbar geöffnet.",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Einstellungen",
@@ -78,7 +78,7 @@ const translations = {
     "settings.cuesTitle": "Hinweise",
     "settings.privacyTitle": "Privatsphäre",
     "settings.privacyBody":
-      "Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen.",
+      "Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen. Beim Start lädt die App nur eigene Dateien und Erkennungsmodelle — das sind keine Kameradaten.",
     "settings.sensitivityDesc": "Wie nah die Hand dem Mund kommen darf",
     "settings.holdDesc": "Dauer, bis der Hinweis kommt",
     "settings.cooldownDesc": "Pause, bis der nächste Hinweis kommen darf",
@@ -168,7 +168,7 @@ const translations = {
     "onboarding.step2Body": "Heb eine Hand, sodass die Kamera deine Finger sehen kann.",
     "onboarding.step3Title": "Führe einen Finger zum Mund",
     "onboarding.step3Body":
-      "Führe einen Finger langsam zum Mund und halte ihn dort einen Moment. So lernt Tawel deinen Abstand zur Kamera kennen.",
+      "Führe einen Finger langsam zum Mund und halte ihn dort einen Moment. So richtet Tawel den passenden Erkennungsabstand für deine Sitzposition ein.",
     "onboarding.step4Title": "Alles eingestellt",
     "onboarding.step4Body":
       "Die Empfindlichkeit ist jetzt auf deine Kamera und Sitzposition abgestimmt. Du kannst sie jederzeit unter Einstellungen ändern.",
@@ -223,7 +223,7 @@ const translations = {
     "neutral.title": "Daily Board",
 
     "state.calm": "Calm",
-    "state.calmHint": "Tawel runs quietly in the background — everything stays on your device",
+    "state.calmHint": "Tawel runs quietly alongside you — everything stays on your device",
     "state.warm": "Mindful",
     "state.warmHint": "Your hand is close to your face",
     "state.ember": "Hold on",
@@ -243,23 +243,23 @@ const translations = {
 
     "start.title": "A calm coach for focused moments.",
     "start.body":
-      "Start the camera, pick your mode and let Tawel run quietly in the background. No webcam images or videos are stored or uploaded.",
+      "Start the camera and let Tawel run quietly while you work. Camera images and videos are never stored or uploaded.",
     "start.privacy":
-      "The MediaPipe library, WASM and models are served locally by this website. Camera data stays in your browser.",
+      "All analysis runs in your browser. On startup Tawel only loads its own app files and detection models — never your camera data.",
     "start.titleNeutral": "Ready for a calm workday.",
     "start.bodyNeutral":
       "This page runs locally in your browser. No images or videos are stored or uploaded.",
     "start.privacyNeutral":
-      "The library and models are served locally by this website. Local data stays on this device.",
+      "On startup this page only loads its own files. Local data stays on this device.",
     "start.button": "Start camera",
     "start.retry": "Try again",
-    "start.desktopLink": "Desktop app coming soon – join the waitlist",
+    "start.desktopLink": "Mac app in development – join the waitlist",
     "start.step1": "Allow camera",
     "start.step1Desc": "Detection runs entirely in your browser — nothing leaves your device.",
     "start.step2": "Quick calibration",
-    "start.step2Desc": "Bring a finger to your mouth: Tawel learns your personal distance.",
+    "start.step2Desc": "Bring a finger to your mouth: this sets up your personal distance.",
     "start.step3": "Just keep working",
-    "start.step3Desc": "Gentle nudges when needed; otherwise it runs invisibly in the background.",
+    "start.step3Desc": "Gentle nudges when needed — just keep this tab visible and open.",
 
     "tabs.focus": "Focus",
     "tabs.calibration": "Settings",
@@ -293,7 +293,7 @@ const translations = {
     "settings.cuesTitle": "Cues",
     "settings.privacyTitle": "Privacy",
     "settings.privacyBody":
-      "All processing happens entirely on your device. No image or video is ever stored or transmitted.",
+      "All processing happens entirely on your device. No image or video is ever stored or transmitted. On startup the app only loads its own files and detection models — that is never camera data.",
     "settings.sensitivityDesc": "How close your hand may come to your mouth",
     "settings.holdDesc": "Time until the nudge appears",
     "settings.cooldownDesc": "Pause before the next nudge may appear",
@@ -382,7 +382,7 @@ const translations = {
     "onboarding.step2Body": "Raise a hand so the camera can see your fingers.",
     "onboarding.step3Title": "Bring a finger to your mouth",
     "onboarding.step3Body":
-      "Slowly bring a finger to your mouth and hold it there for a moment. This teaches Tawel your distance from the camera.",
+      "Slowly bring a finger to your mouth and hold it there for a moment. This sets up the right detection distance for your seating position.",
     "onboarding.step4Title": "All set",
     "onboarding.step4Body":
       "Sensitivity is now tuned to your camera and seating position. You can change it anytime in Settings.",
