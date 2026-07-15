@@ -107,9 +107,7 @@ const els = {
   importDataButton: document.querySelector("#importDataButton"),
   importDataInput: document.querySelector("#importDataInput"),
   reviewDate: document.querySelector("#reviewDate"),
-  statConfirmed: document.querySelector("#statConfirmed"),
-  statFalse: document.querySelector("#statFalse"),
-  statFace: document.querySelector("#statFace"),
+  reviewSummary: document.querySelector("#reviewSummary"),
   statLongest: document.querySelector("#statLongest"),
   quietDelta: document.querySelector("#quietDelta"),
   hourBars: document.querySelector("#hourBars"),
@@ -965,19 +963,63 @@ function renderStats() {
   const longestQuiet = Math.max(state.stats.longestWarningFreeMs, now - warningStart);
 
   els.focusConfirmed.textContent = state.stats.warnings;
-  els.statConfirmed.textContent = state.stats.confirmed;
-  els.statFalse.textContent = state.stats.falseAlarms;
-  els.statFace.textContent = state.stats.faceTouches;
   els.statLongest.textContent = formatQuietHours(longestQuiet);
 
   els.reviewDate.textContent = t("review.today", {
     date: new Date().toLocaleDateString(dateLocale(), { day: "numeric", month: "long" }),
   });
 
+  renderReviewSummary(longestQuiet);
   renderQuietDelta(longestQuiet);
   renderHourBars();
   renderStreak();
   renderFocusTick();
+}
+
+// Menschliche Tageszusammenfassung über den Detailwerten. Jeder Satz wird
+// nur angezeigt, wenn er aus tatsächlich vorhandenen Daten berechenbar ist:
+// kein Gestern-Vergleich ohne Gestern-Daten, kein Tageszeit-Schwerpunkt
+// ohne klaren Schwerpunkt.
+function renderReviewSummary(longestQuiet) {
+  const sentences = [];
+  const moments = state.stats.warnings;
+
+  if (moments === 0) {
+    sentences.push(t("review.summaryMomentsNone"));
+  } else if (moments === 1) {
+    sentences.push(t("review.summaryMomentsOne"));
+  } else {
+    sentences.push(t("review.summaryMoments", { count: moments }));
+  }
+
+  if (longestQuiet >= 60_000) {
+    sentences.push(t("review.summaryQuiet", { duration: formatQuietHours(longestQuiet) }));
+  }
+
+  // Tageszeit-Schwerpunkt: erst ab 3 Momenten und nur bei eindeutigem Maximum
+  const buckets = { Morning: 0, Afternoon: 0, Evening: 0 };
+  for (const [hour, count] of Object.entries(state.stats.hourly ?? {})) {
+    const h = Number(hour);
+    const bucket = h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening";
+    buckets[bucket] += count;
+  }
+  const ranked = Object.entries(buckets).sort((a, b) => b[1] - a[1]);
+  if (moments >= 3 && ranked[0][1] > ranked[1][1]) {
+    sentences.push(t(`review.summaryPeak${ranked[0][0]}`));
+  }
+
+  const yesterday = loadAllStats()[dateKeyFor(addDays(new Date(), -1))];
+  if (typeof yesterday?.warnings === "number") {
+    if (moments < yesterday.warnings) {
+      sentences.push(t("review.summaryCalmer"));
+    } else if (moments > yesterday.warnings) {
+      sentences.push(t("review.summaryBusier"));
+    } else {
+      sentences.push(t("review.summarySame"));
+    }
+  }
+
+  els.reviewSummary.textContent = sentences.join(" ");
 }
 
 function renderFocusTick() {

@@ -99,6 +99,13 @@
           <div class="view-inner">
             <h2 id="reviewDate">Heute</h2>
 
+            <!-- Menschliche Tageszusammenfassung vor den Detailwerten;
+                 enthält nur Aussagen, die aus vorhandenen Daten berechenbar sind -->
+            <div class="card">
+              <h3 data-i18n="review.summaryTitle">Dein Tag in Kürze</h3>
+              <p class="review-summary" id="reviewSummary"></p>
+            </div>
+
             <div class="card">
               <h3 data-i18n="review.statQuiet">Ruhige Zeit</h3>
               <div class="big-row">
@@ -115,13 +122,6 @@
                 <span><i class="legend-calm"></i><span data-i18n="review.legendCalm">ruhig</span></span>
                 <span><i class="legend-peak"></i><span data-i18n="review.legendPeak">häufige Momente</span></span>
               </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="review.feedbackTitle">Dein Feedback</h3>
-              <div class="fb-row"><span data-i18n="review.statConfirmed">Treffer</span><span class="n" id="statConfirmed">0</span></div>
-              <div class="fb-row"><span data-i18n="review.statFace">Gesicht berührt</span><span class="n" id="statFace">0</span></div>
-              <div class="fb-row"><span data-i18n="review.statFalse">Fehlalarme</span><span class="n" id="statFalse">0</span></div>
             </div>
 
             <div class="card streak">
@@ -380,8 +380,8 @@
         </section>
 
         <nav class="mode-tabs" aria-label="App-Modus" data-i18n-aria-label="aria.modeTabs">
-          <button class="mode-tab active" type="button" data-mode="focus" data-i18n="tabs.focus">Focus</button>
-          <button class="mode-tab" type="button" data-mode="review" data-i18n="tabs.review">Review</button>
+          <button class="mode-tab active" type="button" data-mode="focus" data-i18n="tabs.focus">Fokus</button>
+          <button class="mode-tab" type="button" data-mode="review" data-i18n="tabs.review">Rückblick</button>
           <button class="mode-tab" type="button" data-mode="calibration" data-i18n="tabs.calibration">Einstellungen</button>
         </nav>
       </section>
