@@ -74,5 +74,16 @@ Statistiken liegen in `localStorage`.
 ## Deployment
 
 Statische Site auf Cloudflare Pages, kein Build-Prozess (Output
-directory `/`). Details in `docs/DEPLOYMENT.md`, Produktentscheidungen
-chronologisch in `docs/decisions.md`.
+directory `/`). Details in `docs/DEPLOYMENT.md`.
+
+## Für Coding-Agents
+
+Mehrere Coding-Agents arbeiten in getrennten Sessions an Tawel. Vor jeder
+Änderung gilt die gemeinsame Arbeitsanweisung:
+
+- **[`AGENTS.md`](AGENTS.md)** — führende Arbeitsanweisung für alle Agents
+  (Produkt, Quellen-Hierarchie, Pflicht-Lektüre, Arbeitsregeln, PR-Template).
+- **[`CLAUDE.md`](CLAUDE.md)** — Claude-Code-Spezifisches (Notion-MCP, Sandbox-Grenzen).
+- **[`docs/product-status.md`](docs/product-status.md)** — datierter Produkt-Snapshot
+  (Master bleibt Notion).
+- **[`docs/decisions.md`](docs/decisions.md)** — chronologische technische Entscheidungen.

@@ -1,101 +1,49 @@
-# Tawel (Repo: NailGuard) – Entwicklungskontext
+# CLAUDE.md — Claude Code am Tawel-Projekt
 
-## Was ist Tawel?
+> **[`AGENTS.md`](AGENTS.md) ist die führende Arbeitsanweisung** (Produkt,
+> Quellen-Hierarchie, Pflicht-Lektüre, Arbeitsregeln, PR-Template,
+> Notion-Schreibregeln, Kontext zu Paul). Diese Datei ergänzt **nur
+> Claude-Code-Spezifisches** und wiederholt AGENTS.md nicht.
 
-Ruhige, private Unterstützung gegen unbewusstes Hand-zum-Mund-Verhalten /
-Nägelkauen. MediaPipe läuft vollständig lokal im Browser (kein Cloud-Backend,
-kein Videospeicher). Produktname sichtbar überall **Tawel**; Repo und
-technische Bezeichner (localStorage-Keys, `nailguard:intervention`-Event)
-heißen historisch NailGuard und bleiben so (Migrationsrisiko ohne Nutzen).
+Zuerst lesen: `AGENTS.md` → `docs/decisions.md` → `docs/product-status.md` →
+aufgabenrelevante Doku → aktueller `main`.
 
-### Produktebenen
+## Notion-Zugriff (MCP)
 
-- **Web-Version** (`/app`): dauerhaft kostenlos. Ehrliche Einschränkung
-  überall kommunizieren: Der Tab muss geöffnet und sichtbar bleiben –
-  im Hintergrund drosseln Browser Kamera und Verarbeitung.
-- **Mac-App** (via Tauri 2.x): das Kernprodukt, in Entwicklung. Soll
-  zuverlässig im Hintergrund laufen; Bildschirmrand-Glühen mit
-  Unsichtbarkeit in Calls/Screen-Sharing/Aufnahmen ist ein ZIEL (nur im
-  Spike validiert) – immer als „geplant/soll" formulieren, nie als Fakt.
-- **Preismodell offen**: Einmalkauf oder Jahresabo, Entscheidung steht
-  aus. Keine definitiven Preisaussagen auf Landing/App; Vertrieb
-  voraussichtlich über einen Merchant of Record.
-- **Keine Launch-Termine erfinden.** Warteliste ja, „bald verfügbar" nein.
+Claude Code hat in dieser Umgebung Zugriff auf Notion über den Notion-MCP-Server
+— damit ist die **Produkt-Wahrheit direkt lesbar** (nicht nur der Snapshot).
 
-## Architektur
+- **Tawel-Hauptseite** (Master): Produktkern, Entscheidungen, Quellen-Hierarchie,
+  Workflow-Regeln. Session-Start hier (bzw. via Snapshot, falls MCP fehlt).
+- **Datenbanken:** „Tawel – Update Backlog" (Produkt-/Code-Bugs und -Features) ·
+  „Tawel – Go-to-Market" (Launch: Recht, Zahlungen, Marketing). Jeder Eintrag ist
+  self-contained (Entscheidung + Begründung + Status + offene Schritte).
+- **Schreiben:** nach den Notion-Schreibregeln in [`AGENTS.md`](AGENTS.md) §6 —
+  Original-Notizen erhalten, nur annotieren (`→ TYP (Datum, Agent): …`),
+  Attribution + Datum, eine Entscheidung ein Ort. Task-Seiten nie destruktiv
+  überschreiben.
+- In cron-/headless-Läufen kann der interaktiv authentifizierte MCP-Zugriff
+  fehlen — dann `docs/product-status.md` als Fallback nutzen und den Bedarf
+  vermerken, statt zu raten.
 
-```
-index.html   – Shell, alle Views inline
-app.js       – Gesamte App-Logik (Detection, State, Settings, Stats, UI)
-i18n.js      – DE/EN Wörterbücher + t(key, params) Helper
-style.css    – Design-System „Atem & Ruhe" (Tokens, Ring-Animation, alle Views)
-sw.js        – Service Worker (Precache, offline-fähig)
-```
+## Sandbox-Grenzen (Verifikation)
 
-MediaPipe (`vendor/mediapipe/`) und Modelle (`models/`) sind vollständig
-self-hosted – keine CDN-Anfragen. Gesicht + Hand werden mit FaceLandmarker /
-HandLandmarker erkannt.
+- **Ausgehendes Netzwerk ist eingeschränkt.** `tawel.app` / `pages.dev` sind aus
+  der Sandbox **nicht erreichbar** — Live-Verifikation nie behaupten; auf pages.dev
+  prüft **Paul**.
+- **MailerLite lädt nicht:** `assets.mailerlite.com` ist blockiert. Das
+  Warteliste-Embed lässt sich lokal nicht rendern — CSS am dokumentierten
+  ML-Markup ableiten, Sichtprüfung Paul überlassen.
+- **Verifikations-Methode lokal:** `python3 -m http.server` + Playwright
+  (Chromium unter `/opt/pw-browsers`), Kamera per
+  `--use-fake-device-for-media-stream`. Screenshots bei ~390 px (mobil) und
+  ~1280 px (Desktop). Debug-Hooks vor dem Commit entfernen.
 
-### Tauri-Spike (`spike/`, `src-tauri/`)
+## Session-/Umgebungshinweise
 
-Wegwerf-Experiment (nicht Produkt-Code). Misst rAF-Throttling im WKWebView.
-Ergebnis: Camera OK (3-teiliger Fix nötig), rAF im Hintergrund gedrosselt → **Pill-Modus**
-als Lösung (immer sichtbarer Ring, Erkennung bleibt auf voller Rate).
-
-## Design: „Atem & Ruhe"
-
-Referenz: `docs/nailguard-design-referenz.html`
-
-| Token | Wert | Bedeutung |
-|-------|------|-----------|
-| `--mist` | #EDF2ED | Hintergrund |
-| `--paper` | #FAFCFA | Karten |
-| `--pine` | #1E3B34 | Primärtext |
-| `--moss` | #5E7C6C | Sekundärtext |
-| `--breath` | #A8C7B4 | Ring ruhig |
-| `--warm` | #D9914F | Ring warm |
-| `--ember` | #C46A4A | Ring Alarm |
-| `--still` | #B8C2BC | Ring pausiert |
-
-Schriften: Instrument Sans (Display 600 + Body 400) · Spline Sans Mono (Zahlen)
-
-### Zustands-Maschine
-
-`body[data-state]` = calm / warm / ember / paused  
-Gesetzt von `refreshAppState()` in `app.js`. Steuert Ring-Animation (--breath-dur),
-Farben und den Pill-Ring im Tauri-Spike.
-
-## App-Modi
-
-- **Fokus** (focus) – Ring + Status + Timer, Hauptansicht
-- **Rückblick** (review) – menschliche Tageszusammenfassung zuerst, dann
-  Karten mit Tagesstatistik und Streak
-- **Einstellungen** (calibration) – Kamera-Preview, Detection-Slider, Sound, Office-Optionen, Daten
-- **Office Mode** (neutral) – Kernfeature: neutraler Texteditor (Notizen.txt), kein Tawel-Branding,
-  Status-Punkt als einziges verräterisches Element. Verlassen: Klick auf Punkt oder Esc.
-  Nach außen nie „Tarnmodus" nennen – „Office Mode" oder „diskreter Arbeitsmodus".
-
-## Produkt-Grundsätze (Sprache)
-
-- **Kalibrierung ist keine KI**: Die App „lernt" nicht – sie „richtet den
-  persönlichen Abstand ein". Der 4-Schritt-Wizard bleibt erhalten und ist
-  über Einstellungen → „Abstand neu einrichten" wiederholbar.
-- **Kein Auto-Tune**: Der Schalter „Automatisch anpassen" wurde entfernt
-  (die Treffer-/Fehlalarm-Abfrage existiert nicht mehr, ohne Rückmeldung
-  wäre eine Lernfunktion ein leeres Versprechen). Nicht wieder einführen,
-  solange es keine belastbare Rückmeldequelle gibt.
-- **Datenschutz einheitlich und ohne Jargon**: Auswertung lokal;
-  Bilder/Videos werden weder gespeichert noch hochgeladen; beim Start
-  lädt die App nur eigene Dateien und Erkennungsmodelle – das sind keine
-  Kameradaten. Begriffe wie WASM/CSP/MediaPipe nicht in Startscreens.
-
-## Konventionen
-
-- Kein externer API-Aufruf aus `app.js`. Alle Daten in `localStorage`.
-- i18n über `t(key)` / `t(key, { count })` – nie Rohstring in JS oder HTML.
-- Klassen und IDs auf Englisch, Nutzer-sichtbare Strings nur über i18n.js.
-- Settings werden mit `saveSettings()` sofort persistiert.
-- Stats werden mit `saveStats()` in einem tagesgruppierten Objekt gespeichert.
-- Commits auf Deutsch (Betreff + Body), PR-Beschreibungen auf Deutsch.
-- Keine `console.log`-Aufrufe im Produktiv-Code.
-- Keine externen Dependencies außer den self-hosted MediaPipe-Dateien.
+- Remote-Ausführungsumgebung: frisch geklontes Repo, ephemer — Arbeit committen
+  und pushen, sonst geht sie verloren.
+- GitHub nur über die GitHub-MCP-Tools (kein `gh`/`git`-Push-Ersatz für PRs);
+  Repo-Scope auf `drunknmonkey/nailguard`.
+- Kein PR ohne ausdrücklichen Wunsch; **niemals** selbständig in `main` mergen
+  (siehe AGENTS.md §4).
