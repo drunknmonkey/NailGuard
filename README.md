@@ -157,14 +157,14 @@ Im Office Mode werden im sichtbaren UI keine Begriffe zum eigentlichen Tracking-
 - Es gibt keine Accounts, keine externe Datenbank und kein Tracking.
 - Statistiken und Einstellungen bleiben ausschließlich lokal im Browser-Speicher (`localStorage`) des jeweiligen Geräts.
 - Die Verarbeitung der Kameraframes findet lokal im Browser statt.
-- Die Content-Security-Policy erlaubt nur die App selbst sowie Google Fonts für die Schriften.
+- Die Content-Security-Policy der App erlaubt Skripte, Styles und Schriften nur von der eigenen Herkunft.
 
 MediaPipe wird vollständig self-hosted ausgeliefert, es werden keine MediaPipe-CDNs mehr angefragt:
 
 - `@mediapipe/tasks-vision@0.10.15` als ES-Modul samt WASM-Dateien unter `vendor/mediapipe/tasks-vision/`
 - FaceLandmarker- und HandLandmarker-Modelle (float16) unter `models/`
 
-Extern geladen werden nur noch die Schriften über Google Fonts (`fonts.googleapis.com` / `fonts.gstatic.com`), mit System-Fallbacks.
+Die Schriften werden vollständig self-hosted unter `app/fonts/` ausgeliefert. Als externer Dienst lädt nur die Landingpage das MailerLite-Wartelistenformular von `assets.mailerlite.com`; Datenschutz- und Impressumsseite laden dieses Script nicht.
 
 Der Service Worker (`sw.js`) cacht alle Dateien nach dem ersten erfolgreichen Laden lokal. Damit funktioniert die App nach dem ersten Lauf auch offline.
 
@@ -173,7 +173,7 @@ Der Service Worker (`sw.js`) cacht alle Dateien nach dem ersten erfolgreichen La
 Die App folgt einer eigenen Designsprache: ruhiger Begleiter statt Überwachungs-Tool.
 
 - **Tokens** (in `style.css` unter `:root`): Flächen `--mist`/`--paper`, Text `--pine`/`--moss`, Zustände `--breath` (ruhig), `--warm` (Hand nähert sich), `--ember` (Intervention). Für Text in Warnzuständen immer die dunklen Varianten `--warm-text`/`--ember-text` verwenden (Lesbarkeit).
-- **Schriften**: Fraunces (Display), Atkinson Hyperlegible (Body), Spline Sans Mono (Zahlen, `tabular-nums`) — geladen über Google Fonts, mit System-Fallbacks; der Service Worker cacht die Fonts nach dem ersten Laden.
+- **Schriften**: Instrument Sans (Display und Body), Spline Sans Mono (Zahlen, `tabular-nums`) — self-hosted unter `app/fonts/`; der Service Worker cacht die Fonts nach dem ersten Laden.
 - **Signatur-Element**: der atmende Status-Ring im Focus-Modus. Der Zustand liegt als `data-state` auf `<body>` (`calm` 4,6 s Atemzyklus → `warm` 2,6 s → `ember` 1,6 s → `paused` steht). Gesteuert wird er zentral über `refreshAppState()` in `app.js`.
 - **Intervention**: Vollbild-Veil in `--pine` („Kurz innehalten") mit den drei Feedback-Optionen.
 - **Office Mode** verwendet dieses Design **bewusst nicht** (Tarnung): neutrale System-Schrift, graue Flächen, keine Markenbegriffe. Nur der kleine Status-Punkt übernimmt diskret dieselbe Farblogik wie der Ring.
@@ -205,7 +205,7 @@ Die zentrale Intervention ist vorbereitet, damit eine spätere Mac-App statt des
 - Der Browser darf die echte Mac-Bildschirmhelligkeit oder globale Bildschirmfarbe nicht verändern.
 - Systemweites Abdunkeln, ein globales Overlay oder Steuerung von Display-Farbfiltern ist erst mit einer Mac-App möglich, z. B. Electron, Tauri oder einer nativen Swift-App.
 - Firmen-PCs können Kamera, WebAssembly oder WebGL/GPU per Browser-/Netzwerk-Policy blockieren.
-- Manche Firmen-Proxys oder Browser-Erweiterungen blockieren `fonts.googleapis.com`; dann greifen die System-Fallback-Schriften.
+- Manche Firmen-Proxys oder Browser-Erweiterungen blockieren externe Wartelisten-Embeds wie `assets.mailerlite.com`; dann ist das Formular nicht nutzbar.
 - In verwalteten Browsern kann `localStorage` gelöscht, deaktiviert oder beim Schließen bereinigt werden; dann bleiben Statistik und Settings nicht dauerhaft erhalten.
 - Das MVP unterscheidet nicht sicher zwischen Nägelkauen, Lippen berühren, Trinken oder anderen Hand-zum-Gesicht-Bewegungen. Deshalb wird die Warnung manuell klassifiziert.
 - Licht, Kamerawinkel, verdeckte Finger und schnelle Bewegungen beeinflussen die Erkennung.

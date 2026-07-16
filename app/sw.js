@@ -82,4 +82,3 @@ async function staleWhileRevalidate(request) {
 
   return cached ?? (await networkPromise) ?? Response.error();
 }
-
