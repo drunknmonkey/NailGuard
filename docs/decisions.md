@@ -255,7 +255,7 @@ Vollbild-Overlay widerspricht dem eigenen Markenversprechen
 
 ## 2026-07-14 – Landingpage-Politur Runde 2 + Fonts self-hosted
 
-Sieben visuelle Fixes nach Pauls Feedback plus Schrift-Testseite,
+Sieben visuelle Fixes nach Pauls Feedback plus temporärer Schriftvergleichsseite,
 Leitprinzip Einfachheit (bei jedem Fix gefragt: kann etwas WEG?).
 Branch `landing/polish-runde-2`.
 
@@ -295,7 +295,7 @@ Branch `landing/polish-runde-2`.
   verschärft, Fonts im SW-Precache (v7), Google-Runtime-Caching aus
   sw.js entfernt. Kursives Fraunces wird weiterhin vom Browser
   synthetisiert (wie zuvor: die CDN-Einbindung lud auch keine Italics).
-- **Schrift-Testseite `/schrift-test`:** Hero dreimal gestapelt –
+- **Temporäre Schriftvergleichsseite:** Hero dreimal gestapelt –
   A Status quo, B Sora-Headline, C Instrument Sans durchgängig
   (Kandidaten-Wahl aus den „z.B."-Vorgaben). Testfonts liegen lokal,
   laden aber nur dort. Nicht verlinkt, noindex. Stolperstein
@@ -329,7 +329,7 @@ Folge-Änderungen auf demselben Branch/PR (#25).
   es liegt kein echter Italic-Schnitt vor, und ein synthetischer
   Browser-Schrägsatz sähe nachlässig aus. Fraunces/Atkinson/Sora aus
   dem Repo entfernt (Font-Budget: nur noch Instrument Sans + Mono,
-  ~66 KB), /schrift-test gelöscht. App-Screens (Focus/Review/Settings,
+  ~66 KB); die temporäre Schriftvergleichsseite wurde gelöscht. App-Screens (Focus/Review/Settings,
   echt gestartet mit Fake-Kamera) gegengeprüft – Hierarchie trägt.
 - **Grundsatz Ring-Farbe: Der Ring auf der Landing zeigt den
   RUHEZUSTAND (grün). Ember bleibt der Warnfarbe vorbehalten.** Der
@@ -419,3 +419,24 @@ die Landing – die neutrale Preis-Sektion und der Preis-Halbsatz in der
 Warteliste wurden wieder entfernt. „Kostenlos" bei der Web-Version
 bleibt (das ist Produktversprechen, kein Preismodell). Sobald das
 Modell entschieden ist, bekommt der Preis eine eigene Sektion.
+
+---
+
+## 2026-07-16 – Nachbesserungen nach unabhängigem Codex-Review zu PR #25
+
+- **Referenzdatei:** `docs/nailguard-design-referenz.html` verwendet jetzt dieselben
+  self-hosted WOFF2-Dateien wie die App. Es gibt dort keinen Google-Fonts-Request;
+  die Datei bleibt als statische Design-Referenz im Repository.
+- **MailerLite:** Das Universal-Script wird nur noch auf `index.html` mit dem
+  tatsächlichen `.ml-embedded`-Formular geladen. `datenschutz.html` und
+  `impressum.html` laden keinen MailerLite-Code mehr.
+- **Design-Tokens:** Ring- und Visualwerte sowie die externe reCAPTCHA-Skalierung
+  sind als benannte Tokens in `app/style.css :root` zentralisiert; die Checkboxgröße
+  verwendet den bestehenden `--space-4`-Token.
+- **Service Worker:** Überflüssige Leerzeilen am Dateiende entfernt; Cache-Version
+  bleibt unverändert.
+- **Temporäre Schriftvergleichsseite:** Die Vergleichsseite wurde im finalen Stand entfernt;
+  im Repository und in der App gibt es keinen Restpfad dazu.
+- **Scope:** Die gemeinsame Font-Typografie wirkt bewusst global auf Landing, App und
+  Rechtsseiten; das ist die bereits dokumentierte Entscheidung des geteilten
+  Design-Systems.

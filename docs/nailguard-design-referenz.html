@@ -16,7 +16,7 @@
     Zustände  --breath (ruhig) / --warm (Hand nähert sich) / --ember (Intervention)
               Für TEXT in Warnzuständen immer die dunklen Varianten
               --warm-text / --ember-text verwenden (Lesbarkeit!).
-    Schriften Fraunces (Display) · Atkinson Hyperlegible (Body)
+    Schriften Instrument Sans (Display + Body)
               · Spline Sans Mono (Zahlen, tabular-nums)
 
   Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
@@ -36,10 +36,23 @@
   Der Office Mode verwendet dieses Design BEWUSST NICHT (Tarnung).
   ════════════════════════════════════════════════════════════
 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Atkinson+Hyperlegible:wght@400;700&family=Spline+Sans+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preload" href="../app/fonts/instrument-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../app/fonts/spline-sans-mono-300-500-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face{
+  font-family:'Instrument Sans';
+  font-style:normal;
+  font-weight:400 700;
+  font-display:swap;
+  src:url('../app/fonts/instrument-sans-400-700-latin.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Spline Sans Mono';
+  font-style:normal;
+  font-weight:300 500;
+  font-display:swap;
+  src:url('../app/fonts/spline-sans-mono-300-500-latin.woff2') format('woff2');
+}
 :root{
   /* — Flächen — */
   --mist:#EDF2ED; --paper:#FAFCFA;
@@ -53,8 +66,8 @@
   /* — Linien — */
   --line:#D5E0D8;
 
-  --font-display:'Fraunces',serif;
-  --font-body:'Atkinson Hyperlegible',sans-serif;
+  --font-display:'Instrument Sans',system-ui,-apple-system,sans-serif;
+  --font-body:'Instrument Sans',system-ui,-apple-system,sans-serif;
   --font-data:'Spline Sans Mono',monospace;
 
   --ring-color:var(--breath);

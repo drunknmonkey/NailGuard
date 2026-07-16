@@ -130,6 +130,19 @@
   --ease-calm: cubic-bezier(0.33, 0, 0.2, 1);
   --ease-breath: cubic-bezier(0.37, 0, 0.63, 1); /* sinusförmiges Atmen */
 
+  /* — Landing-Visuals — */
+  --hero-ring-stroke: 2px;
+  --hero-ring-inner-opacity: 0.7;
+  --demo-bar-height: 8%;
+  --demo-glow-size: clamp(18px, 4vw, 36px);
+  --demo-glow-edge: 5px;
+  --demo-glow-alpha: 62%;
+  --demo-glow-edge-alpha: 40%;
+
+  /* Externes MailerLite-Widget: bewusst eigener Integrations-Token,
+     damit die reCAPTCHA-Skalierung nicht als Einzelwert im Selektor liegt. */
+  --recaptcha-scale: 0.85;
+
   --ring-color: var(--breath);
   --breath-dur: 4.6s; /* Atem-Tempo; Zustände beschleunigen: warm 2.6s, ember 1.6s */
 }
@@ -1677,11 +1690,11 @@ body[data-office-dot="off"] .office-dot {
 }
 
 .hero .ring {
-  border-width: 2px;
+  border-width: var(--hero-ring-stroke);
 }
 
 .hero .ring.inner {
-  opacity: 0.7;
+  opacity: var(--hero-ring-inner-opacity);
 }
 
 /* ─ Warteliste: MailerLite auf hellem Karten-Hintergrund ─ */
@@ -1730,8 +1743,8 @@ body[data-office-dot="off"] .office-dot {
 
 .ml-embedded input[type="checkbox"] {
   accent-color: var(--pine);
-  width: 16px !important;
-  height: 16px !important;
+  width: var(--space-4) !important;
+  height: var(--space-4) !important;
 }
 
 /* reCAPTCHA (falls im Formular aktiv): so dezent wie möglich – etwas
@@ -1739,7 +1752,7 @@ body[data-office-dot="off"] .office-dot {
    Block einfach und hinterlässt keinen Leerraum */
 .ml-embedded [class*="recaptcha"] {
   margin: var(--space-3) 0 !important;
-  transform: scale(0.85);
+  transform: scale(var(--recaptcha-scale));
   transform-origin: 0 0;
 }
 
@@ -1917,7 +1930,7 @@ body[data-office-dot="off"] .office-dot {
   content: "";
   position: absolute;
   inset: 0 0 auto;
-  height: 8%;
+  height: var(--demo-bar-height);
   background: color-mix(in srgb, var(--mist) 65%, var(--paper));
   border-bottom: 1px solid var(--line);
 }
@@ -1929,8 +1942,8 @@ body[data-office-dot="off"] .office-dot {
   inset: 0;
   pointer-events: none;
   box-shadow:
-    inset 0 0 clamp(18px, 4vw, 36px) color-mix(in srgb, var(--ember) 62%, transparent),
-    inset 0 0 5px color-mix(in srgb, var(--ember) 40%, transparent);
+    inset 0 0 var(--demo-glow-size) color-mix(in srgb, var(--ember) var(--demo-glow-alpha), transparent),
+    inset 0 0 var(--demo-glow-edge) color-mix(in srgb, var(--ember) var(--demo-glow-edge-alpha), transparent);
   animation: demo-breathe var(--breath-dur) var(--ease-breath) infinite;
 }
 
