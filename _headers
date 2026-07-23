@@ -1,5 +1,5 @@
 # Cloudflare Pages Cache-Regeln.
-# style.css wird von vier Seiten geteilt (Landing, App, Legal) – sie muss
+# style.css wird von allen Web-Flächen und der Design-Referenz geteilt – sie muss
 # bei jedem Besuch revalidieren (ETag/304), sonst trifft nach einem Deploy
 # neues HTML auf altes CSS (Klassen fehlen, Fonts fallen auf Fallbacks).
 /app/style.css

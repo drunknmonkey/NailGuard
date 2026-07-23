@@ -77,14 +77,20 @@ vertieft wird: 1px-Kontur `--moss` auf Chart-Balken (S).
 
 ## Phase 4 – Referenz-Lücken (nur Bericht)
 
-`docs/nailguard-design-referenz.html` zeigt Focus / Review / Einstellungen.
-**Es fehlen reale App-Zustände:**
+Zum Zeitpunkt dieses Audits zeigte `docs/design-referenz.html` nur Focus /
+Review / Einstellungen. **Damals fehlten reale App-Zustände:**
 - Start-Panel (First-Run) und Fehlerzustand (`.error-message`)
 - Onboarding-Wizard (4 Schritte, Blur-Overlay)
 - Interventions-Panel (Pine-Vollbild-Schleier) — der wichtigste Moment der App
 - paused-Zustand (Still-Ring) als eigenes Bild
 - Office Mode (bewusst markenfrei — trotzdem als Referenz-Screen wertvoll)
 - Landing (tawel.app) und Pill-Modus (Tauri) als neue Oberflächen
+
+**Nachtrag 2026-07-21 (Codex):** Die Referenz wurde zur lebenden Token-Ansicht
+umgebaut und deckt Buttons/Inputs, Ringzustände, Kamera-Fehler, Review-Leere und
+Office Mode ab. Landing und native Mac-Flächen werden als Geltungsbereich bzw.
+separate Abgleichsflächen dokumentiert; sie werden nicht als erfundene UI
+nachgebaut.
 
 **Dark Mode — Empfehlung (nicht umgesetzt):** Durch die Token-Basis jetzt
 realistisch als reine `:root`-Umbelegung unter

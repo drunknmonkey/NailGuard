@@ -424,7 +424,7 @@ Modell entschieden ist, bekommt der Preis eine eigene Sektion.
 
 ## 2026-07-16 – Nachbesserungen nach unabhängigem Codex-Review zu PR #25
 
-- **Referenzdatei:** `docs/nailguard-design-referenz.html` verwendet jetzt dieselben
+- **Referenzdatei:** `docs/design-referenz.html` verwendet jetzt dieselben
   self-hosted WOFF2-Dateien wie die App. Es gibt dort keinen Google-Fonts-Request;
   die Datei bleibt als statische Design-Referenz im Repository.
 - **MailerLite:** Das Universal-Script wird nur noch auf `index.html` mit dem
@@ -511,3 +511,29 @@ nicht ersetzt; dieser Eintrag dokumentiert nur die konkrete Ausführung.
 - **Technik:** Der Hero wird priorisiert geladen; das Office-Bild ist lazy.
   MailerLite bleibt ausschließlich auf der Landingpage (Konto 2482602,
   Formular `CmB4SX`). Bewegungen respektieren `prefers-reduced-motion`.
+
+---
+
+## 2026-07-21 – Design-Referenz als lebende Dokumentation
+
+Umsetzung durch Codex nach dem von Claude eingebrachten PR-C-Vorschlag und
+Pauls Freigabe am 2026-07-21.
+
+- **Umbenennung:** Die frühere NailGuard-Referenz heißt jetzt
+  `docs/design-referenz.html`, weil Tawel der sichtbare Produktname ist.
+- **Eine Quelle:** Die Referenz importiert das produktive `app/style.css` und
+  definiert keine Produkt-Tokens mehr selbst. Farb-Swatches sowie Typografie,
+  Abstände, Radien, Schatten und Motion lesen ihre Werte live mit
+  `getComputedStyle(document.documentElement).getPropertyValue(...)` aus.
+- **Zustände:** Dokumentiert sind Buttons und Inputs in default, hover,
+  focus-visible, active und disabled; Ring in ruhig, warm, Ember/Warnung und
+  pausiert; Kamera-Fehler, Review ohne Daten und die neutrale Office-Oberfläche.
+  Snooze bleibt sichtbar als noch nicht gebaut markiert, statt einen fiktiven
+  Zustand vorzutäuschen.
+- **Regeln und Scope:** Ember bleibt Warnfarbe, `--office-*` bleibt neutral,
+  neue Produktwerte brauchen Tokens und Textkontraste WCAG AA. Die Tokens
+  gelten für Landing, Web-App und das von Tauri gebündelte Frontend. App-Icon,
+  DMG-Fenster und ein etwaiges Menüleisten-Icon bleiben separate native
+  Abgleichsflächen.
+- **Öffentliche Datei:** Fonts bleiben self-hosted; `robots=noindex` verhindert
+  die gewünschte Suchmaschinen-Indexierung der Referenz.

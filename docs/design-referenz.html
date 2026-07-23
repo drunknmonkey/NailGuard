@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="Lebende Tawel Design-Referenz. Alle Produkt-Tokens und Zustände werden direkt aus app/style.css gerendert."
+    />
+    <title>Tawel – lebende Design-Referenz</title>
+
+    <link
+      rel="preload"
+      href="../app/fonts/instrument-sans-400-700-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="../app/fonts/fraunces-100-900-italic-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="../app/fonts/spline-sans-mono-300-500-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="../app/style.css?v=20260721b" />
+
+    <style>
+      :root {
+        /* Ausschließlich Layoutwerte dieser Dokumentationsseite.
+           Produktwerte kommen unverändert aus ../app/style.css. */
+        --reference-width: 76rem;
+        --reference-swatch-height: 5.5rem;
+        --reference-ring-size: 7rem;
+        --reference-motion-width: 13rem;
+        --reference-motion-height: 2.75rem;
+        --reference-motion-dot: 1.25rem;
+        --reference-office-height: 20rem;
+        --reference-grid-min: 13rem;
+        --reference-rule-width: 46rem;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body.design-reference {
+        min-height: 100dvh;
+        background: var(--mist);
+      }
+
+      .reference-shell {
+        width: min(var(--reference-width), 100%);
+        margin: 0 auto;
+        padding: 0 var(--space-6) var(--space-8);
+      }
+
+      .reference-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-6);
+        padding: var(--space-5) 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .reference-title {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-3);
+        margin: 0;
+        font-size: var(--text-md);
+      }
+
+      .reference-title span {
+        color: var(--moss);
+        font-size: var(--text-sm);
+        font-weight: 400;
+      }
+
+      .live-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-full);
+        background: var(--paper);
+        color: var(--moss);
+        font-size: var(--text-xs);
+      }
+
+      .live-badge::before {
+        content: "";
+        width: var(--space-2);
+        height: var(--space-2);
+        border-radius: 50%;
+        background: var(--breath);
+        box-shadow: 0 0 0 var(--space-1) color-mix(in srgb, var(--breath) 24%, transparent);
+      }
+
+      .reference-intro {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+        gap: var(--space-8);
+        padding: var(--space-8) 0;
+      }
+
+      .reference-intro h1 {
+        max-width: 13ch;
+        margin: 0 0 var(--space-5);
+        font-size: clamp(var(--text-2xl), 5vw, 4rem);
+        line-height: var(--leading-tight);
+        letter-spacing: -0.035em;
+      }
+
+      .reference-intro p {
+        max-width: var(--reference-rule-width);
+        color: var(--moss);
+        line-height: var(--leading-relaxed);
+      }
+
+      .rules-card {
+        align-self: start;
+        padding: var(--space-6);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--paper);
+      }
+
+      .rules-card h2 {
+        margin-bottom: var(--space-4);
+        font-size: var(--text-md);
+      }
+
+      .rules-card ol {
+        display: grid;
+        gap: var(--space-3);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: rules;
+      }
+
+      .rules-card li {
+        counter-increment: rules;
+        display: grid;
+        grid-template-columns: var(--space-6) minmax(0, 1fr);
+        gap: var(--space-2);
+        color: var(--moss);
+        font-size: var(--text-sm);
+        line-height: var(--leading-normal);
+      }
+
+      .rules-card li::before {
+        content: counter(rules);
+        color: var(--pine);
+        font-family: var(--font-data);
+        font-size: var(--text-xs);
+      }
+
+      .scope-note {
+        margin: 0 0 var(--space-8);
+        padding: var(--space-5) var(--space-6);
+        border-left: var(--space-1) solid var(--breath);
+        background: color-mix(in srgb, var(--breath) 16%, var(--paper));
+        color: var(--moss);
+        line-height: var(--leading-relaxed);
+      }
+
+      .scope-note strong {
+        color: var(--pine);
+      }
+
+      .reference-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-bottom: var(--space-8);
+        padding-bottom: var(--space-5);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .reference-nav a {
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-full);
+        background: var(--paper);
+        color: var(--pine);
+        font-size: var(--text-xs);
+        text-decoration: none;
+      }
+
+      .reference-section {
+        padding: var(--space-8) 0;
+        border-bottom: 1px solid var(--line);
+        scroll-margin-top: var(--space-6);
+      }
+
+      .section-heading {
+        display: grid;
+        grid-template-columns: minmax(14rem, 0.7fr) minmax(0, 1.3fr);
+        gap: var(--space-7);
+        margin-bottom: var(--space-7);
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-size: var(--text-xl);
+      }
+
+      .section-heading p {
+        max-width: 42rem;
+        margin: 0;
+        color: var(--moss);
+        line-height: var(--leading-relaxed);
+      }
+
+      .token-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--reference-grid-min)), 1fr));
+        gap: var(--space-4);
+      }
+
+      .token-card {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--paper);
+      }
+
+      .token-meta {
+        display: grid;
+        gap: var(--space-1);
+        padding: var(--space-3) var(--space-4);
+      }
+
+      .token-meta code,
+      .resolved,
+      .resolved-pair {
+        overflow-wrap: anywhere;
+        font-family: var(--font-data);
+        font-size: var(--text-xs);
+      }
+
+      .resolved,
+      .resolved-pair {
+        color: var(--moss);
+      }
+
+      .token-swatch {
+        display: block;
+        height: var(--reference-swatch-height);
+        background: var(--sample-color);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .type-grid {
+        display: grid;
+        gap: var(--space-4);
+      }
+
+      .type-sample {
+        display: grid;
+        grid-template-columns: minmax(9rem, 0.4fr) minmax(0, 1.6fr);
+        align-items: baseline;
+        gap: var(--space-5);
+        padding: var(--space-4) 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .type-sample p {
+        margin: 0;
+        font-size: var(--sample-font-size);
+        line-height: var(--leading-normal);
+      }
+
+      .type-role {
+        color: var(--moss);
+        font-size: var(--text-xs);
+      }
+
+      .accent-rule {
+        margin-top: var(--space-6);
+        padding: var(--space-5);
+        border-radius: var(--radius-md);
+        background: var(--paper);
+        color: var(--moss);
+        line-height: var(--leading-relaxed);
+      }
+
+      .accent-rule strong {
+        color: var(--pine);
+      }
+
+      .scale-grid {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .space-row,
+      .radius-row,
+      .shadow-row {
+        display: grid;
+        grid-template-columns: 8rem minmax(0, 1fr) minmax(8rem, auto);
+        align-items: center;
+        gap: var(--space-4);
+        min-height: var(--space-8);
+      }
+
+      .space-bar {
+        width: var(--sample-space);
+        min-width: var(--space-1);
+        height: var(--space-3);
+        border-radius: var(--radius-full);
+        background: var(--pine);
+      }
+
+      .radius-sample {
+        width: min(100%, 11rem);
+        height: var(--space-8);
+        border: 1px solid var(--line);
+        border-radius: var(--sample-radius);
+        background: var(--paper);
+      }
+
+      .shadow-sample {
+        width: min(100%, 11rem);
+        height: var(--space-8);
+        border-radius: var(--radius-md);
+        background: var(--paper);
+        box-shadow: var(--sample-shadow);
+      }
+
+      .motion-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--reference-grid-min)), 1fr));
+        gap: var(--space-4);
+      }
+
+      .motion-card {
+        padding: var(--space-4);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--paper);
+      }
+
+      .motion-track {
+        position: relative;
+        width: min(100%, var(--reference-motion-width));
+        height: var(--reference-motion-height);
+        margin-bottom: var(--space-3);
+        border-radius: var(--radius-full);
+        background: color-mix(in srgb, var(--breath) 22%, var(--mist));
+      }
+
+      .motion-dot {
+        position: absolute;
+        top: 50%;
+        left: var(--space-2);
+        width: var(--reference-motion-dot);
+        height: var(--reference-motion-dot);
+        border-radius: 50%;
+        background: var(--pine);
+        animation: token-motion var(--motion-duration) var(--motion-ease) infinite alternate;
+      }
+
+      @keyframes token-motion {
+        from {
+          left: var(--space-2);
+          transform: translateY(-50%);
+        }
+        to {
+          left: calc(100% - var(--reference-motion-dot) - var(--space-2));
+          transform: translateY(-50%);
+        }
+      }
+
+      .state-groups {
+        display: grid;
+        gap: var(--space-7);
+      }
+
+      .state-groups h3 {
+        margin-bottom: var(--space-4);
+        font-size: var(--text-md);
+      }
+
+      .state-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--space-3);
+      }
+
+      .state-demo {
+        display: grid;
+        align-content: start;
+        gap: var(--space-3);
+        min-width: 0;
+        padding: var(--space-4);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--paper);
+      }
+
+      .state-label {
+        color: var(--moss);
+        font-family: var(--font-data);
+        font-size: var(--text-xs);
+      }
+
+      .state-demo .demo-button {
+        width: 100%;
+      }
+
+      .state-hover .demo-button {
+        border-color: var(--pine);
+        background: color-mix(in srgb, var(--breath) 12%, var(--paper));
+      }
+
+      .state-focus .demo-button,
+      .state-focus .demo-input {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 3px;
+      }
+
+      .state-active .demo-button {
+        border-color: var(--pine);
+        background: color-mix(in srgb, var(--pine) 8%, var(--paper));
+        transform: translateY(var(--space-1));
+      }
+
+      .demo-input {
+        width: 100%;
+        min-height: var(--landing-field-height);
+        padding: 0 var(--space-3);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-full);
+        background: var(--paper);
+        color: var(--pine);
+      }
+
+      .state-hover .demo-input {
+        border-color: var(--pine);
+      }
+
+      .state-active .demo-input {
+        border-color: var(--pine);
+        box-shadow: inset 0 0 0 var(--space-1) color-mix(in srgb, var(--breath) 25%, transparent);
+      }
+
+      .ring-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--space-4);
+      }
+
+      .ring-state {
+        display: grid;
+        justify-items: center;
+        gap: var(--space-3);
+        padding: var(--space-5);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--paper);
+        text-align: center;
+      }
+
+      .reference-ring {
+        position: relative;
+        width: var(--reference-ring-size);
+        aspect-ratio: 1;
+      }
+
+      .reference-ring::before,
+      .reference-ring::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        animation: reference-breathe var(--demo-ring-duration) var(--ease-breath) infinite;
+      }
+
+      .reference-ring::before {
+        inset: 0;
+        background: radial-gradient(circle, color-mix(in srgb, var(--demo-ring-color) 28%, transparent), transparent 68%);
+        scale: 1.2;
+      }
+
+      .reference-ring::after {
+        inset: var(--space-2);
+        border: 2px solid var(--demo-ring-color);
+      }
+
+      .ring-state[data-ring-state="paused"] .reference-ring::before,
+      .ring-state[data-ring-state="paused"] .reference-ring::after {
+        animation-play-state: paused;
+      }
+
+      @keyframes reference-breathe {
+        0%, 100% {
+          transform: scale(0.965);
+        }
+        50% {
+          transform: scale(1.035);
+        }
+      }
+
+      .ring-state strong {
+        font-size: var(--text-sm);
+      }
+
+      .ring-state .resolved-pair {
+        min-height: var(--space-8);
+      }
+
+      .ring-placeholder {
+        display: grid;
+        place-items: center;
+        width: var(--reference-ring-size);
+        aspect-ratio: 1;
+        border: 1px dashed var(--still);
+        border-radius: 50%;
+        color: var(--moss);
+        font-size: var(--text-xs);
+      }
+
+      .feedback-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-5);
+      }
+
+      .feedback-grid .error-message,
+      .empty-state {
+        margin: 0;
+      }
+
+      .empty-state {
+        display: grid;
+        align-content: center;
+        min-height: 100%;
+        text-align: center;
+      }
+
+      .empty-state p {
+        margin: var(--space-2) auto 0;
+        color: var(--moss);
+        line-height: var(--leading-relaxed);
+      }
+
+      .office-reference {
+        overflow: hidden;
+        min-height: var(--reference-office-height);
+        border: 1px solid var(--office-line);
+        border-radius: var(--radius-md);
+        background: var(--office-paper);
+        color: var(--office-ink);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      .office-toolbar,
+      .office-footer {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-3) var(--space-4);
+        background: var(--office-bar);
+        color: var(--office-text);
+        font-size: var(--text-xs);
+      }
+
+      .office-toolbar {
+        border-bottom: 1px solid var(--office-line);
+      }
+
+      .office-toolbar strong {
+        color: var(--office-ink);
+      }
+
+      .office-page {
+        min-height: calc(var(--reference-office-height) - var(--space-8) * 2);
+        padding: var(--space-7);
+        background: var(--office-paper);
+        color: var(--office-placeholder);
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+        line-height: var(--leading-relaxed);
+      }
+
+      .office-footer {
+        border-top: 1px solid var(--office-line);
+        color: var(--office-muted);
+      }
+
+      .office-footer .office-spacer {
+        flex: 1;
+      }
+
+      .office-demo-dot {
+        width: var(--space-2);
+        height: var(--space-2);
+        border-radius: 50%;
+        background: var(--office-dot-calm);
+      }
+
+      .office-token-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-top: var(--space-4);
+      }
+
+      .office-token-list code {
+        padding: var(--space-1) var(--space-2);
+        border: 1px solid var(--office-line);
+        border-radius: var(--radius-full);
+        background: var(--office-bar);
+        color: var(--office-text);
+        font-family: var(--font-data);
+        font-size: var(--text-xs);
+      }
+
+      .reference-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-5);
+        padding-top: var(--space-7);
+        color: var(--moss);
+        font-size: var(--text-xs);
+      }
+
+      @media (max-width: 900px) {
+        .reference-intro,
+        .section-heading {
+          grid-template-columns: 1fr;
+        }
+
+        .state-grid,
+        .ring-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+      }
+
+      @media (max-width: 640px) {
+        .reference-shell {
+          padding-right: var(--space-4);
+          padding-left: var(--space-4);
+        }
+
+        .reference-header,
+        .reference-footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .reference-intro {
+          padding-top: var(--space-7);
+        }
+
+        .reference-intro h1 {
+          font-size: var(--text-2xl);
+        }
+
+        .space-row,
+        .radius-row,
+        .shadow-row {
+          grid-template-columns: 7rem minmax(0, 1fr);
+        }
+
+        .space-row .resolved,
+        .radius-row .resolved,
+        .shadow-row .resolved {
+          grid-column: 2;
+        }
+
+        .state-grid,
+        .ring-grid,
+        .feedback-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .type-sample {
+          grid-template-columns: 1fr;
+          gap: var(--space-2);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .motion-dot,
+        .reference-ring::before,
+        .reference-ring::after {
+          animation: none;
+        }
+
+        .motion-card::after {
+          content: "Bewegung reduziert";
+          display: block;
+          margin-top: var(--space-2);
+          color: var(--moss);
+          font-size: var(--text-xs);
+        }
+      }
+    </style>
+  </head>
+
+  <body class="design-reference">
+    <div class="reference-shell">
+      <header class="reference-header">
+        <p class="reference-title">tawel <span>Design-Referenz</span></p>
+        <p class="live-badge">live aus app/style.css</p>
+      </header>
+
+      <main>
+        <section class="reference-intro" aria-labelledby="reference-title">
+          <div>
+            <h1 id="reference-title">Eine Quelle. Der echte Stand.</h1>
+            <p>
+              Diese Seite definiert keine Produktwerte. Farben, Typografie, Abstände, Radien,
+              Schatten und Bewegung kommen direkt aus dem produktiven Stylesheet und werden im
+              Browser aufgelöst.
+            </p>
+          </div>
+          <aside class="rules-card" aria-labelledby="rules-title">
+            <h2 id="rules-title">Vier Regeln</h2>
+            <ol>
+              <li>Ember ist ausschließlich Warnfarbe, nie dekorativ.</li>
+              <li>Office-Mode-Tokens bleiben neutral und werden nicht creme eingefärbt.</li>
+              <li>Neue Werte immer als Token, nie hartkodiert.</li>
+              <li>Kontraste gegen WCAG AA (4,5:1) prüfen.</li>
+            </ol>
+          </aside>
+        </section>
+
+        <p class="scope-note">
+          <strong>Geltungsbereich:</strong> Die Tokens gelten für Landingpage, Web-App und Mac-App,
+          weil Tauri dieselben Assets bündelt. Nicht erfasst sind App-Icon, DMG-Installationsfenster
+          und ein etwaiges Menüleisten-Icon. Diese nativen Flächen müssen separat an die Palette
+          angeglichen und geprüft werden.
+        </p>
+
+        <nav class="reference-nav" aria-label="Abschnitte der Design-Referenz">
+          <a href="#farben">Farben</a>
+          <a href="#typografie">Typografie</a>
+          <a href="#skalen">Skalen</a>
+          <a href="#motion">Motion</a>
+          <a href="#controls">Controls</a>
+          <a href="#ring">Ring</a>
+          <a href="#feedback">Feedback</a>
+          <a href="#office">Office Mode</a>
+        </nav>
+
+        <section class="reference-section" id="farben" aria-labelledby="colors-title">
+          <div class="section-heading">
+            <h2 id="colors-title">Farben</h2>
+            <p>
+              Jeder Swatch verwendet seinen echten CSS-Token. Das Label darunter wird mit
+              <code>getComputedStyle</code> aus <code>:root</code> gelesen.
+            </p>
+          </div>
+          <div class="token-grid">
+            <article class="token-card" data-color-token="--mist"><span class="token-swatch"></span><div class="token-meta"><code>--mist</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--paper"><span class="token-swatch"></span><div class="token-meta"><code>--paper</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--pine"><span class="token-swatch"></span><div class="token-meta"><code>--pine</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--moss"><span class="token-swatch"></span><div class="token-meta"><code>--moss</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--breath"><span class="token-swatch"></span><div class="token-meta"><code>--breath</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--warm"><span class="token-swatch"></span><div class="token-meta"><code>--warm</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--ember"><span class="token-swatch"></span><div class="token-meta"><code>--ember · Warnung</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--still"><span class="token-swatch"></span><div class="token-meta"><code>--still</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--warm-text"><span class="token-swatch"></span><div class="token-meta"><code>--warm-text</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--ember-text"><span class="token-swatch"></span><div class="token-meta"><code>--ember-text · Warntext</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--line"><span class="token-swatch"></span><div class="token-meta"><code>--line</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--focus-ring"><span class="token-swatch"></span><div class="token-meta"><code>--focus-ring</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--pine-deep"><span class="token-swatch"></span><div class="token-meta"><code>--pine-deep</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--frame-dark"><span class="token-swatch"></span><div class="token-meta"><code>--frame-dark</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--paper-dim"><span class="token-swatch"></span><div class="token-meta"><code>--paper-dim</code><span class="resolved"></span></div></article>
+            <article class="token-card" data-color-token="--line-dark"><span class="token-swatch"></span><div class="token-meta"><code>--line-dark</code><span class="resolved"></span></div></article>
+          </div>
+        </section>
+
+        <section class="reference-section" id="typografie" aria-labelledby="type-title">
+          <div class="section-heading">
+            <h2 id="type-title">Typografie</h2>
+            <p>
+              Instrument Sans trägt Oberfläche und Headlines. Spline Sans Mono ist für Daten;
+              Fraunces Italic bleibt ein sparsamer Wortakzent.
+            </p>
+          </div>
+          <div class="type-grid">
+            <div class="type-sample" data-type-token="--text-xs"><span class="type-role"><code>--text-xs</code> · <span class="resolved"></span></span><p>Ruhige Details bleiben lesbar.</p></div>
+            <div class="type-sample" data-type-token="--text-sm"><span class="type-role"><code>--text-sm</code> · <span class="resolved"></span></span><p>Ein kleiner Impuls im richtigen Moment.</p></div>
+            <div class="type-sample" data-type-token="--text-base"><span class="type-role"><code>--text-base</code> · <span class="resolved"></span></span><p>Keine Bewertung. Kein Streak.</p></div>
+            <div class="type-sample" data-type-token="--text-md"><span class="type-role"><code>--text-md</code> · <span class="resolved"></span></span><p>Du musst nicht stärker sein.</p></div>
+            <div class="type-sample" data-type-token="--text-lg"><span class="type-role"><code>--text-lg</code> · <span class="resolved"></span></span><p>Nur früher merken.</p></div>
+            <div class="type-sample" data-type-token="--text-xl"><span class="type-role"><code>--text-xl</code> · <span class="resolved"></span></span><p>Ein kleiner Impuls.</p></div>
+            <div class="type-sample" data-type-token="--text-2xl"><span class="type-role"><code>--text-2xl</code> · <span class="resolved"></span></span><p>Eine Gewohnheit weniger.</p></div>
+          </div>
+          <p class="accent-rule">
+            <strong>Serif-Akzent:</strong> Die Utility <code>.accent-serif</code> markiert nur einzelne
+            Wörter – etwa „Gewohnheit <span class="accent-serif">weniger</span>“. Niemals eine ganze
+            Headline in Fraunces setzen.
+          </p>
+        </section>
+
+        <section class="reference-section" id="skalen" aria-labelledby="scales-title">
+          <div class="section-heading">
+            <h2 id="scales-title">Abstand, Radius &amp; Schatten</h2>
+            <p>Die Geometrie wird ebenfalls aus den produktiven Variablen gerendert.</p>
+          </div>
+
+          <h3>Abstand</h3>
+          <div class="scale-grid" aria-label="Abstands-Skala">
+            <div class="space-row" data-space-token="--space-1"><code>--space-1</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-2"><code>--space-2</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-3"><code>--space-3</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-4"><code>--space-4</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-5"><code>--space-5</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-6"><code>--space-6</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-7"><code>--space-7</code><span class="space-bar"></span><span class="resolved"></span></div>
+            <div class="space-row" data-space-token="--space-8"><code>--space-8</code><span class="space-bar"></span><span class="resolved"></span></div>
+          </div>
+
+          <h3>Radien</h3>
+          <div class="scale-grid" aria-label="Radius-Skala">
+            <div class="radius-row" data-radius-token="--radius-xs"><code>--radius-xs</code><span class="radius-sample"></span><span class="resolved"></span></div>
+            <div class="radius-row" data-radius-token="--radius-sm"><code>--radius-sm</code><span class="radius-sample"></span><span class="resolved"></span></div>
+            <div class="radius-row" data-radius-token="--radius-md"><code>--radius-md</code><span class="radius-sample"></span><span class="resolved"></span></div>
+            <div class="radius-row" data-radius-token="--radius-lg"><code>--radius-lg</code><span class="radius-sample"></span><span class="resolved"></span></div>
+            <div class="radius-row" data-radius-token="--radius-full"><code>--radius-full</code><span class="radius-sample"></span><span class="resolved"></span></div>
+          </div>
+
+          <h3>Schatten</h3>
+          <div class="scale-grid" aria-label="Schatten-Tokens">
+            <div class="shadow-row" data-shadow-token="--shadow-soft"><code>--shadow-soft</code><span class="shadow-sample"></span><span class="resolved"></span></div>
+            <div class="shadow-row" data-shadow-token="--shadow-lifted"><code>--shadow-lifted</code><span class="shadow-sample"></span><span class="resolved"></span></div>
+            <div class="shadow-row" data-shadow-token="--shadow-product"><code>--shadow-product</code><span class="shadow-sample"></span><span class="resolved"></span></div>
+          </div>
+        </section>
+
+        <section class="reference-section" id="motion" aria-labelledby="motion-title">
+          <div class="section-heading">
+            <h2 id="motion-title">Motion</h2>
+            <p>
+              Dauer und Easing werden nicht nur beschriftet: Jeder Punkt bewegt sich mit genau den
+              angegebenen Live-Tokens. Bei „Bewegung reduzieren“ stehen alle Demos still.
+            </p>
+          </div>
+          <div class="motion-grid">
+            <article class="motion-card" data-duration-token="--dur-quick" data-ease-token="--ease-calm"><div class="motion-track"><span class="motion-dot"></span></div><code>--dur-quick · --ease-calm</code><p class="resolved-pair"></p></article>
+            <article class="motion-card" data-duration-token="--dur-soft" data-ease-token="--ease-calm"><div class="motion-track"><span class="motion-dot"></span></div><code>--dur-soft · --ease-calm</code><p class="resolved-pair"></p></article>
+            <article class="motion-card" data-duration-token="--dur-calm" data-ease-token="--ease-calm"><div class="motion-track"><span class="motion-dot"></span></div><code>--dur-calm · --ease-calm</code><p class="resolved-pair"></p></article>
+            <article class="motion-card" data-duration-token="--dur-drift" data-ease-token="--ease-breath"><div class="motion-track"><span class="motion-dot"></span></div><code>--dur-drift · --ease-breath</code><p class="resolved-pair"></p></article>
+          </div>
+        </section>
+
+        <section class="reference-section" id="controls" aria-labelledby="controls-title">
+          <div class="section-heading">
+            <h2 id="controls-title">Buttons &amp; Inputs</h2>
+            <p>
+              Die erzwungenen Zustände machen Hover, Fokus und Active auch auf Touch-Geräten
+              vergleichbar. Der echte Fokus bleibt zusätzlich per Tastatur testbar.
+            </p>
+          </div>
+          <div class="state-groups">
+            <div>
+              <h3>Button</h3>
+              <div class="state-grid">
+                <div class="state-demo"><span class="state-label">default</span><button class="demo-button" type="button">Weiter</button></div>
+                <div class="state-demo state-hover"><span class="state-label">hover</span><button class="demo-button" type="button">Weiter</button></div>
+                <div class="state-demo state-focus"><span class="state-label">focus-visible</span><button class="demo-button" type="button">Weiter</button></div>
+                <div class="state-demo state-active"><span class="state-label">active</span><button class="demo-button" type="button">Weiter</button></div>
+                <div class="state-demo"><span class="state-label">disabled</span><button class="demo-button" type="button" disabled>Weiter</button></div>
+              </div>
+            </div>
+            <div>
+              <h3>Input</h3>
+              <div class="state-grid">
+                <label class="state-demo"><span class="state-label">default</span><input class="demo-input" value="name@beispiel.de" aria-label="Standard-Eingabe" /></label>
+                <label class="state-demo state-hover"><span class="state-label">hover</span><input class="demo-input" value="name@beispiel.de" aria-label="Eingabe im Hover-Zustand" /></label>
+                <label class="state-demo state-focus"><span class="state-label">focus-visible</span><input class="demo-input" value="name@beispiel.de" aria-label="Eingabe im Fokus-Zustand" /></label>
+                <label class="state-demo state-active"><span class="state-label">active</span><input class="demo-input" value="name@beispiel.de" aria-label="Aktive Eingabe" /></label>
+                <label class="state-demo"><span class="state-label">disabled</span><input class="demo-input" value="name@beispiel.de" aria-label="Deaktivierte Eingabe" disabled /></label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="reference-section" id="ring" aria-labelledby="ring-title">
+          <div class="section-heading">
+            <h2 id="ring-title">Ring-Zustände</h2>
+            <p>
+              Farbe und Atemdauer werden je Zustand live aus der bestehenden
+              <code>body[data-state]</code>-Logik ausgelesen. Ember erscheint nur als Warnung.
+            </p>
+          </div>
+          <div class="ring-grid">
+            <article class="ring-state" data-ring-state="calm"><div class="reference-ring" aria-hidden="true"></div><strong>Ruhig</strong><span class="resolved-pair"></span></article>
+            <article class="ring-state" data-ring-state="warm"><div class="reference-ring" aria-hidden="true"></div><strong>Warm</strong><span class="resolved-pair"></span></article>
+            <article class="ring-state" data-ring-state="ember"><div class="reference-ring" aria-hidden="true"></div><strong>Ember · Warnung</strong><span class="resolved-pair"></span></article>
+            <article class="ring-state" data-ring-state="paused"><div class="reference-ring" aria-hidden="true"></div><strong>Pausiert</strong><span class="resolved-pair"></span></article>
+            <article class="ring-state"><div class="ring-placeholder">noch offen</div><strong>Snooze</strong><span class="resolved-pair">Erst ergänzen, sobald der echte Zustand gebaut ist.</span></article>
+          </div>
+        </section>
+
+        <section class="reference-section" id="feedback" aria-labelledby="feedback-title">
+          <div class="section-heading">
+            <h2 id="feedback-title">Fehler &amp; Leere</h2>
+            <p>Beide Zustände verwenden bestehende Komponenten und echte Produktfarben.</p>
+          </div>
+          <div class="feedback-grid">
+            <div class="error-message">
+              <p>Die Kamera konnte nicht gestartet werden.</p>
+              <ul>
+                <li>Kamerazugriff im Browser erlauben.</li>
+                <li>Danach erneut versuchen.</li>
+              </ul>
+              <button type="button">Erneut versuchen</button>
+            </div>
+            <div class="card empty-state">
+              <h3>Noch keine Momente</h3>
+              <p>Dein Rückblick füllt sich, sobald Tawel eine Weile mitgelaufen ist.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="reference-section" id="office" aria-labelledby="office-title">
+          <div class="section-heading">
+            <h2 id="office-title">Office Mode</h2>
+            <p>
+              Diese Fläche ist absichtlich markenfremd. Sie verwendet ausschließlich die neutrale
+              <code>--office-*</code>-Gruppe und übernimmt keine Creme-Flächen.
+            </p>
+          </div>
+          <div class="office-reference">
+            <div class="office-toolbar"><strong>Notizen.txt</strong><span>Datei</span><span>Bearbeiten</span><span>Format</span></div>
+            <div class="office-page" role="textbox" aria-label="Neutrale Office-Mode-Notiz" aria-readonly="true">Schreiben …</div>
+            <div class="office-footer"><span>Automatisch gespeichert</span><span class="office-spacer"></span><span>0 Wörter</span><span class="office-demo-dot" aria-label="Erkennung ruhig"></span></div>
+          </div>
+          <div class="office-token-list" aria-label="Verwendete Office-Tokens">
+            <code data-inline-token="--office-paper"></code>
+            <code data-inline-token="--office-bar"></code>
+            <code data-inline-token="--office-line"></code>
+            <code data-inline-token="--office-hover"></code>
+            <code data-inline-token="--office-ink"></code>
+            <code data-inline-token="--office-ink-soft"></code>
+            <code data-inline-token="--office-text"></code>
+            <code data-inline-token="--office-muted"></code>
+            <code data-inline-token="--office-placeholder"></code>
+            <code data-inline-token="--office-dot-calm"></code>
+            <code data-inline-token="--office-dot-paused"></code>
+          </div>
+        </section>
+      </main>
+
+      <footer class="reference-footer">
+        <span>Tawel · lebende Design-Referenz</span>
+        <span>Quelle: ../app/style.css</span>
+      </footer>
+    </div>
+
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const body = document.body;
+        const rootStyles = getComputedStyle(root);
+        const tokenValue = (name) => rootStyles.getPropertyValue(name).trim();
+
+        const writeResolved = (element, name) => {
+          const target = element.querySelector(".resolved");
+          const value = tokenValue(name);
+          if (target) target.textContent = value || "nicht definiert";
+          return value;
+        };
+
+        document.querySelectorAll("[data-color-token]").forEach((card) => {
+          const name = card.dataset.colorToken;
+          card.style.setProperty("--sample-color", `var(${name})`);
+          writeResolved(card, name);
+        });
+
+        document.querySelectorAll("[data-type-token]").forEach((sample) => {
+          const name = sample.dataset.typeToken;
+          sample.style.setProperty("--sample-font-size", `var(${name})`);
+          writeResolved(sample, name);
+        });
+
+        document.querySelectorAll("[data-space-token]").forEach((row) => {
+          const name = row.dataset.spaceToken;
+          row.style.setProperty("--sample-space", `var(${name})`);
+          writeResolved(row, name);
+        });
+
+        document.querySelectorAll("[data-radius-token]").forEach((row) => {
+          const name = row.dataset.radiusToken;
+          row.style.setProperty("--sample-radius", `var(${name})`);
+          writeResolved(row, name);
+        });
+
+        document.querySelectorAll("[data-shadow-token]").forEach((row) => {
+          const name = row.dataset.shadowToken;
+          row.style.setProperty("--sample-shadow", `var(${name})`);
+          writeResolved(row, name);
+        });
+
+        document.querySelectorAll("[data-duration-token]").forEach((card) => {
+          const durationName = card.dataset.durationToken;
+          const easeName = card.dataset.easeToken;
+          card.style.setProperty("--motion-duration", `var(${durationName})`);
+          card.style.setProperty("--motion-ease", `var(${easeName})`);
+          card.querySelector(".resolved-pair").textContent = `${tokenValue(durationName)} · ${tokenValue(easeName)}`;
+        });
+
+        const previousState = body.getAttribute("data-state");
+        document.querySelectorAll("[data-ring-state]").forEach((card) => {
+          const state = card.dataset.ringState;
+          if (state === "calm") body.removeAttribute("data-state");
+          else body.dataset.state = state;
+
+          const stateStyles = getComputedStyle(body);
+          const color = stateStyles.getPropertyValue("--ring-color").trim();
+          const duration = stateStyles.getPropertyValue("--breath-dur").trim();
+          card.style.setProperty("--demo-ring-color", color);
+          card.style.setProperty("--demo-ring-duration", duration);
+          card.querySelector(".resolved-pair").textContent = `${color} · ${duration}`;
+        });
+        if (previousState === null) body.removeAttribute("data-state");
+        else body.setAttribute("data-state", previousState);
+
+        document.querySelectorAll("[data-inline-token]").forEach((item) => {
+          const name = item.dataset.inlineToken;
+          item.textContent = `${name}: ${tokenValue(name)}`;
+        });
+      })();
+    </script>
+  </body>
+</html>
