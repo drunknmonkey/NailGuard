@@ -36,8 +36,9 @@ NailGuard/
 │   ├── fonts/          self-hosted Schriften
 │   ├── vendor/         MediaPipe (self-hosted, kein CDN)
 │   └── models/         Erkennungsmodelle
-├── spike/, src-tauri/  Tauri-Spike (Wegwerf-Experiment, kein Produkt-Code)
-└── docs/               Entscheidungen, Deployment, Audits
+├── docs/
+│   └── design-referenz.html  lebende Referenz aus dem produktiven CSS
+└── spike/, src-tauri/  Tauri-Spike (Wegwerf-Experiment, kein Produkt-Code)
 ```
 
 ## Lokal starten

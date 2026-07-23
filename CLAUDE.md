@@ -44,20 +44,21 @@ als Lösung (immer sichtbarer Ring, Erkennung bleibt auf voller Rate).
 
 ## Design: „Atem & Ruhe"
 
-Referenz: `docs/nailguard-design-referenz.html`
+Lebende Referenz: `docs/design-referenz.html` (importiert direkt
+`app/style.css`; Werte nicht in dieser Datei duplizieren).
 
-| Token | Wert | Bedeutung |
-|-------|------|-----------|
-| `--mist` | #EDF2ED | Hintergrund |
-| `--paper` | #FAFCFA | Karten |
-| `--pine` | #1E3B34 | Primärtext |
-| `--moss` | #5E7C6C | Sekundärtext |
-| `--breath` | #A8C7B4 | Ring ruhig |
-| `--warm` | #D9914F | Ring warm |
-| `--ember` | #C46A4A | Ring Alarm |
-| `--still` | #B8C2BC | Ring pausiert |
+| Token | Bedeutung |
+|-------|-----------|
+| `--mist` / `--paper` | warme Grund- und Kartenflächen |
+| `--pine` / `--moss` | Primär- und Sekundärtext |
+| `--breath` | Ring ruhig |
+| `--warm` | Ring bei Annäherung |
+| `--ember` | ausschließlich Warnung, nie dekorativ |
+| `--still` | Ring pausiert |
+| `--office-*` | neutrale Tarnoberfläche, bewusst markenfremd |
 
-Schriften: Instrument Sans (Display 600 + Body 400) · Spline Sans Mono (Zahlen)
+Schriften: Instrument Sans (Display + Body) · Fraunces Italic (nur einzelne
+Akzentwörter) · Spline Sans Mono (Zahlen)
 
 ### Zustands-Maschine
 
