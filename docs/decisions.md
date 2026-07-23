@@ -471,3 +471,43 @@ Landingpage, Web-App und das von Tauri gebündelte Web-Frontend.
 - **Mac-Bundle:** `spike/build-frontend.sh` kopiert nun auch den kompletten
   `app/fonts/`-Ordner. Dadurch verwendet der Tauri-Webview dieselben
   self-hosted Schriften wie die Web-App.
+
+---
+
+## 2026-07-21 – Landingpage: warme, schamfreie Produktgeschichte
+
+Umsetzung durch Codex auf Basis der von Paul und Claude am 2026-07-16
+freigegebenen Landingpage-Entscheidungen. Die bestehende Entscheidung wird
+nicht ersetzt; dieser Eintrag dokumentiert nur die konkrete Ausführung.
+
+- **Funnel:** Primärer CTA ist „Im Browser ausprobieren“. „Für Mac vormerken“
+  bleibt der sekundäre CTA im Hero, der dezente Hinweis im Startscreen der
+  Web-App und das Ziel des dunklen Wartelistenbands.
+- **Schamfreie Dramaturgie:** Das konkrete Wort „Nägelkauen“ steht nicht im
+  sichtbaren Einstieg, sondern nur in Metadaten und der zunächst geschlossenen
+  FAQ-Antwort. Hero und Erklärung sprechen von der Bewegung zum Mund und dem
+  Moment davor.
+- **Reduzierte Produktdarstellung:** Kein erfundenes Einstellungsfenster und
+  keine zusätzliche App-Sektion. Der Hero zeigt eine verkleinerte Abbildung der
+  echten Fokusansicht mit Ring, Aktivstatus und Office-Mode-Bedienelement. Das
+  Office-Foto zeigt als Produktoberfläche ausschließlich den kleinen grünen
+  Ring auf dem Monitor.
+- **Meeting-USP:** Eine eigene, ausdrücklich Mac-spezifische Sektion vergleicht
+  die lokale Ansicht mit dem geteilten Bild. Nur lokal ist der Ring sichtbar;
+  die Browser-Version verspricht diese Unsichtbarkeit ausdrücklich nicht.
+- **Privacy und Preis:** Kamerabilder bleiben lokal und werden weder gespeichert
+  noch übertragen; App-Dateien und Modelle können beim Start geladen werden.
+  Es gibt keine Preis-Sektion und keine Abo-Aussage. Die FAQ nennt die
+  Web-Version kostenlos und kündigt den Mac-Preis neutral für den Start an.
+- **Fotografie:** Beide Bilder wurden am 2026-07-21 von Pexels geladen,
+  zugeschnitten, verkleinert und als WebP gespeichert. Hero: Lada Rezantseva,
+  „Person Using MacBook Pro on White Table“,
+  https://www.pexels.com/photo/person-using-macbook-pro-on-white-table-9551663/.
+  Office: Oladimeji Ajegbile, „Desk with Laptop and Monitor on Stand“,
+  https://www.pexels.com/photo/desk-with-laptop-and-monitor-on-stand-21391577/.
+  Beide stehen unter der Pexels License:
+  https://www.pexels.com/license/. Die freiwillige sichtbare Attribution bleibt
+  direkt an den Bildern erhalten.
+- **Technik:** Der Hero wird priorisiert geladen; das Office-Bild ist lazy.
+  MailerLite bleibt ausschließlich auf der Landingpage (Konto 2482602,
+  Formular `CmB4SX`). Bewegungen respektieren `prefers-reduced-motion`.
