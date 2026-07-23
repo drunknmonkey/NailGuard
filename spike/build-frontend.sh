@@ -12,7 +12,7 @@ mkdir -p "$DIST"
 
 # Die Web-App liegt seit der tawel.app-Umstrukturierung unter app/ (Root = Landing).
 # Tauri bündelt weiterhin nur die App: aus app/ nach spike-dist/ (Bundle-Wurzel).
-for item in index.html app.js style.css i18n.js sw.js manifest.webmanifest vendor models icons; do
+for item in index.html app.js style.css i18n.js sw.js manifest.webmanifest fonts vendor models icons; do
   cp -R "$ROOT/app/$item" "$DIST/"
 done
 

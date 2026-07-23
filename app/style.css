@@ -2,12 +2,13 @@
    Nail Guard — Design „Atem & Ruhe"
    Ruhiger Begleiter statt Überwachungs-Tool.
 
-   Flächen   --mist (Hintergrund), --paper (Karten)
+   Flächen   --mist (Creme-Hintergrund), --paper (helle Karten)
    Text      --pine (primär), --moss (sekundär)
    Zustände  --breath (ruhig) / --warm (Hand nähert sich) / --ember (Intervention)
              Für TEXT in Warnzuständen die dunklen Varianten
              --warm-text / --ember-text verwenden (Lesbarkeit).
    Schriften Instrument Sans (Display 600 · Body 400)
+             · Fraunces Italic (nur einzelne Akzentwörter)
              · Spline Sans Mono (Zahlen, tabular-nums)
 
    Signatur-Element: atmender Status-Ring (4,6s ruhig → 2,6s → 1,6s).
@@ -45,29 +46,38 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/fraunces-100-900-italic-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   color-scheme: light;
 
   /* — Flächen — */
-  --mist: #EDF2ED;
-  --paper: #FAFCFA;
+  --mist: #F4F0E7;
+  --paper: #FFFCF6;
   /* — Text — */
   --pine: #1E3B34;
-  --moss: #567163; /* AA-fest: 4.7:1 auf Mist, 5.2:1 auf Paper (vorher 4.05/4.45) */
+  --moss: #5E6F66; /* AA-fest: 4.68:1 auf Mist, 5.20:1 auf Paper */
   /* — Zustandsfarben (Ring/Flächen) — */
   --breath: #A8C7B4;
   --warm: #D9914F;
   --ember: #C46A4A;
-  --still: #B8C2BC;
+  --still: #BDB8B0;
   /* — Zustandsfarben (Text, dunkel = lesbar) — */
   --warm-text: #8F4F14;
   --ember-text: #8F3B22;
   /* — Linien — */
-  --line: #D5E0D8;
+  --line: #DED6C9;
   /* — Abgeleitete Flächen (dunkler Kontext) — */
   --pine-deep: #16302A;   /* Hover-Ton auf Pine-Flächen */
   --frame-dark: #18241F;  /* Kamera-Rahmen hinter dem Video */
-  --paper-dim: #D7E2DA;   /* Fließtext auf Pine */
+  --paper-dim: #E6DED1;   /* Fließtext auf Pine */
   --line-dark: #6E8B7D;   /* Linien/Borders auf Pine */
 
   /* — Office Mode (Tarnung: bewusst AUSSERHALB der Markenpalette,
@@ -89,6 +99,7 @@
      Display-Wechsel eine Ein-Zeilen-Änderung ist */
   --font-display: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --font-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --font-accent: "Fraunces", ui-serif, Georgia, serif;
   --font-data: "Spline Sans Mono", ui-monospace, "SF Mono", monospace;
 
   /* — Typo-Stufen (feste Größe + Zeilenhöhe, keine Streuwerte) — */
@@ -188,6 +199,15 @@ h2 {
   letter-spacing: -0.01em;
   font-size: var(--text-lg);
   margin-bottom: var(--space-2);
+}
+
+/* Editorialer Akzent, bewusst nur für einzelne Wörter oder kurze Wortgruppen.
+   Ganze Headlines bleiben Instrument Sans, damit Tawel ruhig und klar wirkt. */
+.accent-serif {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.015em;
 }
 
 button,
