@@ -2702,7 +2702,8 @@ body.tawel-landing {
 }
 
 .tawel-landing .hero {
-  padding-top: clamp(3.5rem, 7vw, 6rem);
+  display: block;
+  padding: clamp(3.5rem, 7vw, 6rem) 0 0;
 }
 
 .tawel-landing .hero-copy {
