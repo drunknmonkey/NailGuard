@@ -161,9 +161,9 @@
   --landing-status-height: 1.75rem;
   --landing-workspace-height: 20rem;
   --landing-hero-gap: clamp(2.5rem, 6vw, 5.5rem);
-  --landing-hero-photo-ratio: 4 / 3;
-  --landing-office-photo-ratio: 8 / 5;
-  --landing-product-width: clamp(15rem, 58%, 22rem);
+  --landing-hero-band-height: clamp(18rem, 36vw, 35rem);
+  --landing-office-band-height: clamp(29rem, 45vw, 40rem);
+  --landing-product-width: clamp(15rem, 25vw, 24rem);
   --landing-product-ring-size: clamp(3.25rem, 7vw, 4.5rem);
   --landing-desktop-ring-size: clamp(2.4rem, 5vw, 3.6rem);
   --landing-office-ring-size: clamp(1.3rem, 2.1vw, 1.8rem);
@@ -2702,21 +2702,20 @@ body.tawel-landing {
 }
 
 .tawel-landing .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.86fr) minmax(31rem, 1.14fr);
-  align-items: center;
-  gap: var(--landing-hero-gap);
   padding-top: clamp(3.5rem, 7vw, 6rem);
-  padding-bottom: clamp(4.5rem, 8vw, 7rem);
 }
 
 .tawel-landing .hero-copy {
-  max-width: var(--landing-copy-width);
+  max-width: none;
+  padding-bottom: clamp(3rem, 6vw, 5.5rem);
+  text-align: center;
 }
 
 .tawel-landing .hero-title {
-  max-width: 12ch;
+  max-width: 14ch;
+  margin-right: auto;
   margin-bottom: var(--space-6);
+  margin-left: auto;
   font-size: var(--landing-hero-title);
   letter-spacing: -0.035em;
 }
@@ -2734,10 +2733,23 @@ body.tawel-landing {
   font-size: var(--text-xs);
 }
 
+.tawel-landing .hero-sub {
+  max-width: 38rem;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.tawel-landing .hero-cta {
+  justify-content: center;
+}
+
 .tawel-landing .hero-photo {
   position: relative;
-  aspect-ratio: var(--landing-hero-photo-ratio);
-  margin: 0 0 var(--space-8);
+  width: 100%;
+  height: var(--landing-hero-band-height);
+  margin: 0;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .tawel-landing .hero-photo > img {
@@ -2745,8 +2757,7 @@ body.tawel-landing {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-product);
+  object-position: center 64%;
   filter: saturate(0.88) contrast(0.96);
 }
 
@@ -2755,7 +2766,6 @@ body.tawel-landing {
   position: absolute;
   inset: 0;
   z-index: 1;
-  border-radius: var(--radius-lg);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--pine) var(--landing-photo-shade), transparent),
@@ -2766,8 +2776,8 @@ body.tawel-landing {
 
 .tawel-landing .product-window {
   position: absolute;
-  right: var(--space-5);
-  bottom: calc(var(--space-7) * -1);
+  right: clamp(var(--space-4), 7vw, 8rem);
+  bottom: clamp(var(--space-4), 3vw, var(--space-7));
   z-index: 2;
   width: var(--landing-product-width);
   overflow: hidden;
@@ -2990,35 +3000,57 @@ body.tawel-landing {
 }
 
 .tawel-landing .office-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(20rem, 0.92fr);
-  align-items: center;
-  gap: var(--landing-hero-gap);
   margin-bottom: var(--landing-section-space);
 }
 
 .tawel-landing .office-photo {
   position: relative;
-  aspect-ratio: var(--landing-office-photo-ratio);
+  min-height: var(--landing-office-band-height);
+  margin: 0;
   overflow: hidden;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lifted);
+  isolation: isolate;
+}
+
+.tawel-landing .office-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--landing-bg) 94%, transparent) 0%,
+    color-mix(in srgb, var(--landing-bg) 82%, transparent) 27%,
+    transparent 66%
+  );
 }
 
 .tawel-landing .office-photo > img {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 42%;
+  object-position: center 60%;
   filter: saturate(0.78) sepia(0.08);
+}
+
+.tawel-landing .office-copy-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-height: var(--landing-office-band-height);
+}
+
+.tawel-landing .office-copy-wrap .section-copy {
+  max-width: 27rem;
 }
 
 .tawel-landing .desktop-ring {
   position: absolute;
-  right: 22%;
-  bottom: 12%;
-  z-index: 2;
+  right: 23%;
+  bottom: 32%;
+  z-index: 3;
   width: var(--landing-office-ring-size);
   aspect-ratio: 1;
 }
@@ -3313,25 +3345,11 @@ body.tawel-landing {
 }
 
 @media (max-width: 960px) {
-  .tawel-landing .hero,
   .tawel-landing .belief-section,
-  .tawel-landing .office-section,
   .tawel-landing .meeting-layout,
   .tawel-landing .faq-section,
   .tawel-landing .waitlist-layout {
     grid-template-columns: 1fr;
-  }
-
-  .tawel-landing .hero {
-    gap: var(--space-8);
-  }
-
-  .tawel-landing .hero-copy {
-    max-width: 42rem;
-  }
-
-  .tawel-landing .hero-photo {
-    width: min(100%, 44rem);
   }
 
   .tawel-landing .belief-copy {
@@ -3340,14 +3358,6 @@ body.tawel-landing {
 
   .tawel-landing .moment-steps {
     width: min(100%, 42rem);
-  }
-
-  .tawel-landing .office-photo {
-    width: min(100%, 44rem);
-  }
-
-  .tawel-landing .office-section .section-copy {
-    max-width: 42rem;
   }
 
   .tawel-landing .access-path article > div {
@@ -3381,7 +3391,6 @@ body.tawel-landing {
 
   .tawel-landing .hero {
     padding-top: var(--space-8);
-    padding-bottom: var(--landing-section-space);
   }
 
   .tawel-landing .hero-title {
@@ -3390,22 +3399,49 @@ body.tawel-landing {
   }
 
   .tawel-landing .hero-photo {
-    aspect-ratio: 7 / 8;
-    margin-bottom: var(--space-8);
+    height: clamp(18rem, 78vw, 30rem);
   }
 
   .tawel-landing .hero-photo > img {
-    object-position: 62% center;
+    object-position: 58% 62%;
   }
 
   .tawel-landing .product-window {
-    right: var(--space-3);
-    width: min(72%, 19rem);
+    right: var(--space-4);
+    bottom: var(--space-4);
+    width: min(72%, 20rem);
   }
 
-  .tawel-landing .belief-section,
-  .tawel-landing .office-section {
+  .tawel-landing .belief-section {
     gap: var(--space-6);
+  }
+
+  .tawel-landing .office-photo,
+  .tawel-landing .office-copy-wrap {
+    min-height: clamp(34rem, 92vw, 40rem);
+  }
+
+  .tawel-landing .office-photo > img {
+    object-position: center 42%;
+  }
+
+  .tawel-landing .office-photo::after {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--landing-bg) 62%, transparent) 48%,
+      var(--landing-bg) 82%
+    );
+  }
+
+  .tawel-landing .office-copy-wrap {
+    align-items: flex-end;
+    padding-bottom: var(--space-7);
+  }
+
+  .tawel-landing .desktop-ring {
+    right: 18%;
+    bottom: 46%;
   }
 
   .tawel-landing .moment-steps {
@@ -3496,10 +3532,6 @@ body.tawel-landing {
     padding-right: var(--space-1);
     padding-left: var(--space-1);
     font-size: var(--text-xs);
-  }
-
-  .tawel-landing .office-photo {
-    aspect-ratio: 4 / 3;
   }
 
   .tawel-landing .site-footer nav {

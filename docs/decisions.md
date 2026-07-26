@@ -546,3 +546,25 @@ unverändert nachvollziehbar.
   entsprechendes Asset, SVG, Canvas oder fixes Seitenelement. Das bunte Icon
   stammt aus der Review-/Browserumgebung und nicht aus Tawel; es wurde deshalb
   nicht mit fragiler Produkt-CSS gegen fremde Overlays kaschiert.
+
+---
+
+## 2026-07-26 – Landingpage: Bildbänder für Hero und Office Mode
+
+Nach Pauls Sichtung des freigegebenen Entwurfs werden die beiden zentralen
+Produktfotos nicht mehr als begrenzte Karten neben der Copy gezeigt.
+
+- **Hero:** Die Botschaft und CTAs stehen auf einer ruhigen, zentrierten
+  Creme-Fläche. Darunter läuft das warme Arbeitsmotiv mit Hand und Laptop als
+  randloses Bildband über die gesamte Browserbreite. Das echte Tawel-Fenster
+  liegt vollständig innerhalb des rechten Bildbereichs; es darf nicht mehr am
+  unteren Rand aus dem Foto herausragen.
+- **Office Mode:** Das vorhandene Monitor-/Schreibtischfoto bleibt erhalten und
+  wird ebenfalls randlos über die volle Breite geführt. Die Office-Copy liegt
+  auf einer sanften linken Verlaufsschicht statt in einer separaten Karte. So
+  bleibt der Text lesbar, während der Arbeitsplatz als durchgängiger Kontext
+  erhalten bleibt.
+- **Responsive:** Auf kleineren Breiten bleiben beide Bilder vollbreit. Hero
+  und Produktfenster werden kompakter; beim Office-Bild wandert die Copy in
+  den ruhigen unteren Bildbereich. Der grüne Ring wird für den jeweiligen
+  Ausschnitt neu positioniert und bleibt innerhalb der echten Monitorfläche.
