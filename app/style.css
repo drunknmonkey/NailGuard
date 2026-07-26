@@ -166,6 +166,8 @@
   --landing-product-width: clamp(15rem, 58%, 22rem);
   --landing-product-ring-size: clamp(3.25rem, 7vw, 4.5rem);
   --landing-desktop-ring-size: clamp(2.4rem, 5vw, 3.6rem);
+  --landing-office-ring-size: clamp(1.3rem, 2.1vw, 1.8rem);
+  --landing-moment-icon-size: clamp(4rem, 7vw, 5rem);
   --landing-proof-height: clamp(10rem, 20vw, 13rem);
   --landing-photo-shade: 10%;
   --landing-glow-size: clamp(20px, 4vw, 42px);
@@ -2685,13 +2687,14 @@ body.tawel-landing {
 .tawel-landing .landing-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .tawel-landing .landing-nav > a:not(.pill-link) {
   color: var(--moss);
   font-size: var(--text-sm);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .tawel-landing .landing-nav > a:not(.pill-link):hover {
@@ -2808,9 +2811,11 @@ body.tawel-landing {
 }
 
 .tawel-landing .product-focus > span {
+  max-width: 22ch;
   margin-top: var(--space-1);
   color: var(--moss);
   font-size: var(--text-xs);
+  line-height: var(--leading-normal);
 }
 
 .tawel-landing .product-ring,
@@ -2854,31 +2859,18 @@ body.tawel-landing {
   text-align: center;
 }
 
-.tawel-landing .photo-credit {
-  position: absolute;
-  bottom: var(--space-2);
-  left: var(--space-3);
-  z-index: 2;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  background: color-mix(in srgb, var(--pine) 76%, transparent);
-  color: var(--paper);
-  font-size: var(--text-xs);
-  line-height: var(--leading-normal);
-}
-
 .tawel-landing .belief-section {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
-  gap: var(--space-8) var(--landing-hero-gap);
+  grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.28fr);
+  align-items: center;
+  gap: var(--landing-hero-gap);
   margin-bottom: var(--landing-section-space);
   padding-top: var(--landing-section-space);
   border-top: 1px solid var(--landing-line);
 }
 
-.tawel-landing .belief-section .eyebrow {
-  grid-column: 1 / -1;
-  margin-bottom: calc(var(--space-7) * -1);
+.tawel-landing .belief-copy {
+  max-width: 28rem;
 }
 
 .tawel-landing .belief-section h2,
@@ -2893,19 +2885,108 @@ body.tawel-landing {
   line-height: var(--landing-display-leading);
 }
 
-.tawel-landing .belief-section > p:not(.eyebrow) {
-  margin: 0;
+.tawel-landing .belief-copy > p:not(.eyebrow, .belief-note) {
+  margin: var(--space-5) 0 0;
   color: var(--moss);
   font-size: var(--text-md);
   line-height: var(--leading-relaxed);
 }
 
 .tawel-landing .belief-section .belief-note {
-  grid-column: 2;
+  margin: var(--space-6) 0 0;
   padding-top: var(--space-5);
   border-top: 1px solid var(--landing-line);
   font-size: var(--text-sm);
   font-weight: 600;
+}
+
+.tawel-landing .moment-steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-self: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tawel-landing .moment-steps::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--landing-moment-icon-size) + var(--space-4));
+  right: 16.66%;
+  left: 16.66%;
+  height: 1px;
+  background: var(--landing-line);
+}
+
+.tawel-landing .moment-steps li {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  color: var(--moss);
+  text-align: center;
+}
+
+.tawel-landing .moment-icon::after {
+  content: "";
+  position: absolute;
+  bottom: calc((var(--space-4) + 0.275rem) * -1);
+  left: 50%;
+  width: 0.55rem;
+  aspect-ratio: 1;
+  border: 2px solid var(--landing-bg);
+  border-radius: 50%;
+  background: var(--pine);
+  transform: translateX(-50%);
+}
+
+.tawel-landing .moment-icon {
+  position: relative;
+  display: grid;
+  width: var(--landing-moment-icon-size);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid var(--landing-line);
+  border-radius: 50%;
+  background: var(--landing-surface);
+}
+
+.tawel-landing .moment-icon svg {
+  width: 48%;
+  overflow: visible;
+  stroke: var(--pine);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tawel-landing .moment-icon-ring {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--breath) 52%, transparent) 0 12%,
+    color-mix(in srgb, var(--breath) 24%, transparent) 13% 30%,
+    var(--landing-surface) 31%
+  );
+}
+
+.tawel-landing .moment-number {
+  margin-top: calc(var(--space-4) + var(--space-3));
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+}
+
+.tawel-landing .moment-steps strong {
+  max-width: 10rem;
+  margin-top: var(--space-2);
+  color: var(--pine);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: var(--leading-normal);
 }
 
 .tawel-landing .office-section {
@@ -2935,10 +3016,10 @@ body.tawel-landing {
 
 .tawel-landing .desktop-ring {
   position: absolute;
-  right: 15%;
-  bottom: 15%;
+  right: 22%;
+  bottom: 12%;
   z-index: 2;
-  width: var(--landing-desktop-ring-size);
+  width: var(--landing-office-ring-size);
   aspect-ratio: 1;
 }
 
@@ -3209,6 +3290,28 @@ body.tawel-landing {
   padding-left: var(--space-6);
 }
 
+.tawel-landing .site-footer .footer-photo-credits {
+  grid-column: 1 / -1;
+  justify-self: center;
+  color: color-mix(in srgb, var(--moss) 78%, transparent);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.tawel-landing .site-footer .footer-photo-credits a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 0.16em;
+}
+
+.tawel-landing #worum-tawel,
+.tawel-landing #so-funktionierts,
+.tawel-landing #office-mode,
+.tawel-landing #fuer-mac {
+  scroll-margin-top: calc(var(--landing-header-height) + var(--space-4));
+}
+
 @media (max-width: 960px) {
   .tawel-landing .hero,
   .tawel-landing .belief-section,
@@ -3231,17 +3334,12 @@ body.tawel-landing {
     width: min(100%, 44rem);
   }
 
-  .tawel-landing .belief-section .eyebrow,
-  .tawel-landing .belief-section .belief-note {
-    grid-column: 1;
+  .tawel-landing .belief-copy {
+    max-width: 42rem;
   }
 
-  .tawel-landing .belief-section .eyebrow {
-    margin-bottom: calc(var(--space-7) * -1);
-  }
-
-  .tawel-landing .belief-section .belief-note {
-    max-width: 38rem;
+  .tawel-landing .moment-steps {
+    width: min(100%, 42rem);
   }
 
   .tawel-landing .office-photo {
@@ -3297,7 +3395,7 @@ body.tawel-landing {
   }
 
   .tawel-landing .hero-photo > img {
-    object-position: 54% center;
+    object-position: 62% center;
   }
 
   .tawel-landing .product-window {
@@ -3305,17 +3403,13 @@ body.tawel-landing {
     width: min(72%, 19rem);
   }
 
-  .tawel-landing .photo-credit {
-    max-width: 55%;
-  }
-
   .tawel-landing .belief-section,
   .tawel-landing .office-section {
     gap: var(--space-6);
   }
 
-  .tawel-landing .belief-section .eyebrow {
-    margin-bottom: 0;
+  .tawel-landing .moment-steps {
+    --landing-moment-icon-size: clamp(3.4rem, 15vw, 4.5rem);
   }
 
   .tawel-landing .belief-section h2,
@@ -3368,6 +3462,16 @@ body.tawel-landing {
 }
 
 @media (max-width: 480px) {
+  .tawel-landing .moment-steps {
+    --landing-moment-icon-size: 3.25rem;
+    gap: var(--space-2);
+  }
+
+  .tawel-landing .moment-steps strong {
+    max-width: 7rem;
+    font-size: var(--text-xs);
+  }
+
   .tawel-landing .topbar-cta {
     min-height: 2.5rem;
     padding-right: var(--space-3);

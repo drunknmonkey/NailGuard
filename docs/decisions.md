@@ -511,3 +511,38 @@ nicht ersetzt; dieser Eintrag dokumentiert nur die konkrete Ausführung.
 - **Technik:** Der Hero wird priorisiert geladen; das Office-Bild ist lazy.
   MailerLite bleibt ausschließlich auf der Landingpage (Konto 2482602,
   Formular `CmB4SX`). Bewegungen respektieren `prefers-reduced-motion`.
+
+---
+
+## 2026-07-26 – Landingpage-Feedback: näher am freigegebenen Entwurf
+
+Feedback-Runde durch Codex auf dem bestehenden Branch
+`landing/premium-redesign`. Dieser Eintrag ergänzt und präzisiert die
+Ausführungsentscheidung vom 2026-07-21; der historische Eintrag bleibt
+unverändert nachvollziehbar.
+
+- **Hero-Fotografie:** Das bisherige Blumenmotiv wurde durch Tony Schnagls
+  warmes Arbeitsmotiv „A Person Typing on a Laptop“ ersetzt:
+  https://www.pexels.com/photo/a-person-typing-on-a-laptop-5586261/.
+  Der Ausschnitt priorisiert Hand, Tastatur und ruhige Schreibtischstimmung.
+- **Office-Ring:** Das vorhandene Monitorfoto bleibt erhalten. Der Ring ist
+  kleiner und vollständig innerhalb der sichtbaren Bildschirmfläche unten
+  rechts positioniert; er liegt nicht mehr auf dem Monitorgehäuse.
+- **Fotolizenz und Credits:** Hero- und Office-Foto stehen unter der Pexels
+  License (https://www.pexels.com/license/), die keine Attribution verlangt.
+  Die freiwilligen Credits wurden von prominenten Bild-Badges in eine dezente
+  Footerzeile verschoben. Office-Foto weiterhin: Oladimeji Ajegbile,
+  https://www.pexels.com/photo/desk-with-laptop-and-monitor-on-stand-21391577/.
+- **Erklärreihe:** Unter „Du musst nicht stärker sein“ erklärt nun die
+  dreistufige Reihe „Unbewusste Bewegung → Sanfter Impuls → Zurück im Moment“
+  den Ablauf mit ruhigen, lokal eingebetteten Linien-Icons. Die schamfreie
+  Zusatzzeile „Keine Bewertung. Kein Streak. …“ bleibt erhalten.
+- **Navigation und Microcopy:** Die Desktop-Navigation bildet die vier
+  Entwurfsanker „Worum Tawel“, „So funktioniert's“, „Office Mode“ und „Für
+  Mac“ ab. Das Wartelistenband verspricht ausschließlich die Benachrichtigung,
+  sobald die Mac-App bereit ist. Die Hero-Statuszeile entspricht der echten
+  App-Microcopy und ist als vollständiger Satz gesetzt.
+- **Fremdes Windrad-Icon:** Eine Prüfung des ausgelieferten DOMs ergab kein
+  entsprechendes Asset, SVG, Canvas oder fixes Seitenelement. Das bunte Icon
+  stammt aus der Review-/Browserumgebung und nicht aus Tawel; es wurde deshalb
+  nicht mit fragiler Produkt-CSS gegen fremde Overlays kaschiert.
