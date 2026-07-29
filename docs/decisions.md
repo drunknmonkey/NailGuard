@@ -568,3 +568,24 @@ Produktfotos nicht mehr als begrenzte Karten neben der Copy gezeigt.
   und Produktfenster werden kompakter; beim Office-Bild wandert die Copy in
   den ruhigen unteren Bildbereich. Der grüne Ring wird für den jeweiligen
   Ausschnitt neu positioniert und bleibt innerhalb der echten Monitorfläche.
+
+---
+
+## 2026-07-29 – Office Mode klar der Browser-Version zuordnen
+
+Nach Pauls Produktklärung werden Office Mode und Mac-Hintergrundbetrieb in
+Landingpage und Entwicklungskontext eindeutig getrennt:
+
+- **Browser-Version:** Der Tab muss sichtbar im Vordergrund bleiben, weil
+  Browser Kamera und Verarbeitung im Hintergrund drosseln können. Der Office
+  Mode ist ausschließlich die diskrete Browser-Lösung dafür und stellt den
+  sichtbaren Tab als neutrale Notizseite dar.
+- **Mac-App:** Sie ist für zuverlässigen Hintergrundbetrieb geplant. Ein
+  Office-Mode-Tab ist dort nicht nötig; im Vordergrund soll lediglich ein
+  dezenter Statuspunkt bleiben. Solange die Mac-App nicht fertig ist, wird
+  diese Funktionsweise auf der Landingpage konsequent als Ziel formuliert.
+- **Produktevergleich:** Die beiden Wege in „Heute im Browser. Bald immer bei
+  dir.“ gruppieren Label und Überschrift nun als gemeinsamen Block. Dadurch
+  entstehen auf Tablet-/Desktopbreiten keine künstlich großen vertikalen
+  Abstände mehr.
+- **Navigation:** Der Anker heißt korrekt „Warum Tawel“ statt „Worum Tawel“.

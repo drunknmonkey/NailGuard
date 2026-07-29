@@ -40,7 +40,7 @@
       type="image/webp"
       fetchpriority="high"
     />
-    <link rel="stylesheet" href="/app/style.css?v=20260726-fullbleed-2" />
+    <link rel="stylesheet" href="/app/style.css?v=20260729-access-copy-1" />
 
     <!-- MailerLite wird nur auf dieser Seite mit dem eingebetteten Formular geladen. -->
     <script>
@@ -63,7 +63,7 @@
     <header class="topbar landing-topbar app-shell" aria-label="Tawel Hauptnavigation">
       <a class="wordmark" href="/" aria-label="Tawel Startseite">tawel</a>
       <nav class="landing-nav" aria-label="Hauptnavigation">
-        <a href="#worum-tawel">Worum Tawel</a>
+        <a href="#warum-tawel">Warum Tawel</a>
         <a href="#so-funktionierts">So funktioniert's</a>
         <a href="#office-mode">Office Mode</a>
         <a href="#fuer-mac">Für Mac</a>
@@ -123,7 +123,7 @@
 
       <section
         class="belief-section landing-shell"
-        id="worum-tawel"
+        id="warum-tawel"
         aria-labelledby="belief-title"
       >
         <div class="belief-copy">
@@ -197,15 +197,18 @@
           <span class="desktop-ring" aria-hidden="true"><i></i></span>
           <div class="office-copy-wrap landing-shell">
             <div class="section-copy">
-              <p class="eyebrow">Office Mode</p>
+              <p class="eyebrow">Office Mode · Browser-Version</p>
               <h2 id="office-title">
                 Offen auf dem Bildschirm. Unsichtbar im <span class="accent-serif">Alltag</span>.
               </h2>
               <p>
-                Mit einem Klick wird Tawel zu einer neutralen Notizansicht. Die Erkennung läuft weiter,
-                während nur ein kleiner Statuspunkt zeigt, dass alles aktiv ist.
+                Die Browser-Version braucht einen sichtbar geöffneten Tab. Im Office Mode sieht er
+                wie eine neutrale Notizseite aus, während die Erkennung weiterläuft.
               </p>
-              <p class="section-note">Unauffällig für dein Umfeld. Klar für dich.</p>
+              <p class="section-note">
+                Nur in der Browser-Version nötig. Die Mac-App ist für den Hintergrundbetrieb
+                geplant.
+              </p>
             </div>
           </div>
         </figure>
@@ -214,14 +217,14 @@
       <section class="meeting-section" id="fuer-mac" aria-labelledby="meeting-title">
         <div class="landing-shell meeting-layout">
           <div class="section-copy">
-            <p class="eyebrow">Nur auf dem Mac</p>
+            <p class="eyebrow">Für die Mac-App geplant</p>
             <h2 id="meeting-title">Für dich sichtbar. Für den Call unsichtbar.</h2>
             <p>
-              Auf dem Mac bleibt der Tawel-Impuls außerhalb von Zoom, Screen-Sharing und
-              Bildschirmaufnahmen. Niemand im Call sieht, dass Tawel läuft.
+              Die Mac-App soll den Tawel-Impuls nur lokal anzeigen – außerhalb von Zoom,
+              Screen-Sharing und Bildschirmaufnahmen. So bleibt er für andere im Call unsichtbar.
             </p>
             <p class="section-note">
-              Mac-spezifisch: Die Browser-Version kann diese Unsichtbarkeit nicht garantieren.
+              Die Browser-Version kann diese Unsichtbarkeit nicht garantieren.
             </p>
           </div>
 
@@ -242,7 +245,7 @@
               </div>
             </div>
             <figcaption id="meeting-caption">
-              Derselbe Bildschirm – der grüne Impuls erscheint nur lokal.
+              Geplantes Prinzip: Derselbe Bildschirm – der grüne Impuls erscheint nur lokal.
             </figcaption>
           </figure>
         </div>
@@ -257,11 +260,14 @@
           <article>
             <p class="path-number">01</p>
             <div>
-              <p class="level-label">Web-Version</p>
-              <h3>Direkt ausprobieren.</h3>
+              <div class="path-heading">
+                <p class="level-label">Web-Version</p>
+                <h3>Direkt ausprobieren.</h3>
+              </div>
               <p>
-                Kostenlos, ohne Installation. Der Tab muss sichtbar geöffnet bleiben, weil Browser
-                Kamera und Verarbeitung im Hintergrund drosseln können.
+                Kostenlos, ohne Installation. Der Tab muss sichtbar im Vordergrund bleiben, weil
+                Browser Kamera und Verarbeitung im Hintergrund drosseln können. Der Office Mode
+                zeigt stattdessen eine neutrale Notizseite.
               </p>
               <a class="primary-action pill-link" href="/app/">Im Browser ausprobieren</a>
             </div>
@@ -269,11 +275,13 @@
           <article>
             <p class="path-number">02</p>
             <div>
-              <p class="level-label">Mac-App in Vorbereitung</p>
-              <h3>Für den Hintergrund gedacht.</h3>
+              <div class="path-heading">
+                <p class="level-label">Mac-App in Vorbereitung</p>
+                <h3>Für den Hintergrund gedacht.</h3>
+              </div>
               <p>
-                Zuverlässig weiterlaufen, diskret sichtbar bleiben und in geteilten Bildern
-                verschwinden – dafür entsteht die Mac-App.
+                Die Mac-App soll zuverlässig im Hintergrund laufen. Im Vordergrund soll nur ein
+                dezenter Statuspunkt bleiben – ein Office-Tab ist dann nicht mehr nötig.
               </p>
               <a class="text-link" href="#warteliste">Für Mac vormerken <span aria-hidden="true">→</span></a>
             </div>
@@ -339,9 +347,10 @@
           <details>
             <summary>Was unterscheidet Browser und Mac?</summary>
             <p>
-              Die Web-Version ist der direkte Einstieg und läuft bei sichtbar geöffnetem Tab. Die
-              Mac-App ist für zuverlässigen Hintergrundbetrieb und einen Impuls gedacht, der in
-              Calls, geteilten Bildschirmen und Aufnahmen unsichtbar bleibt.
+              Die Web-Version läuft bei sichtbar geöffnetem Tab; ihr Office Mode zeigt dafür eine
+              neutrale Notizseite. Die Mac-App ist für den Hintergrundbetrieb geplant: Sichtbar
+              bleiben soll nur ein dezenter Statuspunkt, der Impuls soll in Calls und geteilten
+              Bildschirmen unsichtbar sein.
             </p>
           </details>
         </div>

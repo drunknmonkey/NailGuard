@@ -12,11 +12,15 @@ heißen historisch NailGuard und bleiben so (Migrationsrisiko ohne Nutzen).
 
 - **Web-Version** (`/app`): dauerhaft kostenlos. Ehrliche Einschränkung
   überall kommunizieren: Der Tab muss geöffnet und sichtbar bleiben –
-  im Hintergrund drosseln Browser Kamera und Verarbeitung.
+  im Hintergrund drosseln Browser Kamera und Verarbeitung. Der Office Mode
+  ist ausschließlich die Browser-Lösung dafür: Der sichtbare Tab wird als
+  neutrale Notizseite dargestellt, während die Erkennung weiterläuft.
 - **Mac-App** (via Tauri 2.x): das Kernprodukt, in Entwicklung. Soll
-  zuverlässig im Hintergrund laufen; Bildschirmrand-Glühen mit
-  Unsichtbarkeit in Calls/Screen-Sharing/Aufnahmen ist ein ZIEL (nur im
-  Spike validiert) – immer als „geplant/soll" formulieren, nie als Fakt.
+  zuverlässig im Hintergrund laufen; ein Office-Mode-Tab ist dort nicht
+  nötig, im Vordergrund soll nur ein dezenter Statuspunkt bleiben.
+  Bildschirmrand-Glühen mit Unsichtbarkeit in
+  Calls/Screen-Sharing/Aufnahmen ist ein ZIEL (nur im Spike validiert) –
+  immer als „geplant/soll" formulieren, nie als Fakt.
 - **Preismodell offen**: Einmalkauf oder Jahresabo, Entscheidung steht
   aus. Keine definitiven Preisaussagen auf Landing/App; Vertrieb
   voraussichtlich über einen Merchant of Record.
@@ -71,9 +75,10 @@ Farben und den Pill-Ring im Tauri-Spike.
 - **Rückblick** (review) – menschliche Tageszusammenfassung zuerst, dann
   Karten mit Tagesstatistik und Streak
 - **Einstellungen** (calibration) – Kamera-Preview, Detection-Slider, Sound, Office-Optionen, Daten
-- **Office Mode** (neutral) – Kernfeature: neutraler Texteditor (Notizen.txt), kein Tawel-Branding,
-  Status-Punkt als einziges verräterisches Element. Verlassen: Klick auf Punkt oder Esc.
-  Nach außen nie „Tarnmodus" nennen – „Office Mode" oder „diskreter Arbeitsmodus".
+- **Office Mode** (neutral, nur Web-Version) – Kernfeature: neutraler
+  Texteditor (Notizen.txt), kein Tawel-Branding, Status-Punkt als einziges
+  verräterisches Element. Verlassen: Klick auf Punkt oder Esc. Nach außen nie
+  „Tarnmodus" nennen – „Office Mode" oder „diskreter Arbeitsmodus".
 
 ## Produkt-Grundsätze (Sprache)
 
