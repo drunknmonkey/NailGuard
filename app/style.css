@@ -55,6 +55,12 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+@property --ring-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #A8C7B4;
+}
+
 :root {
   color-scheme: light;
 
@@ -92,9 +98,6 @@
   --office-text: #5B616B;
   --office-muted: #68707A; /* AA-fest: 4.9:1 auf Office-Bar (vorher 3.05) */
   --office-placeholder: #6F7780; /* AA-fest: 4.5:1 auf Weiß (vorher 1.9) */
-  --office-dot-calm: #9CB8A8;
-  --office-dot-paused: #B9C0C7;
-
   /* Display und Body teilen sich Instrument Sans – die Tokens bleiben
      getrennt, damit die Rollen im Code lesbar bleiben und ein späterer
      Display-Wechsel eine Ein-Zeilen-Änderung ist */
@@ -194,6 +197,7 @@ body {
   color: var(--pine);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  transition: --ring-color var(--dur-drift) var(--ease-calm);
 }
 
 body[data-state="warm"] {
@@ -923,6 +927,39 @@ body[data-state="paused"] .state-word { color: var(--moss); }
   text-align: right;
 }
 
+.sensitivity-row {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.sensitivity-control {
+  width: 100%;
+}
+
+.sensitivity-control input[type="range"] {
+  width: 100%;
+}
+
+.sensitivity-scale {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  color: var(--moss);
+  font-size: var(--text-xs);
+}
+
+.sensitivity-scale output {
+  color: var(--pine);
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-align: center;
+}
+
+.sensitivity-scale span:last-child {
+  text-align: right;
+}
+
 /* Schalter (checkbox als Switch) */
 .switch {
   appearance: none;
@@ -1098,7 +1135,7 @@ canvas {
     linear-gradient(0deg, color-mix(in srgb, var(--ember) 45%, transparent), color-mix(in srgb, var(--warm) 30%, transparent));
   mix-blend-mode: screen;
   opacity: var(--warmth);
-  transition: opacity var(--dur-quick) linear;
+  transition: opacity var(--dur-calm) var(--ease-calm);
 }
 
 .proximity-meter {
@@ -1140,13 +1177,11 @@ canvas {
   font-variant-numeric: tabular-nums;
 }
 
-/* ═══ OFFICE = funktionierender, schlichter Texteditor (Tarnung) ═══ */
+/* ═══ OFFICE = funktionierendes, neutrales Daily Board ═══ */
 /* Office Mode ist ein Zustand, kein Reiter: er läuft vollflächig ohne
-   Kopfzeile und Navigation. Die Tarnung ist ein echter, beschreibbarer
-   Texteditor (Notizen.txt) mit Werkzeug- und Statusleiste. Der
-   Erkennungs-Status sitzt getarnt als Punkt in der Statusleiste und
-   folgt der Ring-Farblogik. Verlassen per Klick auf den Punkt (oder das
-   ✕) oder per Esc-Taste. Bewusst NICHT im Markendesign. */
+   Kopfzeile und Navigation. To-do ist der Standard, ein echter Texteditor
+   bleibt als Alternative verfügbar. Verlassen per ✕ oder Esc-Taste.
+   Bewusst NICHT im Markendesign. */
 body[data-view="office"] .topbar,
 body[data-view="office"] .mode-tabs {
   display: none;
@@ -1206,6 +1241,41 @@ body[data-view="office"] .editor {
   color: var(--office-ink);
 }
 
+.editor-view-switch {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--office-line);
+  border-radius: 6px;
+  background: var(--office-paper);
+}
+
+.editor-view-button {
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--office-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.editor-view-button:hover,
+.editor-view-button.active {
+  background: var(--office-hover);
+  color: var(--office-ink);
+}
+
+.editor-view-button.active {
+  font-weight: 600;
+}
+
+.editor-view-button:focus-visible {
+  outline: 2px solid var(--office-ink);
+  outline-offset: 1px;
+}
+
 .editor-spacer {
   flex: 1;
 }
@@ -1250,7 +1320,163 @@ body[data-view="office"] .editor {
   color: var(--office-placeholder);
 }
 
-/* Statusleiste unten — hier sitzt der getarnte Erkennungs-Punkt */
+.todo-board {
+  width: min(760px, 100%);
+  flex: 1;
+  margin: 0 auto;
+  padding: clamp(2rem, 7vw, 5rem) clamp(1rem, 6vw, 3rem);
+}
+
+.todo-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+}
+
+.todo-heading h2 {
+  margin: 0;
+  color: var(--office-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: clamp(1.7rem, 4vw, 2.25rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.todo-eyebrow {
+  margin-bottom: var(--space-1);
+  color: var(--office-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.editor-clear {
+  padding: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--office-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.editor-clear:hover:not(:disabled) {
+  color: var(--office-ink);
+}
+
+.editor-clear:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.todo-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--office-line);
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--office-line);
+}
+
+.todo-item label {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.todo-item input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--office-ink-soft);
+}
+
+.todo-item span {
+  overflow-wrap: anywhere;
+}
+
+.todo-item.done span {
+  color: var(--office-muted);
+  text-decoration: line-through;
+}
+
+.todo-remove {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--office-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.todo-item:hover .todo-remove,
+.todo-remove:focus-visible {
+  opacity: 1;
+}
+
+.todo-remove:hover {
+  background: var(--office-hover);
+  color: var(--office-ink);
+}
+
+.todo-empty {
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--office-line);
+  color: var(--office-muted);
+  font-size: var(--text-sm);
+}
+
+.todo-form {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.todo-form input {
+  min-width: 0;
+  min-height: 42px;
+  flex: 1;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--office-line);
+  border-radius: 6px;
+  background: var(--office-paper);
+  color: var(--office-ink);
+  font: inherit;
+}
+
+.todo-form input::placeholder {
+  color: var(--office-placeholder);
+}
+
+.todo-form button {
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--office-ink-soft);
+  border-radius: 6px;
+  background: var(--office-ink-soft);
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Neutrale Statusleiste ohne Erkennungsanzeige. */
 .editor-foot {
   display: flex;
   align-items: center;
@@ -1264,38 +1490,6 @@ body[data-view="office"] .editor {
 
 .editor-count {
   font-variant-numeric: tabular-nums;
-}
-
-/* Status-Punkt: übernimmt diskret dieselbe Farblogik wie der Ring */
-.office-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--office-dot-calm);
-  cursor: pointer;
-  transition: background var(--dur-calm) var(--ease-calm);
-}
-
-.office-dot:focus-visible {
-  outline: 2px solid var(--office-ink);
-  outline-offset: 3px;
-}
-
-body[data-state="warm"] .office-dot {
-  background: var(--warm);
-}
-
-body[data-state="ember"] .office-dot {
-  background: var(--ember);
-}
-
-body[data-state="paused"] .office-dot {
-  background: var(--office-dot-paused);
-}
-
-/* Status-Punkt lässt sich in den Einstellungen abschalten */
-body[data-office-dot="off"] .office-dot {
-  display: none;
 }
 
 .neutral-intervention {
@@ -1643,6 +1837,41 @@ body[data-office-dot="off"] .office-dot {
 
   .set-row {
     flex-wrap: wrap;
+  }
+
+  .editor-bar {
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+  }
+
+  .editor-doc {
+    display: none;
+  }
+
+  .editor-view-switch {
+    flex: 1;
+  }
+
+  .editor-view-button {
+    flex: 1;
+  }
+
+  .todo-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: var(--space-5);
+  }
+
+  .todo-form {
+    flex-direction: column;
+  }
+
+  .todo-remove {
+    opacity: 1;
+  }
+
+  .editor-foot span:last-child {
+    display: none;
   }
 }
 

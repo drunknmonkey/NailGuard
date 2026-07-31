@@ -1,4 +1,4 @@
-const CACHE_NAME = "tawel-v12";
+const CACHE_NAME = "tawel-v13";
 
 const APP_SHELL = [
   "./",

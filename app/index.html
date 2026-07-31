@@ -158,22 +158,6 @@
 
               <div class="set-row">
                 <div class="txt">
-                  <div class="name" data-i18n="calibration.warmth">Farbwarnung</div>
-                  <div class="desc" data-i18n="settings.warmthDesc">Ring wärmt sich auf, wenn die Hand näher kommt</div>
-                </div>
-                <input id="warmthToggle" class="switch" type="checkbox" checked aria-label="Farbwarnung" data-i18n-aria-label="calibration.warmth" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.overlay">Overlay</div>
-                  <div class="desc" data-i18n="settings.overlayDesc">Zeigt erkannte Punkte im Kamerabild</div>
-                </div>
-                <input id="overlayToggle" class="switch" type="checkbox" checked aria-label="Overlay" data-i18n-aria-label="calibration.overlay" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
                   <div class="name" data-i18n="calibration.sound">Ton</div>
                   <div class="desc" data-i18n="settings.soundDesc">Leiser Klang beim Hinweis</div>
                 </div>
@@ -206,59 +190,25 @@
                 </div>
               </div>
 
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.vibration">Vibration</div>
-                  <div class="desc" data-i18n="settings.vibrationDesc">Kurzes Vibrieren beim Hinweis</div>
-                </div>
-                <input id="vibrationToggle" class="switch" type="checkbox" checked aria-label="Vibration" data-i18n-aria-label="calibration.vibration" />
-              </div>
             </div>
 
             <div class="card">
               <h3 data-i18n="settings.detectionTitle">Erkennung</h3>
 
-              <div class="calibration-presets" aria-label="Voreinstellung" data-i18n-aria-label="aria.presets">
-                <button class="preset-button" type="button" data-preset="soft" data-i18n="presets.soft">Sanft</button>
-                <button class="preset-button active" type="button" data-preset="normal" data-i18n="presets.normal">Normal</button>
-                <button class="preset-button" type="button" data-preset="precise" data-i18n="presets.precise">Präzise</button>
-              </div>
-
-              <details class="settings-details">
-                <summary data-i18n="settings.fineTune">Feinjustierung</summary>
-                <div class="set-row">
+              <div class="set-row sensitivity-row">
                 <div class="txt">
                   <div class="name" data-i18n="calibration.sensitivity">Empfindlichkeit</div>
-                  <div class="desc" data-i18n="settings.sensitivityDesc">Wie nah die Hand dem Mund kommen darf</div>
+                  <div class="desc" data-i18n="settings.sensitivityDesc">Bestimmt, wie früh Tawel auf eine Bewegung reagiert</div>
                 </div>
-                <div class="set-control">
-                  <input id="distanceThreshold" type="range" min="0.035" max="0.18" step="0.001" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
-                  <output id="distanceValue">0.090</output>
-                </div>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.holdTime">Haltezeit</div>
-                  <div class="desc" data-i18n="settings.holdDesc">Dauer, bis der Hinweis kommt</div>
-                </div>
-                <div class="set-control">
-                  <input id="holdSeconds" type="range" min="0.5" max="6" step="0.1" value="2" aria-label="Haltezeit" data-i18n-aria-label="calibration.holdTime" />
-                  <output id="holdValue">2.0 s</output>
+                <div class="sensitivity-control">
+                  <input id="distanceThreshold" type="range" min="0.065" max="0.12" step="0.005" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
+                  <div class="sensitivity-scale" aria-hidden="true">
+                    <span data-i18n="settings.sensitivityLess">Weniger Warnungen</span>
+                    <output id="distanceValue" data-i18n="settings.sensitivityBalanced">Ausgewogen</output>
+                    <span data-i18n="settings.sensitivityEarlier">Frühere Warnungen</span>
+                  </div>
                 </div>
               </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="calibration.cooldown">Ruhepause</div>
-                  <div class="desc" data-i18n="settings.cooldownDesc">Pause, bis der nächste Hinweis kommen darf</div>
-                </div>
-                <div class="set-control">
-                  <input id="cooldownSeconds" type="range" min="3" max="60" step="1" value="15" aria-label="Ruhepause" data-i18n-aria-label="calibration.cooldown" />
-                  <output id="cooldownValue">15 s</output>
-                </div>
-              </div>
-              </details>
 
               <div class="set-row">
                 <div class="txt">
@@ -318,26 +268,15 @@
 
               <div class="set-row">
                 <div class="txt">
-                  <div class="name" data-i18n="settings.officeDot">Status-Punkt anzeigen</div>
-                  <div class="desc" data-i18n="settings.officeDotDesc">Kleiner Punkt zeigt den Erkennungszustand in der Tarnansicht</div>
+                  <div class="name" data-i18n="settings.officeLayout">Ansicht</div>
+                  <div class="desc" data-i18n="settings.officeLayoutDesc">To-do ist der Standard, Notizen bleiben als Alternative verfügbar</div>
                 </div>
-                <input id="officeDotToggle" class="switch" type="checkbox" checked aria-label="Status-Punkt anzeigen" data-i18n-aria-label="settings.officeDot" />
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.officeLayout">Tarn-Layout</div>
-                  <div class="desc" data-i18n="settings.officeLayoutDesc">Die Tarnansicht ist ein schlichter Texteditor</div>
+                <div class="set-control">
+                  <select id="officeLayoutSelect" aria-label="Office-Ansicht" data-i18n-aria-label="settings.officeLayout">
+                    <option value="todo" data-i18n="office.todo">To-do</option>
+                    <option value="notes" data-i18n="office.notes">Notizen</option>
+                  </select>
                 </div>
-                <button class="mini-action" type="button" disabled data-i18n="settings.officeLayoutValue">Notizen.txt</button>
-              </div>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="neutral.subtle">Sehr dezente Einblendung</div>
-                  <div class="desc" data-i18n="settings.officeSubtleDesc">Hinweise erscheinen nur als kleine Notiz am Rand</div>
-                </div>
-                <input id="neutralSubtleToggle" class="switch" type="checkbox" checked aria-label="Sehr dezente Einblendung" data-i18n-aria-label="neutral.subtle" />
               </div>
             </div>
 
@@ -364,20 +303,35 @@
           </div>
         </section>
 
-        <!-- Office Mode = funktionierender, schlichter Texteditor (Tarnung).
-             Bewusst NICHT im Markendesign. Der Erkennungs-Status sitzt als
-             kleiner Punkt in der Statusleiste; Verlassen per Klick darauf
-             oder per Esc. -->
+        <!-- Office Mode = funktionierendes, neutrales Daily Board.
+             To-do ist der Standard, Notizen bleiben als Alternative lokal
+             verfügbar. Bewusst NICHT im Markendesign; Verlassen per Esc
+             oder über das X in der Werkzeugleiste. -->
         <section class="mode-view neutral-view" id="neutralView" data-view="neutral">
           <div class="editor">
             <div class="editor-bar">
-              <span class="editor-doc">Notizen.txt</span>
-              <span class="editor-tool" data-i18n="office.menuFile">Datei</span>
-              <span class="editor-tool" data-i18n="office.menuEdit">Bearbeiten</span>
-              <span class="editor-tool" data-i18n="office.menuFormat">Format</span>
+              <span class="editor-doc" data-i18n="neutral.title">Daily Board</span>
+              <div class="editor-view-switch" role="group" aria-label="Ansicht" data-i18n-aria-label="settings.officeLayout">
+                <button class="editor-view-button active" type="button" data-office-layout="todo" data-i18n="office.todo">To-do</button>
+                <button class="editor-view-button" type="button" data-office-layout="notes" data-i18n="office.notes">Notizen</button>
+              </div>
               <span class="editor-spacer"></span>
               <span class="editor-tool office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle" title="Office Mode beenden">✕</span>
             </div>
+            <section class="todo-board" id="neutralTodoPanel" aria-labelledby="todoTitle">
+              <div class="todo-heading">
+                <div>
+                  <p class="todo-eyebrow" data-i18n="office.today">Heute</p>
+                  <h2 id="todoTitle" data-i18n="office.todoTitle">Meine Aufgaben</h2>
+                </div>
+                <button class="editor-clear" id="clearCompletedButton" type="button" data-i18n="office.clearCompleted">Erledigte entfernen</button>
+              </div>
+              <ul class="todo-list" id="neutralTodoList"></ul>
+              <form class="todo-form" id="neutralTodoForm">
+                <input id="neutralTodoInput" type="text" maxlength="160" autocomplete="off" data-i18n-placeholder="office.todoPlaceholder" placeholder="Aufgabe hinzufügen …" />
+                <button type="submit" data-i18n="office.todoAdd">Hinzufügen</button>
+              </form>
+            </section>
             <textarea
               class="editor-area"
               id="neutralNotes"
@@ -385,12 +339,13 @@
               aria-label="Notizen"
               data-i18n-placeholder="office.placeholder"
               placeholder="Schreiben …"
+              hidden
             ></textarea>
             <div class="editor-foot">
-              <span class="editor-count" id="editorWordCount">0 Wörter</span>
+              <span class="editor-count" id="editorCount">0 Aufgaben</span>
               <span class="editor-spacer"></span>
               <span data-i18n="office.autosaved">Automatisch gespeichert</span>
-              <span class="office-dot office-exit" role="button" tabindex="0" data-i18n-title="neutral.exitTitle" title="Office Mode beenden (oder Esc)"></span>
+              <span data-i18n="office.exitHint">Esc zum Beenden</span>
             </div>
           </div>
         </section>
