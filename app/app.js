@@ -34,7 +34,7 @@ const ONBOARDING = {
   signalStableMs: 800,
   touchHoldMs: 1000,
   thresholdFactor: 1.35,
-  thresholdMin: 0.065,
+  thresholdMin: 0.06,
   thresholdMax: 0.12,
 };
 const MOUTH_INDICES = [13, 14, 61, 291];
@@ -114,7 +114,6 @@ const els = {
   neutralTodoForm: document.querySelector("#neutralTodoForm"),
   neutralTodoInput: document.querySelector("#neutralTodoInput"),
   clearCompletedButton: document.querySelector("#clearCompletedButton"),
-  officeLayoutSelect: document.querySelector("#officeLayoutSelect"),
   officeLayoutButtons: [...document.querySelectorAll("[data-office-layout]")],
   editorCount: document.querySelector("#editorCount"),
   neutralIntervention: document.querySelector("#neutralIntervention"),
@@ -329,7 +328,6 @@ function bindEvents() {
 
   els.cameraSelect.addEventListener("change", () => swapCamera(els.cameraSelect.value));
   els.soundPreset.addEventListener("change", settingsFromUi);
-  els.officeLayoutSelect.addEventListener("change", () => setOfficeLayout(els.officeLayoutSelect.value));
   for (const button of els.officeLayoutButtons) {
     button.addEventListener("click", () => setOfficeLayout(button.dataset.officeLayout));
   }
@@ -1228,12 +1226,15 @@ function calcCalmStreak(allStats) {
 
 function renderSettings() {
   const sensitivity = Number(els.distanceThreshold.value);
-  const sensitivityKey = sensitivity < 0.0825
+  const sensitivityKey = sensitivity < 0.09
     ? "settings.sensitivityLess"
-    : sensitivity > 0.1025
+    : sensitivity > 0.09
       ? "settings.sensitivityEarlier"
       : "settings.sensitivityBalanced";
-  els.distanceValue.textContent = t(sensitivityKey);
+  // Die sichtbare Skala bleibt stabil; der aktuelle Bereich wird für
+  // Screenreader verständlich am Regler selbst ausgegeben.
+  els.distanceValue.textContent = t("settings.sensitivityBalanced");
+  els.distanceThreshold.setAttribute("aria-valuetext", t(sensitivityKey));
   els.volumeValue.textContent = `${Math.round(Number(els.soundVolume.value) * 100)}%`;
 }
 
@@ -1273,7 +1274,6 @@ function renderOfficeEditor() {
 function setOfficeLayout(layout, { save = true } = {}) {
   const nextLayout = layout === "notes" ? "notes" : "todo";
   state.settings.officeLayout = nextLayout;
-  els.officeLayoutSelect.value = nextLayout;
   els.neutralTodoPanel.hidden = nextLayout !== "todo";
   els.neutralNotes.hidden = nextLayout !== "notes";
 
@@ -1375,7 +1375,6 @@ function settingsFromUi() {
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
     faceTouchAlert: els.faceTouchToggle.checked,
-    officeLayout: els.officeLayoutSelect.value === "notes" ? "notes" : "todo",
   };
   saveSettings();
 }
@@ -1388,7 +1387,6 @@ function applySettingsToUi() {
     : "bubblePop";
   els.soundVolume.value = state.settings.soundVolume;
   els.faceTouchToggle.checked = state.settings.faceTouchAlert;
-  els.officeLayoutSelect.value = state.settings.officeLayout;
 }
 
 function exportData() {
