@@ -26,9 +26,9 @@ const translations = {
     "aria.languageToggle": "Sprache",
     "aria.hourBars": "Momente pro Stunde",
 
-    "start.title": "Ein ruhiger Coach für fokussierte Momente.",
+    "start.title": "Bereit, wenn du es bist.",
     "start.body":
-      "Starte die Kamera und lass Tawel ruhig mitlaufen, während du arbeitest. Kamerabilder und Videos werden weder gespeichert noch hochgeladen.",
+      "Starte Tawel und arbeite einfach weiter. Der ruhige Impuls hilft dir, den Moment früher zu bemerken.",
     "start.privacy":
       "Die Auswertung läuft komplett in deinem Browser. Beim Start lädt Tawel nur eigene App-Dateien und Erkennungsmodelle — niemals deine Kameradaten.",
     "start.titleNeutral": "Bereit für einen ruhigen Arbeitstag.",
@@ -39,6 +39,9 @@ const translations = {
     "start.button": "Kamera starten",
     "start.retry": "Erneut versuchen",
     "start.desktopLink": "Für Mac vormerken",
+    "start.local": "Lokal verarbeitet",
+    "start.noRecording": "Keine Aufnahme",
+    "start.noCloud": "Keine Cloud",
     "start.step1": "Kamera erlauben",
     "start.step1Desc": "Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.",
     "start.step2": "Kurz kalibrieren",
@@ -248,9 +251,9 @@ const translations = {
     "aria.languageToggle": "Language",
     "aria.hourBars": "Moments per hour",
 
-    "start.title": "A calm coach for focused moments.",
+    "start.title": "Ready when you are.",
     "start.body":
-      "Start the camera and let Tawel run quietly while you work. Camera images and videos are never stored or uploaded.",
+      "Start Tawel and simply keep working. The calm cue helps you notice the moment sooner.",
     "start.privacy":
       "All analysis runs in your browser. On startup Tawel only loads its own app files and detection models — never your camera data.",
     "start.titleNeutral": "Ready for a calm workday.",
@@ -261,6 +264,9 @@ const translations = {
     "start.button": "Start camera",
     "start.retry": "Try again",
     "start.desktopLink": "Join the Mac waitlist",
+    "start.local": "Processed locally",
+    "start.noRecording": "No recording",
+    "start.noCloud": "No cloud",
     "start.step1": "Allow camera",
     "start.step1Desc": "Detection runs entirely in your browser — nothing leaves your device.",
     "start.step2": "Quick calibration",
