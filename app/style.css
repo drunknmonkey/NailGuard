@@ -2729,9 +2729,11 @@ body.tawel-landing {
 }
 
 .tawel-landing .hero-trust {
-  margin-top: var(--space-4);
+  width: 100%;
+  margin: var(--space-4) auto 0;
   color: var(--moss);
   font-size: var(--text-xs);
+  text-align: center;
 }
 
 .tawel-landing .hero-sub {
@@ -3169,8 +3171,8 @@ body.tawel-landing {
 
 .tawel-landing .access-path article > div {
   display: grid;
-  grid-template-columns: minmax(12rem, 0.72fr) minmax(18rem, 1.28fr) auto;
-  align-items: center;
+  grid-template-columns: minmax(12rem, 0.72fr) minmax(18rem, 1.28fr) 13.25rem;
+  align-items: start;
   gap: clamp(var(--space-5), 3vw, var(--space-7));
 }
 
@@ -3194,7 +3196,7 @@ body.tawel-landing {
 .tawel-landing .access-path article > div > p {
   grid-column: 2;
   max-width: 32rem;
-  margin: 0;
+  margin: calc(var(--space-3) + 1rem) 0 0;
   color: var(--moss);
   line-height: var(--leading-relaxed);
 }
@@ -3202,12 +3204,9 @@ body.tawel-landing {
 .tawel-landing .access-path .pill-link,
 .tawel-landing .access-path .text-link {
   grid-column: 3;
-  align-self: center;
+  justify-self: end;
+  margin-top: calc(var(--space-3) + 1rem);
   white-space: nowrap;
-}
-
-.tawel-landing .access-path .text-link {
-  margin-top: 0;
 }
 
 .tawel-landing .privacy-section {
@@ -3373,6 +3372,7 @@ body.tawel-landing {
   .tawel-landing .access-path .text-link {
     grid-column: 1 / -1;
     justify-self: start;
+    margin-top: 0;
   }
 
   .tawel-landing .waitlist-form-shell {
@@ -3484,6 +3484,10 @@ body.tawel-landing {
   .tawel-landing .access-path .pill-link,
   .tawel-landing .access-path .text-link {
     grid-column: 1;
+  }
+
+  .tawel-landing .access-path article > div > p {
+    margin-top: 0;
   }
 
   .tawel-landing .privacy-section {
