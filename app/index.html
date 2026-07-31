@@ -201,7 +201,7 @@
                   <div class="desc" data-i18n="settings.sensitivityDesc">Bestimmt, wie früh Tawel auf eine Bewegung reagiert</div>
                 </div>
                 <div class="sensitivity-control">
-                  <input id="distanceThreshold" type="range" min="0.065" max="0.12" step="0.005" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
+                  <input id="distanceThreshold" type="range" min="0.06" max="0.12" step="0.005" value="0.09" aria-label="Empfindlichkeit" data-i18n-aria-label="calibration.sensitivity" />
                   <div class="sensitivity-scale" aria-hidden="true">
                     <span data-i18n="settings.sensitivityLess">Weniger Warnungen</span>
                     <output id="distanceValue" data-i18n="settings.sensitivityBalanced">Ausgewogen</output>
@@ -218,7 +218,7 @@
                 <input id="faceTouchToggle" class="switch" type="checkbox" aria-label="Gesichtsberührung melden" data-i18n-aria-label="calibration.faceTouch" />
               </div>
 
-              <div class="set-row">
+              <div class="set-row centered-actions-row">
                 <div class="actions">
                   <button class="mini-action" id="recalibrateButton" type="button" data-i18n="calibration.recalibrate">Abstand neu einrichten</button>
                   <button class="mini-action" id="testWarningButton" type="button" data-i18n="calibration.testWarning">Probe-Hinweis ansehen</button>
@@ -256,31 +256,6 @@
             </div>
 
             <div class="card">
-              <h3 data-i18n="settings.privacyTitle">Privatsphäre</h3>
-              <div class="privacy-card-note">
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 4v3.6c0 3.4 2.3 5.9 5.5 6.9 3.2-1 5.5-3.5 5.5-6.9V4L8 1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-                <span data-i18n="settings.privacyBody">Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen. Beim Start lädt die App nur eigene Dateien und Erkennungsmodelle — das sind keine Kameradaten.</span>
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.officeTitle">Office Mode</h3>
-
-              <div class="set-row">
-                <div class="txt">
-                  <div class="name" data-i18n="settings.officeLayout">Ansicht</div>
-                  <div class="desc" data-i18n="settings.officeLayoutDesc">To-do ist der Standard, Notizen bleiben als Alternative verfügbar</div>
-                </div>
-                <div class="set-control">
-                  <select id="officeLayoutSelect" aria-label="Office-Ansicht" data-i18n-aria-label="settings.officeLayout">
-                    <option value="todo" data-i18n="office.todo">To-do</option>
-                    <option value="notes" data-i18n="office.notes">Notizen</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
               <h3 data-i18n="settings.dataTitle">Daten</h3>
 
               <div class="set-row">
@@ -298,6 +273,14 @@
                 </div>
                 <button class="mini-action" id="importDataButton" type="button" data-i18n="settings.dataImport">Importieren</button>
                 <input id="importDataInput" type="file" accept=".json,application/json" hidden />
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="settings.privacyTitle">Privatsphäre</h3>
+              <div class="privacy-card-note">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 2.5 4v3.6c0 3.4 2.3 5.9 5.5 6.9 3.2-1 5.5-3.5 5.5-6.9V4L8 1.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                <span data-i18n="settings.privacyBody">Die Auswertung läuft vollständig auf deinem Gerät. Es wird kein Bild oder Video gespeichert oder übertragen. Beim Start lädt die App nur eigene Dateien und Erkennungsmodelle — das sind keine Kameradaten.</span>
               </div>
             </div>
           </div>
@@ -322,7 +305,7 @@
               <div class="todo-heading">
                 <div>
                   <p class="todo-eyebrow" data-i18n="office.today">Heute</p>
-                  <h2 id="todoTitle" data-i18n="office.todoTitle">Meine Aufgaben</h2>
+                  <h2 id="todoTitle" data-i18n="office.todoTitle">To Do</h2>
                 </div>
                 <button class="editor-clear" id="clearCompletedButton" type="button" data-i18n="office.clearCompleted">Erledigte entfernen</button>
               </div>
