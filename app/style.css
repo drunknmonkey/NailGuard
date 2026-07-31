@@ -846,6 +846,14 @@ body[data-state="paused"] .state-word { color: var(--moss); }
   border-bottom: none;
 }
 
+.centered-actions-row {
+  justify-content: center;
+}
+
+.centered-actions-row .actions {
+  width: 100%;
+}
+
 /* Progressive Disclosure: selten Gebrauchtes ruht hinter einer ruhigen Zeile
    (Kamera-Vorschau, Feinjustierungs-Slider). Native <details>, kein JS. */
 .settings-details {
