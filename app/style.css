@@ -2730,6 +2730,7 @@ body.tawel-landing {
 
 .tawel-landing .hero-trust {
   width: 100%;
+  justify-content: center;
   margin: var(--space-4) auto 0;
   color: var(--moss);
   font-size: var(--text-xs);
