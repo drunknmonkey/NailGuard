@@ -33,36 +33,52 @@
         </div>
       </header>
 
-      <section class="start-panel" id="startPanel">
+      <section class="start-panel" id="startPanel" aria-labelledby="startTitle">
         <div class="start-copy">
-          <h2 id="startTitle">Ein ruhiger Coach für fokussierte Momente.</h2>
+          <div class="start-symbol" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <h2 id="startTitle">Bereit, wenn du es bist.</h2>
           <p id="startBody">
-            Starte die Kamera und lass Tawel ruhig mitlaufen, während du arbeitest.
-            Kamerabilder und Videos werden weder gespeichert noch hochgeladen.
+            Starte Tawel und arbeite einfach weiter. Der ruhige Impuls hilft dir,
+            den Moment früher zu bemerken.
           </p>
-          <p class="privacy-note" id="startPrivacyNote">
+          <p class="privacy-note visually-hidden" id="startPrivacyNote">
             Die Auswertung läuft komplett in deinem Browser. Beim Start lädt Tawel nur
             eigene App-Dateien und Erkennungsmodelle — niemals deine Kameradaten.
           </p>
         </div>
+
         <div class="start-actions">
           <button class="primary-action" id="startButton" type="button" data-i18n="start.button">Kamera starten</button>
           <a class="text-action desktop-link" href="/#warteliste" data-i18n="start.desktopLink">Für Mac vormerken</a>
         </div>
-        <ol class="start-steps" aria-label="So funktioniert's">
+
+        <ul class="start-privacy" aria-label="Privatsphäre">
           <li>
-            <strong data-i18n="start.step1">Kamera erlauben</strong>
-            <span data-i18n="start.step1Desc">Die Erkennung läuft vollständig im Browser – nichts verlässt dein Gerät.</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="11" rx="2"></rect>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            </svg>
+            <span data-i18n="start.local">Lokal verarbeitet</span>
           </li>
           <li>
-            <strong data-i18n="start.step2">Kurz kalibrieren</strong>
-            <span data-i18n="start.step2Desc">Finger zum Mund führen: So richtet Tawel deinen persönlichen Abstand ein.</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="m6 6 12 12"></path>
+            </svg>
+            <span data-i18n="start.noRecording">Keine Aufnahme</span>
           </li>
           <li>
-            <strong data-i18n="start.step3">Einfach weiterarbeiten</strong>
-            <span data-i18n="start.step3Desc">Sanfte Hinweise, wenn nötig — lass den Tab dafür sichtbar geöffnet.</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7.5 18H18a4 4 0 0 0 .7-7.9A6.5 6.5 0 0 0 6.3 8.5 4.8 4.8 0 0 0 7.5 18Z"></path>
+              <path d="m5 5 14 14"></path>
+            </svg>
+            <span data-i18n="start.noCloud">Keine Cloud</span>
           </li>
-        </ol>
+        </ul>
       </section>
 
       <section class="workspace" id="workspace" hidden>
