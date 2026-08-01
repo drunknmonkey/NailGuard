@@ -1835,6 +1835,13 @@ body[data-view="office"] .editor {
   background: var(--mist);
 }
 
+body[data-view="calibration"] .mode-tabs {
+  border-top: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+  background: color-mix(in srgb, var(--mist) 88%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
 .mode-tab {
   position: relative;
   padding: var(--space-1) var(--space-1);
@@ -2039,6 +2046,15 @@ body[data-view="office"] .editor {
   .settings-actions {
     grid-template-columns: 1fr;
     padding-inline: var(--space-4);
+  }
+
+  .sensitivity-scale {
+    gap: var(--space-1);
+    font-size: 0.7rem;
+  }
+
+  .sensitivity-scale span {
+    white-space: nowrap;
   }
 
   .privacy-card-note {
