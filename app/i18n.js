@@ -72,6 +72,7 @@ const translations = {
     "signals.distance": "Distanz: {value}",
 
     "settings.title": "Einstellungen",
+    "settings.subtitle": "Passe Tawel so an, dass es sich für dich ruhig und verlässlich anfühlt.",
     "settings.cameraTitle": "Kamera",
     "settings.cameraDetails": "Vorschau & Live-Signale",
     "settings.fineTune": "Feinjustierung",
@@ -316,6 +317,7 @@ const translations = {
     "signals.distance": "Distance: {value}",
 
     "settings.title": "Settings",
+    "settings.subtitle": "Adjust Tawel until it feels calm and reliable for you.",
     "settings.cameraTitle": "Camera",
     "settings.cameraDetails": "Preview & live signals",
     "settings.fineTune": "Fine-tuning",

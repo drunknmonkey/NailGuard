@@ -37,6 +37,15 @@ const ONBOARDING = {
   thresholdMin: 0.06,
   thresholdMax: 0.12,
 };
+// Die persönliche Kalibrierung bleibt die Basis. Der sichtbare Regler ist
+// bewusst nur eine Korrektur darum herum und startet deshalb immer mittig.
+const SENSITIVITY = {
+  adjustmentMin: -3,
+  adjustmentMax: 3,
+  thresholdStep: 0.01,
+  effectiveMin: 0.03,
+  effectiveMax: 0.15,
+};
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
 // Sparse Abtastpunkte über das ganze Gesicht (Stirn, Wangen, Kinn,
@@ -85,7 +94,7 @@ const els = {
   handSignal: document.querySelector("#handSignal"),
   nearSignal: document.querySelector("#nearSignal"),
   distanceSignal: document.querySelector("#distanceSignal"),
-  distanceThreshold: document.querySelector("#distanceThreshold"),
+  sensitivityAdjustment: document.querySelector("#sensitivityAdjustment"),
   distanceValue: document.querySelector("#distanceValue"),
   soundToggle: document.querySelector("#soundToggle"),
   soundPreset: document.querySelector("#soundPreset"),
@@ -318,7 +327,7 @@ function bindEvents() {
     }
   });
 
-  for (const input of [els.distanceThreshold, els.soundVolume]) {
+  for (const input of [els.sensitivityAdjustment, els.soundVolume]) {
     input.addEventListener("input", () => {
       settingsFromUi();
       saveSettings();
@@ -627,7 +636,7 @@ const detection = {
   },
 
   evaluateProximity(now) {
-    const threshold = state.settings.distanceThreshold;
+    const threshold = effectiveDistanceThreshold();
     const holdMs = state.settings.holdSeconds * 1000;
     const cooldownMs = state.settings.cooldownSeconds * 1000;
     const rawDistance = state.minDistance;
@@ -856,6 +865,12 @@ function quantize(value, step) {
   return Number((Math.round(value / step) * step).toFixed(4));
 }
 
+function effectiveDistanceThreshold() {
+  const adjusted = state.settings.distanceThreshold
+    + state.settings.sensitivityAdjustment * SENSITIVITY.thresholdStep;
+  return Math.min(SENSITIVITY.effectiveMax, Math.max(SENSITIVITY.effectiveMin, adjusted));
+}
+
 function notifyUser() {
   if (state.settings.sound) {
     playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
@@ -937,8 +952,10 @@ function applyOnboardingCalibration() {
   );
   state.settings = {
     ...state.settings,
-    // Quantize to the sensitivity slider's step so stored and displayed values match
-    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
+    // Der persönliche Abstand bleibt die unsichtbare Basis. Die sichtbare
+    // Empfindlichkeitskorrektur startet nach einer neuen Ausrichtung mittig.
+    distanceThreshold: quantize(threshold, 0.005),
+    sensitivityAdjustment: 0,
   };
   applySettingsToUi();
   saveSettings();
@@ -1073,7 +1090,7 @@ function renderLiveSignals(faceLandmarks, handLandmarks) {
     return;
   }
 
-  const isNear = state.minDistance <= state.settings.distanceThreshold;
+  const isNear = state.minDistance <= effectiveDistanceThreshold();
   els.nearSignal.textContent = isNear ? t("signals.nearClose") : t("signals.nearCalm");
   els.distanceSignal.textContent = t("signals.distance", { value: state.minDistance.toFixed(3) });
 }
@@ -1225,16 +1242,17 @@ function calcCalmStreak(allStats) {
 }
 
 function renderSettings() {
-  const sensitivity = Number(els.distanceThreshold.value);
-  const sensitivityKey = sensitivity < 0.09
+  const sensitivity = Number(els.sensitivityAdjustment.value);
+  const sensitivityKey = sensitivity < 0
     ? "settings.sensitivityLess"
-    : sensitivity > 0.09
+    : sensitivity > 0
       ? "settings.sensitivityEarlier"
       : "settings.sensitivityBalanced";
   // Die sichtbare Skala bleibt stabil; der aktuelle Bereich wird für
   // Screenreader verständlich am Regler selbst ausgegeben.
   els.distanceValue.textContent = t("settings.sensitivityBalanced");
-  els.distanceThreshold.setAttribute("aria-valuetext", t(sensitivityKey));
+  els.sensitivityAdjustment.dataset.position = String(sensitivity);
+  els.sensitivityAdjustment.setAttribute("aria-valuetext", t(sensitivityKey));
   els.volumeValue.textContent = `${Math.round(Number(els.soundVolume.value) * 100)}%`;
 }
 
@@ -1370,7 +1388,7 @@ function renderOfficeCount() {
 function settingsFromUi() {
   state.settings = {
     ...state.settings,
-    distanceThreshold: Number(els.distanceThreshold.value),
+    sensitivityAdjustment: Number(els.sensitivityAdjustment.value),
     sound: els.soundToggle.checked,
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
@@ -1380,7 +1398,7 @@ function settingsFromUi() {
 }
 
 function applySettingsToUi() {
-  els.distanceThreshold.value = state.settings.distanceThreshold;
+  els.sensitivityAdjustment.value = state.settings.sensitivityAdjustment;
   els.soundToggle.checked = state.settings.sound;
   els.soundPreset.value = SOUND_PRESETS[state.settings.soundPreset]
     ? state.settings.soundPreset
@@ -1443,6 +1461,7 @@ function loadSettings() {
   const defaults = {
     activeMode: "focus",
     distanceThreshold: 0.09,
+    sensitivityAdjustment: 0,
     holdSeconds: 2,
     cooldownSeconds: 15,
     showOverlay: false,
@@ -1459,9 +1478,23 @@ function loadSettings() {
 
   try {
     const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {};
+    const storedThreshold = Number(stored.distanceThreshold);
+    const storedAdjustment = Number(stored.sensitivityAdjustment);
     return {
       ...defaults,
       ...stored,
+      // Ältere Versionen speicherten den absoluten Kalibrierungswert direkt
+      // im sichtbaren Regler. Er bleibt als Basis erhalten; die neue,
+      // verständliche Korrektur beginnt unabhängig davon bei „Ausgewogen".
+      distanceThreshold: Number.isFinite(storedThreshold)
+        ? Math.min(SENSITIVITY.effectiveMax, Math.max(SENSITIVITY.effectiveMin, storedThreshold))
+        : defaults.distanceThreshold,
+      sensitivityAdjustment: Number.isFinite(storedAdjustment)
+        ? Math.min(
+          SENSITIVITY.adjustmentMax,
+          Math.max(SENSITIVITY.adjustmentMin, Math.round(storedAdjustment)),
+        )
+        : defaults.sensitivityAdjustment,
       // Entfernte technische Optionen werden auf den kuratierten Standard
       // migriert, auch wenn ältere Browser sie noch gespeichert haben.
       showOverlay: false,
