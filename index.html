@@ -5,22 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Tawel erkennt über die Kamera, wenn deine Hand zum Mund wandert – und zeigt ein ruhiges Glühen statt eines Alarms. Kostenlos im Browser ausprobieren; die Mac-App für zuverlässigen Hintergrundbetrieb ist in Entwicklung."
+      content="Sanfte Unterstützung bei Nägelkauen: Tawel erkennt Hand-zum-Mund-Bewegungen lokal und gibt im richtigen Moment einen ruhigen visuellen Impuls. Kostenlos im Browser ausprobieren."
     />
-    <meta name="theme-color" content="#1E3B34" />
-    <title>Tawel – Ruhig aufhören, an den Nägeln zu kauen.</title>
+    <meta name="theme-color" content="#F4F0E7" />
+    <meta property="og:title" content="Tawel – Ein kleiner Impuls. Eine Gewohnheit weniger." />
+    <meta
+      property="og:description"
+      content="Tawel macht den Moment davor sichtbar – ruhig, privat und ohne Bewertung."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tawel.app/" />
+    <title>Tawel – Ein kleiner Impuls. Eine Gewohnheit weniger.</title>
 
     <link rel="icon" href="/app/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/app/icons/apple-touch-icon.png" />
+    <link
+      rel="preload"
+      href="/app/fonts/instrument-sans-400-700-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/app/fonts/fraunces-100-900-italic-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/tawel-hero-tony-schnagl.webp"
+      as="image"
+      type="image/webp"
+      fetchpriority="high"
+    />
+    <link rel="stylesheet" href="/app/style.css?v=20260731-final-spacing-2" />
 
-    <!-- Schriften wie in der App: self-hosted (kein Google-Fonts-CDN), @font-face in style.css -->
-    <link rel="preload" href="/app/fonts/instrument-sans-400-700-latin.woff2" as="font" type="font/woff2" crossorigin />
-
-    <!-- Gemeinsames Design-System: exakt dieselbe Datei wie die App unter /app.
-         ?v= bricht veraltete Cache-Einträge auf (neues HTML + altes CSS) -->
-    <link rel="stylesheet" href="/app/style.css?v=20260721a" />
-
-    <!-- MailerLite Universal -->
+    <!-- MailerLite wird nur auf dieser Seite mit dem eingebetteten Formular geladen. -->
     <script>
       (function (w, d, e, u, f, l, n) {
         w[f] =
@@ -36,143 +58,323 @@
   </head>
 
   <body class="tawel-landing">
-    <main class="app-shell landing">
-      <header class="topbar" aria-label="Tawel">
-        <p class="wordmark">tawel</p>
-        <div class="topbar-actions">
-          <a class="primary-action pill-link" href="#warteliste">Auf die Warteliste</a>
-        </div>
-      </header>
+    <a class="skip-link" href="#inhalt">Zum Inhalt</a>
 
-      <!-- ─ Hero ─ -->
-      <section class="hero">
-        <div class="hero-copy">
-          <h2 class="hero-title"><span class="accent">Ruhig</span> aufhören, an den Nägeln zu kauen.</h2>
+    <header class="topbar landing-topbar app-shell" aria-label="Tawel Hauptnavigation">
+      <a class="wordmark" href="/" aria-label="Tawel Startseite">tawel</a>
+      <nav class="landing-nav" aria-label="Hauptnavigation">
+        <a href="#warum-tawel">Warum Tawel</a>
+        <a href="#so-funktionierts">So funktioniert's</a>
+        <a href="#office-mode">Office Mode</a>
+        <a href="#fuer-mac">Für Mac</a>
+        <a class="primary-action pill-link topbar-cta" href="/app/">Im Browser ausprobieren</a>
+      </nav>
+    </header>
+
+    <main id="inhalt">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy landing-shell">
+          <p class="eyebrow">Der Moment davor zählt.</p>
+          <h1 class="hero-title" id="hero-title">
+            Ein kleiner Impuls. Eine Gewohnheit <span class="accent-serif">weniger</span>.
+          </h1>
           <p class="hero-sub">
-            Tawel erkennt über deine Kamera, wenn eine Hand zum Mund wandert – und zeigt dir ein
-            ruhiges Glühen statt eines Alarms. So bemerkst du den Moment früher und kannst ihn
-            sanft unterbrechen.
+            Tawel bemerkt die Bewegung zum Mund und gibt dir im richtigen Moment einen sanften
+            Impuls.
           </p>
           <div class="hero-cta">
-            <a class="primary-action pill-link" href="#warteliste">Auf die Warteliste</a>
-            <a class="ghost-action pill-link" href="/app/">Web-Version ausprobieren</a>
+            <a class="primary-action pill-link" href="/app/">Im Browser ausprobieren</a>
+            <a class="ghost-action pill-link" href="#warteliste">Für Mac vormerken</a>
           </div>
-          <p class="hero-hint">Kostenlos im Browser · Mac-App in Entwicklung</p>
+          <p class="hero-trust">Kostenlos im Browser · Kamerabild bleibt lokal</p>
         </div>
-        <div class="stage" aria-hidden="true">
-          <div class="halo"></div>
-          <div class="ring"></div>
-          <div class="ring inner"></div>
-        </div>
-      </section>
 
-      <!-- ─ Problem ─ -->
-      <section class="landing-section">
-        <p class="eyebrow">Das Problem</p>
-        <h2>Ein leises Problem verdient keine laute Lösung.</h2>
-        <p>
-          Nägelkauen passiert automatisch. Du merkst es meist erst, wenn es schon geschehen ist.
-          Die üblichen Hilfsmittel setzen auf Abschreckung, Bitterlack oder grelle Warnungen – sie
-          bekämpfen ein leises Problem mit Lärm.
-        </p>
-      </section>
-
-      <!-- ─ So funktioniert's: Text + stilles Produkt-Visual ─ -->
-      <section class="landing-section how-section">
-        <div class="how-copy">
-          <p class="eyebrow">So funktioniert's</p>
-          <h2>Ein ruhiges Glühen statt eines Alarms.</h2>
-          <p>
-            Tawel erkennt über die Kamera, wenn deine Hand zum Gesicht kommt – die Auswertung läuft
-            vollständig auf deinem Gerät. Statt eines lauten Alarms erscheint ein warmes, atmendes
-            Glühen. Es kommt auf, während deine Hand sich hebt, und verschwindet wieder, sobald du
-            innehältst – oft noch bevor du kaust.
-          </p>
-        </div>
-        <!-- Rein dekoratives CSS-Visual: stilisierter Bildschirmrahmen, an
-             dessen Rand das Ember-Glühen atmet – kein Bild-Asset. -->
-        <figure class="glow-demo" aria-hidden="true">
-          <div class="demo-screen">
-            <div class="demo-glow"></div>
+        <figure class="hero-photo">
+          <img
+            src="/assets/tawel-hero-tony-schnagl.webp"
+            width="1600"
+            height="1200"
+            alt="Hände beim Tippen an einem Laptop auf einem warm beleuchteten Schreibtisch."
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+          <div
+            class="product-window"
+            role="img"
+            aria-label="Verkleinerte Darstellung der echten Tawel Fokusansicht mit ruhigem Ring, Aktivstatus und Office-Mode-Schaltfläche"
+          >
+            <div class="product-topbar">
+              <strong>tawel</strong>
+              <span class="product-status"><i aria-hidden="true"></i> Aktiv</span>
+            </div>
+            <div class="product-focus">
+              <div class="product-ring" aria-hidden="true"><i></i></div>
+              <strong>Ruhig</strong>
+              <span>Tawel läuft ruhig mit — alles bleibt auf deinem Gerät.</span>
+            </div>
+            <div class="product-actions" aria-hidden="true">
+              <span>Pausieren</span>
+              <span>Office Mode</span>
+            </div>
           </div>
         </figure>
       </section>
 
-      <!-- ─ Web heute / Mac-App geplant: ehrliche Positionierung ─ -->
-      <section class="landing-section">
-        <p class="eyebrow">Web & Mac</p>
-        <h2>Sofort im Browser. Später zuverlässig im Hintergrund.</h2>
-        <div class="landing-grid two-up">
-          <article class="coach-card">
-            <h2>Web-Version — kostenlos</h2>
-            <p>
-              Läuft direkt im Browser, ohne Installation, und bleibt dauerhaft kostenlos. Sie
-              arbeitet, solange der Tab geöffnet und sichtbar bleibt – wandert er in den
-              Hintergrund, drosseln Browser Kamera und Erkennung.
-            </p>
-          </article>
-          <article class="coach-card">
-            <h2>Mac-App — in Entwicklung</h2>
-            <p>
-              Dafür entsteht die Mac-App: Sie soll zuverlässig im Hintergrund laufen und das Glühen
-              am Bildschirmrand zeigen – geplant so, dass es in Video-Calls, geteilten Bildschirmen
-              und Aufnahmen unsichtbar bleibt. Die Warteliste erfährt zuerst, wenn sie bereit ist.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <!-- ─ Value-Pillars ─ -->
-      <section class="landing-section">
-        <div class="landing-grid">
-          <article class="coach-card">
-            <h2>Ruhe statt Alarm</h2>
-            <p>
-              Ein atmender Ring, kein greller Warnton. Tawel arbeitet mit deiner Aufmerksamkeit,
-              nicht gegen deine Nerven.
-            </p>
-          </article>
-          <article class="coach-card">
-            <h2>Office Mode</h2>
-            <p>
-              Ein Klick, und die Oberfläche wird zu einer neutralen Notizseite. Die Erkennung läuft
-              diskret weiter, Hinweise erscheinen nur als kleine Randnotiz – ideal fürs Büro.
-            </p>
-          </article>
-          <article class="coach-card">
-            <h2>Privat von Grund auf</h2>
-            <p>
-              Die Kameraauswertung läuft vollständig auf deinem Gerät. Kamerabilder und Videos
-              werden weder gespeichert noch hochgeladen.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <!-- ─ Warteliste ─ -->
-      <section class="landing-section" id="warteliste">
-        <div class="card waitlist-card">
-          <p class="eyebrow">Warteliste</p>
-          <h2>Sei dabei, wenn Tawel erscheint.</h2>
+      <section
+        class="belief-section landing-shell"
+        id="warum-tawel"
+        aria-labelledby="belief-title"
+      >
+        <div class="belief-copy">
+          <p class="eyebrow">Es beginnt, bevor du es merkst.</p>
+          <h2 id="belief-title">
+            Du musst nicht stärker sein. Nur <span class="accent-serif">früher</span> merken.
+          </h2>
           <p>
-            Trag dich ein und erfahre als Erste:r, wenn die Mac-App bereit ist. Kein Spam –
-            nur eine Nachricht.
+            Viele Bewegungen passieren nebenbei – beim Arbeiten, Lesen oder Nachdenken. Tawel macht
+            genau diesen kurzen Moment sichtbar, ohne dich zu bewerten oder aus dem Fluss zu reißen.
           </p>
-          <div class="ml-embedded" data-form="CmB4SX"></div>
+          <p class="belief-note">
+            Keine Bewertung. Kein Streak. Nur der richtige Hinweis zur richtigen Zeit.
+          </p>
+        </div>
+
+        <ol
+          class="moment-steps"
+          id="so-funktionierts"
+          aria-label="So funktioniert Tawels sanfter Impuls"
+        >
+          <li>
+            <span class="moment-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <path d="M24 15V9a3 3 0 0 0-6 0v6" />
+                <path d="M18 14V7a3 3 0 0 0-6 0v7" />
+                <path d="M12 14v-4a3 3 0 0 0-6 0v8" />
+                <path
+                  d="M24 12a3 3 0 0 1 6 0v5c0 7.2-5.8 13-13 13-4 0-7.4-1.8-10-4.1l-4-4a3 3 0 0 1 4.2-4.2L10 20"
+                />
+              </svg>
+            </span>
+            <span class="moment-number">01</span>
+            <strong>Unbewusste Bewegung</strong>
+          </li>
+          <li>
+            <span class="moment-icon moment-icon-ring" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="10" />
+                <circle cx="16" cy="16" r="6" />
+                <circle cx="16" cy="16" r="2" />
+              </svg>
+            </span>
+            <span class="moment-number">02</span>
+            <strong>Sanfter Impuls</strong>
+          </li>
+          <li>
+            <span class="moment-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <path d="M9 27c1-8.5 5.4-15 14-19" />
+                <path d="M12 22C7 21.8 4 18.9 4 14c4.9-.2 8.1 1.9 9.2 5.8" />
+                <path d="M15 17.5C15.2 10.3 19.3 6 27 5c.1 7.6-3.4 12.1-10.5 13.4" />
+              </svg>
+            </span>
+            <span class="moment-number">03</span>
+            <strong>Zurück im Moment</strong>
+          </li>
+        </ol>
+      </section>
+
+      <section class="office-section" id="office-mode" aria-labelledby="office-title">
+        <figure class="office-photo">
+          <img
+            src="/assets/tawel-office-oladimeji-ajegbile.webp"
+            width="1600"
+            height="1346"
+            alt="Schreibtisch mit einem großen Monitor und einem Laptop."
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="office-copy-wrap landing-shell">
+            <div class="section-copy">
+              <p class="eyebrow">Office Mode · Browser-Version</p>
+              <h2 id="office-title">
+                Offen auf dem Bildschirm. Unsichtbar im <span class="accent-serif">Alltag</span>.
+              </h2>
+              <p>
+                Die Browser-Version braucht einen sichtbar geöffneten Tab. Im Office Mode sieht er
+                wie eine neutrale Notizseite aus, während die Erkennung weiterläuft.
+              </p>
+              <p class="section-note">
+                Nur in der Browser-Version nötig. Die Mac-App ist für den Hintergrundbetrieb
+                geplant.
+              </p>
+            </div>
+          </div>
+        </figure>
+      </section>
+
+      <section class="meeting-section" id="fuer-mac" aria-labelledby="meeting-title">
+        <div class="landing-shell meeting-layout">
+          <div class="section-copy">
+            <p class="eyebrow">Für die Mac-App geplant</p>
+            <h2 id="meeting-title">Für dich sichtbar. Für den Call unsichtbar.</h2>
+            <p>
+              Die Mac-App soll den Tawel-Impuls nur lokal anzeigen – außerhalb von Zoom,
+              Screen-Sharing und Bildschirmaufnahmen. So bleibt er für andere im Call unsichtbar.
+            </p>
+            <p class="section-note">
+              Die Browser-Version kann diese Unsichtbarkeit nicht garantieren.
+            </p>
+          </div>
+
+          <figure class="meeting-proof" aria-labelledby="meeting-caption">
+            <div class="meeting-frame">
+              <p>Auf deinem Mac</p>
+              <div class="shared-desktop local-desktop" aria-hidden="true">
+                <span class="desktop-shape shape-one"></span>
+                <span class="desktop-shape shape-two"></span>
+                <span class="meeting-ring"><i></i></span>
+              </div>
+            </div>
+            <div class="meeting-frame">
+              <p>Im geteilten Bildschirm</p>
+              <div class="shared-desktop" aria-hidden="true">
+                <span class="desktop-shape shape-one"></span>
+                <span class="desktop-shape shape-two"></span>
+              </div>
+            </div>
+            <figcaption id="meeting-caption">
+              Geplantes Prinzip: Derselbe Bildschirm – der grüne Impuls erscheint nur lokal.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
-      <!-- ─ Footer ─ -->
-      <footer class="site-footer">
-        <a href="/app/">Web-Version ausprobieren</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="/datenschutz">Datenschutz</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="/impressum">Impressum</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="mailto:hi@tawel.app">hi@tawel.app</a>
-        <p class="tagline">Tawel · Ruhig aufhören · Mit Sorgfalt gemacht</p>
-      </footer>
+      <section class="access-section landing-shell" aria-labelledby="access-title">
+        <div class="section-heading">
+          <p class="eyebrow">Web &amp; Mac</p>
+          <h2 id="access-title">Heute im Browser. Bald immer bei dir.</h2>
+        </div>
+        <div class="access-path">
+          <article>
+            <p class="path-number">01</p>
+            <div>
+              <div class="path-heading">
+                <p class="level-label">Web-Version</p>
+                <h3>Direkt ausprobieren.</h3>
+              </div>
+              <p>
+                Kostenlos, ohne Installation. Der Tab muss sichtbar im Vordergrund bleiben, weil
+                Browser Kamera und Verarbeitung im Hintergrund drosseln können. Der Office Mode
+                zeigt stattdessen eine neutrale Notizseite.
+              </p>
+              <a class="primary-action pill-link" href="/app/">Im Browser ausprobieren</a>
+            </div>
+          </article>
+          <article>
+            <p class="path-number">02</p>
+            <div>
+              <div class="path-heading">
+                <p class="level-label">Mac-App in Vorbereitung</p>
+                <h3>Für den Hintergrund gedacht.</h3>
+              </div>
+              <p>
+                Die Mac-App soll zuverlässig im Hintergrund laufen. Im Vordergrund soll nur ein
+                dezenter Statuspunkt bleiben – ein Office-Tab ist dann nicht mehr nötig.
+              </p>
+              <a class="text-link" href="#warteliste">Für Mac vormerken <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="privacy-section landing-shell" aria-labelledby="privacy-title">
+        <p class="eyebrow">Privat von Grund auf</p>
+        <h2 id="privacy-title">
+          Keine Aufnahme. Keine Cloud. Kein Blick von <span class="accent-serif">außen</span>.
+        </h2>
+        <p>
+          Die Erkennungsmodelle und App-Dateien können beim Start geladen werden. Dein Kamerabild
+          wird ausschließlich auf deinem Gerät ausgewertet – es wird weder gespeichert noch
+          übertragen.
+        </p>
+      </section>
+
+      <section class="waitlist-section" id="warteliste" aria-labelledby="waitlist-title">
+        <div class="landing-shell waitlist-layout">
+          <div class="waitlist-copy">
+            <p class="eyebrow">Für Mac vormerken</p>
+            <h2 id="waitlist-title">
+              Mach den Moment davor zu <span class="accent-serif">deinem</span>.
+            </h2>
+            <p>Erfahre als Erste:r, wenn die Mac-App bereit ist.</p>
+          </div>
+          <div class="waitlist-form-shell">
+            <div class="ml-embedded" data-form="CmB4SX"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-section landing-shell" aria-labelledby="faq-title">
+        <div class="section-heading">
+          <p class="eyebrow">Häufige Fragen</p>
+          <h2 id="faq-title">Was du über Tawel wissen möchtest.</h2>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Wobei kann Tawel dir helfen?</summary>
+            <p>
+              Tawel kann dir helfen, unbewusste Hand-zum-Mund-Gewohnheiten früher zu bemerken –
+              zum Beispiel Nägelkauen. Es ersetzt aber keine medizinische oder therapeutische
+              Behandlung.
+            </p>
+          </details>
+          <details>
+            <summary>Was passiert mit deinem Kamerabild?</summary>
+            <p>
+              Dein Kamerabild bleibt auf deinem Gerät, wird dort ausgewertet und weder gespeichert
+              noch übertragen. App-Dateien und Erkennungsmodelle können beim Start geladen werden.
+            </p>
+          </details>
+          <details>
+            <summary>Was kostet Tawel?</summary>
+            <p>
+              Du kannst die Web-Version kostenlos nutzen. Die Mac-App ist in Vorbereitung; ihren
+              Preis geben wir zum Start bekannt.
+            </p>
+          </details>
+          <details>
+            <summary>Was unterscheidet Browser und Mac?</summary>
+            <p>
+              Im Browser musst du den Tab sichtbar geöffnet lassen; der Office Mode zeigt dir dafür
+              eine neutrale Notizseite. Die Mac-App ist für den Hintergrundbetrieb geplant: Sichtbar
+              bleiben soll nur ein dezenter Statuspunkt, der Impuls soll in Calls und geteilten
+              Bildschirmen unsichtbar sein.
+            </p>
+          </details>
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer landing-shell">
+      <a class="wordmark" href="/">tawel</a>
+      <nav aria-label="Fußnavigation">
+        <a href="/app/">Web-App</a>
+        <a href="/datenschutz">Datenschutz</a>
+        <a href="/impressum">Impressum</a>
+        <a href="mailto:hi@tawel.app">Kontakt</a>
+      </nav>
+      <p>© 2026 Tawel</p>
+      <p class="footer-photo-credits">
+        Fotos:
+        <a href="https://www.pexels.com/photo/a-person-typing-on-a-laptop-5586261/"
+          >Tony Schnagl / Pexels</a
+        >
+        ·
+        <a href="https://www.pexels.com/photo/desk-with-laptop-and-monitor-on-stand-21391577/"
+          >Oladimeji Ajegbile / Pexels</a
+        >
+      </p>
+    </footer>
   </body>
 </html>

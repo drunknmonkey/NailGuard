@@ -471,3 +471,121 @@ Landingpage, Web-App und das von Tauri gebündelte Web-Frontend.
 - **Mac-Bundle:** `spike/build-frontend.sh` kopiert nun auch den kompletten
   `app/fonts/`-Ordner. Dadurch verwendet der Tauri-Webview dieselben
   self-hosted Schriften wie die Web-App.
+
+---
+
+## 2026-07-21 – Landingpage: warme, schamfreie Produktgeschichte
+
+Umsetzung durch Codex auf Basis der von Paul und Claude am 2026-07-16
+freigegebenen Landingpage-Entscheidungen. Die bestehende Entscheidung wird
+nicht ersetzt; dieser Eintrag dokumentiert nur die konkrete Ausführung.
+
+- **Funnel:** Primärer CTA ist „Im Browser ausprobieren“. „Für Mac vormerken“
+  bleibt der sekundäre CTA im Hero, der dezente Hinweis im Startscreen der
+  Web-App und das Ziel des dunklen Wartelistenbands.
+- **Schamfreie Dramaturgie:** Das konkrete Wort „Nägelkauen“ steht nicht im
+  sichtbaren Einstieg, sondern nur in Metadaten und der zunächst geschlossenen
+  FAQ-Antwort. Hero und Erklärung sprechen von der Bewegung zum Mund und dem
+  Moment davor.
+- **Reduzierte Produktdarstellung:** Kein erfundenes Einstellungsfenster und
+  keine zusätzliche App-Sektion. Der Hero zeigt eine verkleinerte Abbildung der
+  echten Fokusansicht mit Ring, Aktivstatus und Office-Mode-Bedienelement. Das
+  Office-Foto zeigt als Produktoberfläche ausschließlich den kleinen grünen
+  Ring auf dem Monitor.
+- **Meeting-USP:** Eine eigene, ausdrücklich Mac-spezifische Sektion vergleicht
+  die lokale Ansicht mit dem geteilten Bild. Nur lokal ist der Ring sichtbar;
+  die Browser-Version verspricht diese Unsichtbarkeit ausdrücklich nicht.
+- **Privacy und Preis:** Kamerabilder bleiben lokal und werden weder gespeichert
+  noch übertragen; App-Dateien und Modelle können beim Start geladen werden.
+  Es gibt keine Preis-Sektion und keine Abo-Aussage. Die FAQ nennt die
+  Web-Version kostenlos und kündigt den Mac-Preis neutral für den Start an.
+- **Fotografie:** Beide Bilder wurden am 2026-07-21 von Pexels geladen,
+  zugeschnitten, verkleinert und als WebP gespeichert. Hero: Lada Rezantseva,
+  „Person Using MacBook Pro on White Table“,
+  https://www.pexels.com/photo/person-using-macbook-pro-on-white-table-9551663/.
+  Office: Oladimeji Ajegbile, „Desk with Laptop and Monitor on Stand“,
+  https://www.pexels.com/photo/desk-with-laptop-and-monitor-on-stand-21391577/.
+  Beide stehen unter der Pexels License:
+  https://www.pexels.com/license/. Die freiwillige sichtbare Attribution bleibt
+  direkt an den Bildern erhalten.
+- **Technik:** Der Hero wird priorisiert geladen; das Office-Bild ist lazy.
+  MailerLite bleibt ausschließlich auf der Landingpage (Konto 2482602,
+  Formular `CmB4SX`). Bewegungen respektieren `prefers-reduced-motion`.
+
+---
+
+## 2026-07-26 – Landingpage-Feedback: näher am freigegebenen Entwurf
+
+Feedback-Runde durch Codex auf dem bestehenden Branch
+`landing/premium-redesign`. Dieser Eintrag ergänzt und präzisiert die
+Ausführungsentscheidung vom 2026-07-21; der historische Eintrag bleibt
+unverändert nachvollziehbar.
+
+- **Hero-Fotografie:** Das bisherige Blumenmotiv wurde durch Tony Schnagls
+  warmes Arbeitsmotiv „A Person Typing on a Laptop“ ersetzt:
+  https://www.pexels.com/photo/a-person-typing-on-a-laptop-5586261/.
+  Der Ausschnitt priorisiert Hand, Tastatur und ruhige Schreibtischstimmung.
+- **Office-Ring:** Das vorhandene Monitorfoto bleibt erhalten. Der Ring ist
+  kleiner und vollständig innerhalb der sichtbaren Bildschirmfläche unten
+  rechts positioniert; er liegt nicht mehr auf dem Monitorgehäuse.
+- **Fotolizenz und Credits:** Hero- und Office-Foto stehen unter der Pexels
+  License (https://www.pexels.com/license/), die keine Attribution verlangt.
+  Die freiwilligen Credits wurden von prominenten Bild-Badges in eine dezente
+  Footerzeile verschoben. Office-Foto weiterhin: Oladimeji Ajegbile,
+  https://www.pexels.com/photo/desk-with-laptop-and-monitor-on-stand-21391577/.
+- **Erklärreihe:** Unter „Du musst nicht stärker sein“ erklärt nun die
+  dreistufige Reihe „Unbewusste Bewegung → Sanfter Impuls → Zurück im Moment“
+  den Ablauf mit ruhigen, lokal eingebetteten Linien-Icons. Die schamfreie
+  Zusatzzeile „Keine Bewertung. Kein Streak. …“ bleibt erhalten.
+- **Navigation und Microcopy:** Die Desktop-Navigation bildet die vier
+  Entwurfsanker „Worum Tawel“, „So funktioniert's“, „Office Mode“ und „Für
+  Mac“ ab. Das Wartelistenband verspricht ausschließlich die Benachrichtigung,
+  sobald die Mac-App bereit ist. Die Hero-Statuszeile entspricht der echten
+  App-Microcopy und ist als vollständiger Satz gesetzt.
+- **Fremdes Windrad-Icon:** Eine Prüfung des ausgelieferten DOMs ergab kein
+  entsprechendes Asset, SVG, Canvas oder fixes Seitenelement. Das bunte Icon
+  stammt aus der Review-/Browserumgebung und nicht aus Tawel; es wurde deshalb
+  nicht mit fragiler Produkt-CSS gegen fremde Overlays kaschiert.
+
+---
+
+## 2026-07-26 – Landingpage: Bildbänder für Hero und Office Mode
+
+Nach Pauls Sichtung des freigegebenen Entwurfs werden die beiden zentralen
+Produktfotos nicht mehr als begrenzte Karten neben der Copy gezeigt.
+
+- **Hero:** Die Botschaft und CTAs stehen auf einer ruhigen, zentrierten
+  Creme-Fläche. Darunter läuft das warme Arbeitsmotiv mit Hand und Laptop als
+  randloses Bildband über die gesamte Browserbreite. Das echte Tawel-Fenster
+  liegt vollständig innerhalb des rechten Bildbereichs; es darf nicht mehr am
+  unteren Rand aus dem Foto herausragen.
+- **Office Mode:** Das vorhandene Monitor-/Schreibtischfoto bleibt erhalten und
+  wird ebenfalls randlos über die volle Breite geführt. Die Office-Copy liegt
+  auf einer sanften linken Verlaufsschicht statt in einer separaten Karte. So
+  bleibt der Text lesbar, während der Arbeitsplatz als durchgängiger Kontext
+  erhalten bleibt.
+- **Responsive:** Auf kleineren Breiten bleiben beide Bilder vollbreit. Hero
+  und Produktfenster werden kompakter; beim Office-Bild wandert die Copy in
+  den ruhigen unteren Bildbereich. Der grüne Ring wird für den jeweiligen
+  Ausschnitt neu positioniert und bleibt innerhalb der echten Monitorfläche.
+
+---
+
+## 2026-07-29 – Office Mode klar der Browser-Version zuordnen
+
+Nach Pauls Produktklärung werden Office Mode und Mac-Hintergrundbetrieb in
+Landingpage und Entwicklungskontext eindeutig getrennt:
+
+- **Browser-Version:** Der Tab muss sichtbar im Vordergrund bleiben, weil
+  Browser Kamera und Verarbeitung im Hintergrund drosseln können. Der Office
+  Mode ist ausschließlich die diskrete Browser-Lösung dafür und stellt den
+  sichtbaren Tab als neutrale Notizseite dar.
+- **Mac-App:** Sie ist für zuverlässigen Hintergrundbetrieb geplant. Ein
+  Office-Mode-Tab ist dort nicht nötig; im Vordergrund soll lediglich ein
+  dezenter Statuspunkt bleiben. Solange die Mac-App nicht fertig ist, wird
+  diese Funktionsweise auf der Landingpage konsequent als Ziel formuliert.
+- **Produktevergleich:** Die beiden Wege in „Heute im Browser. Bald immer bei
+  dir.“ gruppieren Label und Überschrift nun als gemeinsamen Block. Dadurch
+  entstehen auf Tablet-/Desktopbreiten keine künstlich großen vertikalen
+  Abstände mehr.
+- **Navigation:** Der Anker heißt korrekt „Warum Tawel“ statt „Worum Tawel“.

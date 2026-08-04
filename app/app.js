@@ -16,15 +16,16 @@ const MEDIAPIPE = {
 const STORAGE_KEY = "nail-guard.daily-stats.v1";
 const SETTINGS_KEY = "nail-guard.settings.v1";
 const NEUTRAL_NOTES_KEY = "nail-guard.neutral-notes.v1";
+const NEUTRAL_TODOS_KEY = "nail-guard.neutral-todos.v1";
 const ONBOARDING_KEY = "nail-guard.onboarding.v1";
 const OFFICE_HINT_KEY = "nail-guard.office-hint.v1";
 const LOCALE_KEY = "nail-guard.locale.v1";
 
 // Alle Keys, die Export/Import berücksichtigen. Fremde Keys in einer
 // Backup-Datei werden beim Import ignoriert.
-const BACKUP_KEYS = [STORAGE_KEY, SETTINGS_KEY, NEUTRAL_NOTES_KEY, ONBOARDING_KEY, LOCALE_KEY];
+const BACKUP_KEYS = [STORAGE_KEY, SETTINGS_KEY, NEUTRAL_NOTES_KEY, NEUTRAL_TODOS_KEY, ONBOARDING_KEY, LOCALE_KEY];
 // Diese Keys müssen gültiges JSON enthalten; die übrigen sind Klartext.
-const JSON_BACKUP_KEYS = new Set([STORAGE_KEY, SETTINGS_KEY]);
+const JSON_BACKUP_KEYS = new Set([STORAGE_KEY, SETTINGS_KEY, NEUTRAL_TODOS_KEY]);
 
 // Guided calibration: how close (normalized) counts as "at the mouth",
 // how long signals must hold, and how the personal threshold is derived.
@@ -33,8 +34,17 @@ const ONBOARDING = {
   signalStableMs: 800,
   touchHoldMs: 1000,
   thresholdFactor: 1.35,
-  thresholdMin: 0.045,
-  thresholdMax: 0.13,
+  thresholdMin: 0.06,
+  thresholdMax: 0.12,
+};
+// Die persönliche Kalibrierung bleibt die Basis. Der sichtbare Regler ist
+// bewusst nur eine Korrektur darum herum und startet deshalb immer mittig.
+const SENSITIVITY = {
+  adjustmentMin: -3,
+  adjustmentMax: 3,
+  thresholdStep: 0.01,
+  effectiveMin: 0.03,
+  effectiveMax: 0.15,
 };
 const MOUTH_INDICES = [13, 14, 61, 291];
 const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
@@ -48,10 +58,12 @@ const SOUND_PRESETS = {
   tinyRobot: { notes: [[660, 0, 0.07, "square"], [520, 0.09, 0.07, "square"], [780, 0.18, 0.09, "square"]] },
   boing: { notes: [[260, 0, 0.16, "sawtooth"], [180, 0.1, 0.22, "sine"]] },
 };
-const CALIBRATION_PRESETS = {
-  soft: { distanceThreshold: 0.075, holdSeconds: 3, cooldownSeconds: 25 },
-  normal: { distanceThreshold: 0.09, holdSeconds: 2, cooldownSeconds: 15 },
-  precise: { distanceThreshold: 0.115, holdSeconds: 1.2, cooldownSeconds: 10 },
+const PROXIMITY_STABILITY = {
+  smoothingAlpha: 0.2,
+  enterMs: 350,
+  exitMs: 650,
+  exitMultiplier: 1.16,
+  missingGraceMs: 550,
 };
 
 const els = {
@@ -82,24 +94,15 @@ const els = {
   handSignal: document.querySelector("#handSignal"),
   nearSignal: document.querySelector("#nearSignal"),
   distanceSignal: document.querySelector("#distanceSignal"),
-  distanceThreshold: document.querySelector("#distanceThreshold"),
-  holdSeconds: document.querySelector("#holdSeconds"),
-  cooldownSeconds: document.querySelector("#cooldownSeconds"),
+  sensitivityAdjustment: document.querySelector("#sensitivityAdjustment"),
   distanceValue: document.querySelector("#distanceValue"),
-  holdValue: document.querySelector("#holdValue"),
-  cooldownValue: document.querySelector("#cooldownValue"),
-  overlayToggle: document.querySelector("#overlayToggle"),
-  warmthToggle: document.querySelector("#warmthToggle"),
   soundToggle: document.querySelector("#soundToggle"),
   soundPreset: document.querySelector("#soundPreset"),
   soundVolume: document.querySelector("#soundVolume"),
   volumeValue: document.querySelector("#volumeValue"),
   testSoundButton: document.querySelector("#testSoundButton"),
   testWarningButton: document.querySelector("#testWarningButton"),
-  presetButtons: [...document.querySelectorAll(".preset-button")],
-  vibrationToggle: document.querySelector("#vibrationToggle"),
   faceTouchToggle: document.querySelector("#faceTouchToggle"),
-  officeDotToggle: document.querySelector("#officeDotToggle"),
   alertPanel: document.querySelector("#alertPanel"),
   alertReplacement: document.querySelector("#alertReplacement"),
   resetStatsButton: document.querySelector("#resetStatsButton"),
@@ -114,9 +117,14 @@ const els = {
   hourLabels: document.querySelector("#hourLabels"),
   streakDays: document.querySelector("#streakDays"),
   streakText: document.querySelector("#streakText"),
-  neutralSubtleToggle: document.querySelector("#neutralSubtleToggle"),
   neutralNotes: document.querySelector("#neutralNotes"),
-  editorWordCount: document.querySelector("#editorWordCount"),
+  neutralTodoPanel: document.querySelector("#neutralTodoPanel"),
+  neutralTodoList: document.querySelector("#neutralTodoList"),
+  neutralTodoForm: document.querySelector("#neutralTodoForm"),
+  neutralTodoInput: document.querySelector("#neutralTodoInput"),
+  clearCompletedButton: document.querySelector("#clearCompletedButton"),
+  officeLayoutButtons: [...document.querySelectorAll("[data-office-layout]")],
+  editorCount: document.querySelector("#editorCount"),
   neutralIntervention: document.querySelector("#neutralIntervention"),
   neutralInterventionTitle: document.querySelector("#neutralInterventionTitle"),
   neutralInterventionText: document.querySelector("#neutralInterventionText"),
@@ -152,7 +160,13 @@ const state = {
   browserInterventionTimer: null,
   appState: "calm",
   handNear: false,
+  smoothedDistance: Number.POSITIVE_INFINITY,
+  lastFiniteDistanceAt: 0,
+  nearCandidateSince: null,
+  farCandidateSince: null,
   onboarding: null,
+  todos: loadTodos(),
+  starting: false,
 };
 
 // ═══ Ring-Atem: Tempo-Rampen über die Web Animations API ═══
@@ -296,7 +310,7 @@ function bindEvents() {
     link.addEventListener("click", () => switchMode(link.dataset.modeLink));
   }
 
-  // Office Mode verlassen: Klick auf den Status-Punkt oder Esc-Taste
+  // Office Mode verlassen: Klick auf das X oder Esc-Taste
   for (const exit of els.officeExits) {
     exit.addEventListener("click", () => switchMode("focus"));
     exit.addEventListener("keydown", (event) => {
@@ -313,27 +327,26 @@ function bindEvents() {
     }
   });
 
-  for (const input of [els.distanceThreshold, els.holdSeconds, els.cooldownSeconds, els.soundVolume]) {
+  for (const input of [els.sensitivityAdjustment, els.soundVolume]) {
     input.addEventListener("input", () => {
       settingsFromUi();
-      state.settings.calibrationPreset = "custom";
       saveSettings();
       renderSettings();
     });
   }
 
-  for (const button of els.presetButtons) {
-    button.addEventListener("click", () => applyCalibrationPreset(button.dataset.preset));
-  }
-
   els.cameraSelect.addEventListener("change", () => swapCamera(els.cameraSelect.value));
   els.soundPreset.addEventListener("change", settingsFromUi);
-  els.neutralSubtleToggle.addEventListener("change", settingsFromUi);
-  // Tarn-Editor: Notizen lokal persistieren und Wortzahl mitführen
+  for (const button of els.officeLayoutButtons) {
+    button.addEventListener("click", () => setOfficeLayout(button.dataset.officeLayout));
+  }
+  // Office Mode: To-dos und Notizen bleiben ausschließlich lokal gespeichert.
   els.neutralNotes.addEventListener("input", () => {
     localStorage.setItem(NEUTRAL_NOTES_KEY, els.neutralNotes.value);
-    renderWordCount();
+    renderOfficeCount();
   });
+  els.neutralTodoForm.addEventListener("submit", addTodo);
+  els.clearCompletedButton.addEventListener("click", clearCompletedTodos);
   els.testSoundButton.addEventListener("click", () => {
     settingsFromUi();
     playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
@@ -342,12 +355,9 @@ function bindEvents() {
     triggerIntervention("manual_test", 1, { countStats: false });
   });
 
-  for (const input of [els.overlayToggle, els.warmthToggle, els.soundToggle, els.vibrationToggle, els.faceTouchToggle, els.officeDotToggle]) {
+  for (const input of [els.soundToggle, els.faceTouchToggle]) {
     input.addEventListener("change", () => {
       settingsFromUi();
-      if (!state.settings.showOverlay) clearOverlay();
-      if (!state.settings.warmthFeedback) setWarmth(0);
-      renderOfficeDot();
     });
   }
 
@@ -361,19 +371,53 @@ function bindEvents() {
   els.onboardingSkipButton.addEventListener("click", finishOnboarding);
   els.onboardingFinishButton.addEventListener("click", finishOnboarding);
   els.recalibrateButton.addEventListener("click", startOnboarding);
+
+  navigator.mediaDevices?.addEventListener?.("devicechange", () => {
+    if (state.running) populateCameraSelect();
+  });
+
+  // iOS kann einen Stream nach einem Systemdialog oder Tab-Wechsel beenden.
+  // Beim Zurückkehren wird nur dann neu geöffnet, wenn wirklich kein Live-
+  // Track mehr vorhanden ist.
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState !== "visible" || !state.running || hasLiveCameraTrack()) return;
+    try {
+      await detection.startCamera();
+      await populateCameraSelect();
+    } catch (error) {
+      showError(readableError(error));
+    }
+  });
 }
 
 async function startApp() {
+  if (state.starting) return;
+
   hideError();
+  state.starting = true;
   els.startButton.disabled = true;
 
   try {
+    // Safari/iOS braucht den Kamerastart möglichst direkt im Klick-Kontext.
+    // Die Modelle werden deshalb erst nach dem erfolgreichen Stream geladen.
+    els.startButton.textContent = t("status.openingCamera");
+    try {
+      await detection.startCamera();
+    } catch (error) {
+      const staleCameraChoice = state.settings.cameraDeviceId
+        && ["NotFoundError", "OverconstrainedError"].includes(error?.name);
+      if (!staleCameraChoice) throw error;
+      state.settings.cameraDeviceId = null;
+      saveSettings();
+      await detection.startCamera();
+    }
+    const preferredCameraId = await populateCameraSelect({ preferBuiltIn: true });
+    if (preferredCameraId && preferredCameraId !== activeCameraDeviceId()) {
+      await swapCamera(preferredCameraId, { repopulate: false });
+    }
+
     els.startButton.textContent = t("status.loadingModel");
     await detection.loadModels();
-
-    els.startButton.textContent = t("status.openingCamera");
-    await detection.startCamera();
-    await populateCameraSelect();
 
     els.startPanel.hidden = true;
     els.workspace.hidden = false;
@@ -394,22 +438,28 @@ async function startApp() {
       startOnboarding();
     }
   } catch (error) {
+    stopCamera();
     els.startButton.disabled = false;
     els.startButton.textContent = t("start.retry");
     showError(readableError(error));
+  } finally {
+    state.starting = false;
   }
 }
 
-async function populateCameraSelect() {
-  if (!navigator.mediaDevices?.enumerateDevices) return;
+async function populateCameraSelect({ preferBuiltIn = false } = {}) {
+  if (!navigator.mediaDevices?.enumerateDevices) return null;
 
   const devices = await navigator.mediaDevices.enumerateDevices();
   const videoInputs = devices.filter((d) => d.kind === "videoinput");
-  if (videoInputs.length === 0) return;
+  if (videoInputs.length === 0) return null;
 
-  const VIRTUAL_PATTERN = /virtual|obs|snap|camo|ndivideokit/i;
-  const currentId = state.settings.cameraDeviceId;
-  const currentStillValid = currentId && videoInputs.some((d) => d.deviceId === currentId);
+  const VIRTUAL_PATTERN = /virtual|obs|snap|camo|ndivideokit|screen/i;
+  const CONTINUITY_PATTERN = /iphone|continuity|desk view|schreibtischansicht/i;
+  const BUILT_IN_PATTERN = /facetime|built-in|integrated|internal|macbook/i;
+  const savedId = state.settings.cameraDeviceId;
+  const savedStillValid = savedId && videoInputs.some((d) => d.deviceId === savedId);
+  const activeId = activeCameraDeviceId();
 
   els.cameraSelect.innerHTML = "";
   for (const device of videoInputs) {
@@ -419,38 +469,77 @@ async function populateCameraSelect() {
     els.cameraSelect.appendChild(option);
   }
 
-  if (currentStillValid) {
-    els.cameraSelect.value = currentId;
-    return;
-  }
+  const builtIn = videoInputs.find(
+    (device) => BUILT_IN_PATTERN.test(device.label) && !CONTINUITY_PATTERN.test(device.label),
+  );
+  const regularCamera = videoInputs.find(
+    (device) => !VIRTUAL_PATTERN.test(device.label) && !CONTINUITY_PATTERN.test(device.label),
+  );
+  const activeStillValid = activeId && videoInputs.some((device) => device.deviceId === activeId);
+  const preferredId = savedStillValid
+    ? savedId
+    : preferBuiltIn
+      ? (builtIn ?? regularCamera ?? (activeStillValid ? activeId : videoInputs[0].deviceId))
+      : (activeStillValid ? activeId : (regularCamera ?? videoInputs[0]).deviceId);
 
-  const realCamera = videoInputs.find((d) => !VIRTUAL_PATTERN.test(d.label));
-  const preferredId = (realCamera ?? videoInputs[0]).deviceId;
   els.cameraSelect.value = preferredId;
   state.settings.cameraDeviceId = preferredId;
   saveSettings();
+  return preferredId;
 }
 
-async function swapCamera(deviceId) {
-  if (!state.running) return;
+async function swapCamera(deviceId, { repopulate = true } = {}) {
   state.settings.cameraDeviceId = deviceId || null;
   saveSettings();
 
-  if (state.stream) {
-    for (const track of state.stream.getTracks()) {
-      track.stop();
-    }
-    state.stream = null;
-  }
-
   try {
     await detection.startCamera();
-  } catch {
+  } catch (error) {
     state.settings.cameraDeviceId = null;
     saveSettings();
     await detection.startCamera();
+  }
+
+  if (repopulate) {
     await populateCameraSelect();
   }
+}
+
+function activeCameraDeviceId() {
+  return state.stream?.getVideoTracks?.()[0]?.getSettings?.().deviceId ?? null;
+}
+
+function hasLiveCameraTrack() {
+  return state.stream?.getVideoTracks?.().some((track) => track.readyState === "live") ?? false;
+}
+
+function stopCamera() {
+  for (const track of state.stream?.getTracks?.() ?? []) {
+    track.stop();
+  }
+  els.video.pause();
+  els.video.srcObject = null;
+  state.stream = null;
+  state.lastVideoTime = -1;
+}
+
+function waitForVideoReady() {
+  if (els.video.readyState >= HTMLMediaElement.HAVE_METADATA) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => finish(new Error("camera-timeout")), 8000);
+    const finish = (error) => {
+      window.clearTimeout(timeoutId);
+      els.video.removeEventListener("loadedmetadata", onReady);
+      els.video.removeEventListener("loadeddata", onReady);
+      if (error) reject(error);
+      else resolve();
+    };
+    const onReady = () => finish();
+
+    els.video.addEventListener("loadedmetadata", onReady, { once: true });
+    els.video.addEventListener("loadeddata", onReady, { once: true });
+  });
 }
 
 const detection = {
@@ -477,17 +566,20 @@ const detection = {
       ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
       : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } };
 
-    state.stream = await navigator.mediaDevices.getUserMedia({
-      video: videoConstraints,
-      audio: false,
-    });
+    stopCamera();
 
-    els.video.srcObject = state.stream;
-    await new Promise((resolve) => {
-      els.video.onloadedmetadata = resolve;
-    });
-    await els.video.play();
-    resizeOverlay();
+    const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+    state.stream = stream;
+    els.video.srcObject = stream;
+
+    try {
+      await waitForVideoReady();
+      await els.video.play();
+      resizeOverlay();
+    } catch (error) {
+      stopCamera();
+      throw error;
+    }
   },
 
   loop(now) {
@@ -544,12 +636,26 @@ const detection = {
   },
 
   evaluateProximity(now) {
-    const threshold = state.settings.distanceThreshold;
+    const threshold = effectiveDistanceThreshold();
     const holdMs = state.settings.holdSeconds * 1000;
     const cooldownMs = state.settings.cooldownSeconds * 1000;
-    const isNear = state.minDistance <= threshold;
-    const proximityRatio = isFinite(state.minDistance)
-      ? Math.max(0, Math.min(1, 1 - state.minDistance / threshold))
+    const rawDistance = state.minDistance;
+
+    if (isFinite(rawDistance)) {
+      state.lastFiniteDistanceAt = now;
+      state.smoothedDistance = isFinite(state.smoothedDistance)
+        ? state.smoothedDistance + PROXIMITY_STABILITY.smoothingAlpha * (rawDistance - state.smoothedDistance)
+        : rawDistance;
+    } else if (now - state.lastFiniteDistanceAt > PROXIMITY_STABILITY.missingGraceMs) {
+      state.smoothedDistance = Number.POSITIVE_INFINITY;
+    }
+
+    const measuredDistance = state.smoothedDistance;
+    const wantsNear = measuredDistance <= threshold;
+    const wantsFar = !isFinite(measuredDistance)
+      || measuredDistance >= threshold * PROXIMITY_STABILITY.exitMultiplier;
+    const proximityRatio = isFinite(measuredDistance)
+      ? Math.max(0, Math.min(1, 1 - measuredDistance / threshold))
       : 0;
 
     els.proximityBar.style.width = `${Math.round(proximityRatio * 100)}%`;
@@ -558,15 +664,46 @@ const detection = {
     if (state.paused) {
       state.nearSince = null;
       state.handNear = false;
+      state.nearCandidateSince = null;
+      state.farCandidateSince = null;
       setWarmth(0);
       refreshAppState();
       return;
     }
 
-    state.handNear = isNear && !state.alertOpen;
+    if (state.alertOpen) {
+      state.handNear = false;
+      state.nearCandidateSince = null;
+      state.farCandidateSince = null;
+    } else if (!state.handNear) {
+      state.farCandidateSince = null;
+      if (wantsNear) {
+        state.nearCandidateSince ??= now;
+        if (now - state.nearCandidateSince >= PROXIMITY_STABILITY.enterMs) {
+          state.handNear = true;
+          state.nearSince = now;
+          state.nearCandidateSince = null;
+        }
+      } else {
+        state.nearCandidateSince = null;
+      }
+    } else {
+      state.nearCandidateSince = null;
+      if (wantsFar) {
+        state.farCandidateSince ??= now;
+        if (now - state.farCandidateSince >= PROXIMITY_STABILITY.exitMs) {
+          state.handNear = false;
+          state.nearSince = null;
+          state.farCandidateSince = null;
+        }
+      } else {
+        state.farCandidateSince = null;
+      }
+    }
+
     refreshAppState();
 
-    if (isNear && !state.alertOpen) {
+    if (state.handNear && !state.alertOpen) {
       state.nearSince ??= now;
       const holdProgress = Math.max(0, Math.min(1, (now - state.nearSince) / holdMs));
       setWarmth(holdProgress);
@@ -574,8 +711,7 @@ const detection = {
       setWarmth(state.alertOpen ? 1 : 0);
     }
 
-    if (!isNear || state.alertOpen) {
-      if (!isNear) state.nearSince = null;
+    if (!state.handNear || state.alertOpen) {
       return;
     }
 
@@ -583,7 +719,7 @@ const detection = {
     const cooledDown = Date.now() - state.lastAlertAt >= cooldownMs;
 
     if (heldLongEnough && cooledDown) {
-      const confidence = Math.max(0, Math.min(1, 1 - state.minDistance / threshold));
+      const confidence = Math.max(0, Math.min(1, 1 - measuredDistance / threshold));
       triggerIntervention("hand_near_mouth", confidence);
     }
   },
@@ -689,7 +825,7 @@ function showNeutralIntervention() {
   window.clearTimeout(state.neutralInterventionTimer);
   els.neutralInterventionTitle.textContent = title;
   els.neutralInterventionText.textContent = text;
-  els.neutralIntervention.classList.toggle("prominent", !state.settings.neutralSubtleInterventions);
+  els.neutralIntervention.classList.remove("prominent");
   els.neutralIntervention.hidden = false;
 
   state.neutralInterventionTimer = window.setTimeout(() => {
@@ -698,7 +834,7 @@ function showNeutralIntervention() {
     state.currentIntervention = null;
     setWarmth(0);
     refreshAppState();
-  }, state.settings.neutralSubtleInterventions ? 3200 : 4600);
+  }, 3200);
 }
 
 // Ersetzt die frühere Treffer/Fehlalarm/Gesichtsberührung-Abfrage: jede
@@ -729,11 +865,13 @@ function quantize(value, step) {
   return Number((Math.round(value / step) * step).toFixed(4));
 }
 
-function notifyUser() {
-  if (state.settings.vibration && "vibrate" in navigator) {
-    navigator.vibrate([90, 50, 90]);
-  }
+function effectiveDistanceThreshold() {
+  const adjusted = state.settings.distanceThreshold
+    + state.settings.sensitivityAdjustment * SENSITIVITY.thresholdStep;
+  return Math.min(SENSITIVITY.effectiveMax, Math.max(SENSITIVITY.effectiveMin, adjusted));
+}
 
+function notifyUser() {
   if (state.settings.sound) {
     playSoundPreset(state.settings.soundPreset, state.settings.soundVolume);
   }
@@ -814,9 +952,10 @@ function applyOnboardingCalibration() {
   );
   state.settings = {
     ...state.settings,
-    // Quantize to the sensitivity slider's step so stored and displayed values match
-    distanceThreshold: quantize(threshold, Number(els.distanceThreshold.step) || 0.001),
-    calibrationPreset: "custom",
+    // Der persönliche Abstand bleibt die unsichtbare Basis. Die sichtbare
+    // Empfindlichkeitskorrektur startet nach einer neuen Ausrichtung mittig.
+    distanceThreshold: quantize(threshold, 0.005),
+    sensitivityAdjustment: 0,
   };
   applySettingsToUi();
   saveSettings();
@@ -951,7 +1090,7 @@ function renderLiveSignals(faceLandmarks, handLandmarks) {
     return;
   }
 
-  const isNear = state.minDistance <= state.settings.distanceThreshold;
+  const isNear = state.minDistance <= effectiveDistanceThreshold();
   els.nearSignal.textContent = isNear ? t("signals.nearClose") : t("signals.nearCalm");
   els.distanceSignal.textContent = t("signals.distance", { value: state.minDistance.toFixed(3) });
 }
@@ -1103,11 +1242,18 @@ function calcCalmStreak(allStats) {
 }
 
 function renderSettings() {
-  els.distanceValue.textContent = Number(els.distanceThreshold.value).toFixed(3);
-  els.holdValue.textContent = `${Number(els.holdSeconds.value).toFixed(1)} s`;
-  els.cooldownValue.textContent = `${Math.round(Number(els.cooldownSeconds.value))} s`;
+  const sensitivity = Number(els.sensitivityAdjustment.value);
+  const sensitivityKey = sensitivity < 0
+    ? "settings.sensitivityLess"
+    : sensitivity > 0
+      ? "settings.sensitivityEarlier"
+      : "settings.sensitivityBalanced";
+  // Die sichtbare Skala bleibt stabil; der aktuelle Bereich wird für
+  // Screenreader verständlich am Regler selbst ausgegeben.
+  els.distanceValue.textContent = t("settings.sensitivityBalanced");
+  els.sensitivityAdjustment.dataset.position = String(sensitivity);
+  els.sensitivityAdjustment.setAttribute("aria-valuetext", t(sensitivityKey));
   els.volumeValue.textContent = `${Math.round(Number(els.soundVolume.value) * 100)}%`;
-  renderPresetButtons();
 }
 
 function renderAppChrome() {
@@ -1135,80 +1281,130 @@ function renderReplacement(replacement) {
   }
 }
 
-function applyCalibrationPreset(presetName) {
-  const preset = CALIBRATION_PRESETS[presetName];
-  if (!preset) return;
-
-  state.settings = {
-    ...state.settings,
-    calibrationPreset: presetName,
-    ...preset,
-  };
-  applySettingsToUi();
-  saveSettings();
-  renderSettings();
-}
-
-function renderPresetButtons() {
-  for (const button of els.presetButtons) {
-    button.classList.toggle("active", button.dataset.preset === state.settings.calibrationPreset);
-  }
-}
-
-// Tarn-Editor (Office Mode): persistierte Notizen laden und Wortzahl
-// anzeigen. Beim ersten Start steht ein unverfänglicher Beispieltext.
+// Office Mode: To-do ist der Standard. Beide Ansichten speichern nur lokal.
 function renderOfficeEditor() {
-  els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
   const stored = localStorage.getItem(NEUTRAL_NOTES_KEY);
   els.neutralNotes.value = stored ?? t("office.sampleNotes");
-  renderWordCount();
+  setOfficeLayout(state.settings.officeLayout, { save: false });
+  renderTodos();
 }
 
-function renderWordCount() {
-  const trimmed = els.neutralNotes.value.trim();
-  const count = trimmed ? trimmed.split(/\s+/).length : 0;
-  els.editorWordCount.textContent = count === 1 ? t("office.wordOne") : t("office.wordOther", { count });
+function setOfficeLayout(layout, { save = true } = {}) {
+  const nextLayout = layout === "notes" ? "notes" : "todo";
+  state.settings.officeLayout = nextLayout;
+  els.neutralTodoPanel.hidden = nextLayout !== "todo";
+  els.neutralNotes.hidden = nextLayout !== "notes";
+
+  for (const button of els.officeLayoutButtons) {
+    button.classList.toggle("active", button.dataset.officeLayout === nextLayout);
+    button.setAttribute("aria-pressed", String(button.dataset.officeLayout === nextLayout));
+  }
+
+  if (save) saveSettings();
+  renderOfficeCount();
+}
+
+function addTodo(event) {
+  event.preventDefault();
+  const text = els.neutralTodoInput.value.trim();
+  if (!text) return;
+
+  state.todos.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, text, done: false });
+  els.neutralTodoInput.value = "";
+  saveTodos();
+  renderTodos();
+}
+
+function toggleTodo(id) {
+  const todo = state.todos.find((item) => item.id === id);
+  if (!todo) return;
+  todo.done = !todo.done;
+  saveTodos();
+  renderTodos();
+}
+
+function removeTodo(id) {
+  state.todos = state.todos.filter((item) => item.id !== id);
+  saveTodos();
+  renderTodos();
+}
+
+function clearCompletedTodos() {
+  state.todos = state.todos.filter((item) => !item.done);
+  saveTodos();
+  renderTodos();
+}
+
+function renderTodos() {
+  els.neutralTodoList.replaceChildren();
+
+  if (state.todos.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "todo-empty";
+    empty.textContent = t("office.todoEmpty");
+    els.neutralTodoList.appendChild(empty);
+  } else {
+    for (const todo of state.todos) {
+      const item = document.createElement("li");
+      item.className = "todo-item";
+      item.classList.toggle("done", todo.done);
+
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = todo.done;
+      checkbox.addEventListener("change", () => toggleTodo(todo.id));
+      const text = document.createElement("span");
+      text.textContent = todo.text;
+      label.append(checkbox, text);
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "todo-remove";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", t("office.todoRemove", { task: todo.text }));
+      remove.addEventListener("click", () => removeTodo(todo.id));
+      item.append(label, remove);
+      els.neutralTodoList.appendChild(item);
+    }
+  }
+
+  els.clearCompletedButton.disabled = !state.todos.some((todo) => todo.done);
+  renderOfficeCount();
+}
+
+function renderOfficeCount() {
+  if (state.settings.officeLayout === "notes") {
+    const trimmed = els.neutralNotes.value.trim();
+    const count = trimmed ? trimmed.split(/\s+/).length : 0;
+    els.editorCount.textContent = count === 1 ? t("office.wordOne") : t("office.wordOther", { count });
+    return;
+  }
+
+  const open = state.todos.filter((todo) => !todo.done).length;
+  els.editorCount.textContent = open === 1 ? t("office.taskOne") : t("office.taskOther", { count: open });
 }
 
 function settingsFromUi() {
   state.settings = {
     ...state.settings,
-    distanceThreshold: Number(els.distanceThreshold.value),
-    holdSeconds: Number(els.holdSeconds.value),
-    cooldownSeconds: Number(els.cooldownSeconds.value),
-    showOverlay: els.overlayToggle.checked,
-    warmthFeedback: els.warmthToggle.checked,
+    sensitivityAdjustment: Number(els.sensitivityAdjustment.value),
     sound: els.soundToggle.checked,
     soundPreset: els.soundPreset.value,
     soundVolume: Number(els.soundVolume.value),
-    vibration: els.vibrationToggle.checked,
     faceTouchAlert: els.faceTouchToggle.checked,
-    officeStatusDot: els.officeDotToggle.checked,
-    neutralSubtleInterventions: els.neutralSubtleToggle.checked,
   };
   saveSettings();
 }
 
 function applySettingsToUi() {
-  els.distanceThreshold.value = state.settings.distanceThreshold;
-  els.holdSeconds.value = state.settings.holdSeconds;
-  els.cooldownSeconds.value = state.settings.cooldownSeconds;
-  els.overlayToggle.checked = state.settings.showOverlay;
-  els.warmthToggle.checked = state.settings.warmthFeedback;
+  els.sensitivityAdjustment.value = state.settings.sensitivityAdjustment;
   els.soundToggle.checked = state.settings.sound;
   els.soundPreset.value = SOUND_PRESETS[state.settings.soundPreset]
     ? state.settings.soundPreset
     : "bubblePop";
   els.soundVolume.value = state.settings.soundVolume;
-  els.vibrationToggle.checked = state.settings.vibration;
   els.faceTouchToggle.checked = state.settings.faceTouchAlert;
-  els.officeDotToggle.checked = state.settings.officeStatusDot;
-  els.neutralSubtleToggle.checked = state.settings.neutralSubtleInterventions;
-  renderOfficeDot();
-}
-
-function renderOfficeDot() {
-  document.body.dataset.officeDot = state.settings.officeStatusDot ? "on" : "off";
 }
 
 function exportData() {
@@ -1265,28 +1461,65 @@ function loadSettings() {
   const defaults = {
     activeMode: "focus",
     distanceThreshold: 0.09,
+    sensitivityAdjustment: 0,
     holdSeconds: 2,
     cooldownSeconds: 15,
-    calibrationPreset: "normal",
-    showOverlay: true,
+    showOverlay: false,
     warmthFeedback: true,
     sound: false,
     soundPreset: "bubblePop",
     soundVolume: 0.35,
     cameraDeviceId: null,
-    vibration: true,
     // Hinweis: ein evtl. gespeichertes "autoTune"-Feld aus früheren
     // Versionen wird beim Laden mitgeschleppt, aber nirgends mehr gelesen.
     faceTouchAlert: false,
-    officeStatusDot: true,
-    neutralSubtleInterventions: true,
+    officeLayout: "todo",
   };
 
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+    const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {};
+    const storedThreshold = Number(stored.distanceThreshold);
+    const storedAdjustment = Number(stored.sensitivityAdjustment);
+    return {
+      ...defaults,
+      ...stored,
+      // Ältere Versionen speicherten den absoluten Kalibrierungswert direkt
+      // im sichtbaren Regler. Er bleibt als Basis erhalten; die neue,
+      // verständliche Korrektur beginnt unabhängig davon bei „Ausgewogen".
+      distanceThreshold: Number.isFinite(storedThreshold)
+        ? Math.min(SENSITIVITY.effectiveMax, Math.max(SENSITIVITY.effectiveMin, storedThreshold))
+        : defaults.distanceThreshold,
+      sensitivityAdjustment: Number.isFinite(storedAdjustment)
+        ? Math.min(
+          SENSITIVITY.adjustmentMax,
+          Math.max(SENSITIVITY.adjustmentMin, Math.round(storedAdjustment)),
+        )
+        : defaults.sensitivityAdjustment,
+      // Entfernte technische Optionen werden auf den kuratierten Standard
+      // migriert, auch wenn ältere Browser sie noch gespeichert haben.
+      showOverlay: false,
+      warmthFeedback: true,
+      vibration: false,
+      officeLayout: stored.officeLayout === "notes" ? "notes" : "todo",
+    };
   } catch {
     return defaults;
   }
+}
+
+function loadTodos() {
+  try {
+    const todos = JSON.parse(localStorage.getItem(NEUTRAL_TODOS_KEY));
+    return Array.isArray(todos)
+      ? todos.filter((todo) => todo && typeof todo.id === "string" && typeof todo.text === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTodos() {
+  localStorage.setItem(NEUTRAL_TODOS_KEY, JSON.stringify(state.todos));
 }
 
 function saveSettings() {
@@ -1469,7 +1702,7 @@ function resizeOverlay() {
 
 function setWarmth(value) {
   const clamped = Math.max(0, Math.min(1, value));
-  const eased = state.settings.warmthFeedback ? Math.pow(clamped, 0.85) : 0;
+  const eased = Math.pow(clamped, 0.85);
   els.warmOverlay.style.setProperty("--warmth", eased.toFixed(3));
 }
 
@@ -1576,6 +1809,20 @@ function readableError(error) {
     return {
       message: t("errors.noCamera"),
       hints: [t("errors.noCameraHint1"), t("errors.noCameraHint2"), t("errors.noCameraHint3")],
+    };
+  }
+
+  if (["NotReadableError", "AbortError"].includes(error?.name)) {
+    return {
+      message: t("errors.cameraBusy"),
+      hints: [t("errors.cameraBusyHint1"), t("errors.cameraBusyHint2")],
+    };
+  }
+
+  if (error?.message === "camera-timeout") {
+    return {
+      message: t("errors.cameraTimeout"),
+      hints: [t("errors.cameraTimeoutHint1")],
     };
   }
 
