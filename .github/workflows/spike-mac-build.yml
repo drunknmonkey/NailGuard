@@ -28,6 +28,12 @@ jobs:
         with:
           node-version: 20
 
+      - name: Test Mac alpha bridge
+        run: |
+          node --check spike/alpha.js
+          node --check spike/pill.js
+          node spike/alpha.test.js
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
