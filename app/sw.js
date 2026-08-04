@@ -1,4 +1,4 @@
-const CACHE_NAME = "tawel-v9";
+const CACHE_NAME = "tawel-v10";
 
 const APP_SHELL = [
   "./",
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./app.js",
   "./i18n.js",
   "./fonts/instrument-sans-400-700-latin.woff2",
+  "./fonts/fraunces-100-900-italic-latin.woff2",
   "./fonts/spline-sans-mono-300-500-latin.woff2",
   "./manifest.webmanifest",
   "./icons/icon.svg",

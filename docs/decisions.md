@@ -440,3 +440,34 @@ Modell entschieden ist, bekommt der Preis eine eigene Sektion.
 - **Scope:** Die gemeinsame Font-Typografie wirkt bewusst global auf Landing, App und
   Rechtsseiten; das ist die bereits dokumentierte Entscheidung des geteilten
   Design-Systems.
+
+---
+
+## 2026-07-21 – Globale Creme-Palette und sparsamer Serif-Akzent
+
+Umsetzung der von Paul am 2026-07-16 freigegebenen Designrichtung durch Codex.
+Die Änderung liegt bewusst im geteilten `app/style.css` und gilt damit für
+Landingpage, Web-App und das von Tauri gebündelte Web-Frontend.
+
+- **Warme Neutrals statt Grün-Grau:** `--mist` ist jetzt Creme `#F4F0E7`,
+  `--paper` warmes Weiß `#FFFCF6`, `--line` warmes Beige `#DED6C9` und
+  `--paper-dim` `#E6DED1`. Pine bleibt unverändert das Marken-Dunkelgrün.
+  `--still` wurde als pausierter Zustand auf neutrales Warmgrau `#BDB8B0`
+  verschoben; Breath, Warm und Ember behalten ihre semantischen Rollen.
+- **Kontrast neu geprüft:** Pine erreicht 10,67:1 auf Mist und 11,85:1 auf
+  Paper. Moss wurde passend zur wärmeren Umgebung auf `#5E6F66` gesetzt und
+  erreicht 4,68:1 auf Mist sowie 5,20:1 auf Paper. Warm-Text (5,60:1),
+  Ember-Text (6,56:1) und Paper-Dim auf Pine (9,09:1) bleiben über WCAG AA.
+- **Office Mode bleibt neutral:** Sämtliche `--office-*`-Tokens sind bewusst
+  unverändert. Die Tarnoberfläche übernimmt keine Creme-Flächen.
+- **Typografie:** Instrument Sans bleibt Basis für Oberfläche und Headlines.
+  Fraunces Variable Italic ist als self-hosted Latin-WOFF2 ergänzt; die Utility
+  `.accent-serif` ist ausschließlich für einzelne Wörter oder kurze Wortgruppen
+  gedacht, niemals für ganze Headlines.
+- **Fontquelle und Lizenz:** Fraunces v38 aus
+  `@fontsource-variable/fraunces@5.3.0`, Copyright 2020 The Fraunces Project
+  Authors, lizenziert unter SIL Open Font License 1.1. Lizenztext liegt unter
+  `app/fonts/FRAUNCES-LICENSE.txt`.
+- **Mac-Bundle:** `spike/build-frontend.sh` kopiert nun auch den kompletten
+  `app/fonts/`-Ordner. Dadurch verwendet der Tauri-Webview dieselben
+  self-hosted Schriften wie die Web-App.
