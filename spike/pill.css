@@ -32,6 +32,35 @@
   display: none;
 }
 
+/* Nur die native Alpha: Browser-Warteliste und Office Mode gehören nicht in
+   diesen Build. Die Web-Dateien selbst bleiben unverändert. */
+body.tawel-alpha .desktop-link,
+body.tawel-alpha [data-mode-link="neutral"] {
+  display: none !important;
+}
+
+.alpha-prestart-back {
+  display: none;
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 61;
+  font: 500 14px/1 var(--font-body);
+  color: var(--paper);
+  background: var(--pine);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+body.alpha-settings-before-start .alpha-prestart-back {
+  display: block;
+}
+body.alpha-settings-before-start .mode-tabs,
+body.alpha-settings-before-start .pill-enter-btn {
+  display: none !important;
+}
+
 /* --- Pill-Modus: Seite transparent, nur der Ring sichtbar --- */
 body.pill-mode {
   margin: 0;
@@ -42,7 +71,8 @@ body.pill-mode .app-shell {
   display: none !important;
 }
 body.pill-mode #spike-overlay,
-body.pill-mode .pill-enter-btn {
+body.pill-mode .pill-enter-btn,
+body.pill-mode .alpha-prestart-back {
   display: none !important;
 }
 body.pill-mode .pill-stage {

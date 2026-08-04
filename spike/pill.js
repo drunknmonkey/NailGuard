@@ -42,6 +42,7 @@
   }
 
   async function enterPill() {
+    if (document.body.classList.contains("pill-mode")) return;
     var p = savedPos();
     document.body.classList.add("pill-mode");
     await invoke("enter_pill", { x: p ? p.x : null, y: p ? p.y : null });
@@ -52,6 +53,7 @@
   }
 
   async function exitPill() {
+    if (!document.body.classList.contains("pill-mode")) return;
     if (saveTimer) {
       clearInterval(saveTimer);
       saveTimer = null;
@@ -113,10 +115,20 @@
     var enter = document.createElement("button");
     enter.className = "pill-enter-btn";
     enter.type = "button";
-    enter.textContent = "Als Pille andocken";
+    enter.textContent = document.documentElement.lang === "en"
+      ? "Keep running in background"
+      : "Im Hintergrund weiterlaufen";
     enter.addEventListener("click", enterPill);
     document.body.appendChild(enter);
   }
+
+  window.__tawelPill = {
+    enter: enterPill,
+    exit: exitPill,
+    isActive: function () {
+      return document.body.classList.contains("pill-mode");
+    },
+  };
 
   if (document.body) build();
   else document.addEventListener("DOMContentLoaded", build);

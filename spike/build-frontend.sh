@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Wegwerf-Spike: kopiert die bestehende PWA nach spike-dist/ und injiziert das
-# Mess-Overlay. So bleibt der echte PWA-Code unangetastet, und Tauri bündelt
+# Private Mac-Alpha: kopiert die bestehende PWA nach spike-dist/ und injiziert
+# nur die native Steuerbrücke. So bleibt der echte PWA-Code unangetastet, und Tauri bündelt
 # nur die nötigen Frontend-Dateien (kein .git, kein src-tauri/target).
 set -euo pipefail
 
@@ -16,8 +16,8 @@ for item in index.html app.js style.css i18n.js sw.js manifest.webmanifest fonts
   cp -R "$ROOT/app/$item" "$DIST/"
 done
 
-# Spike-/Pill-Assets dazulegen ...
-cp "$ROOT/spike/spike.js" "$DIST/spike.js"
+# Alpha-/Pill-Assets dazulegen ...
+cp "$ROOT/spike/alpha.js" "$DIST/alpha.js"
 cp "$ROOT/spike/pill.js" "$DIST/pill.js"
 cp "$ROOT/spike/pill.css" "$DIST/pill.css"
 
@@ -28,14 +28,14 @@ path = sys.argv[1]
 html = open(path, encoding="utf-8").read()
 if "./pill.css" not in html:
     html = html.replace("  </head>", '    <link rel="stylesheet" href="./pill.css" />\n  </head>', 1)
-if "./spike.js" not in html:
+if "./alpha.js" not in html:
     html = html.replace(
         "  </body>",
-        '    <script src="./spike.js"></script>\n'
+        '    <script src="./alpha.js"></script>\n'
         '    <script src="./pill.js"></script>\n  </body>',
         1,
     )
 open(path, "w", encoding="utf-8").write(html)
 PY
 
-echo "spike-dist gebaut: $DIST"
+echo "Tawel-Alpha-Frontend gebaut: $DIST"
