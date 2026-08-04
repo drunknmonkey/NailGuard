@@ -589,3 +589,45 @@ Landingpage und Entwicklungskontext eindeutig getrennt:
   entstehen auf Tablet-/Desktopbreiten keine künstlich großen vertikalen
   Abstände mehr.
 - **Navigation:** Der Anker heißt korrekt „Warum Tawel“ statt „Worum Tawel“.
+
+---
+
+## 2026-08-04 – Private Mac-Alpha: Ein WebView, native Menüleiste und lokaler Lifecycle
+
+Umsetzung auf `agent/mac-alpha-v0-1`, ausgehend vom verifizierten `main`-Stand
+`b5e9f32`. Die bestehende Tauri-Hülle wird gezielt zum selbst nutzbaren
+Alpha-Build weiterentwickelt; es entsteht keine parallele Mac-Architektur.
+
+- **Ein WebView bleibt verbindlich:** Kamera, MediaPipe und Erkennung laufen in
+  derselben Instanz. Weil ein verdecktes/minimiertes WKWebView die
+  `requestAnimationFrame`-Schleife nachweislich stoppt, dockt ein laufendes Tawel
+  beim Schließen als sichtbare always-on-top Pille an.
+- **Menüleiste als native Steuerfläche:** Rust hält nur Produktstatus und
+  Menüeinträge. Start, Pause/Fortsetzen, Snooze 15/30/60, Einstellungen und
+  Beenden werden als kleine Tauri-Ereignisse an den bestehenden WebView
+  gesendet. Es gibt keinen zweiten Kamera- oder Erkennungsprozess.
+- **Pause spart Kameraressourcen:** Der Mac-Adapter stoppt beim Pausieren den
+  Kameratrack. Beim Fortsetzen wird der Stream über die vorhandene, lokal
+  gespeicherte Kameraauswahl neu geöffnet. Die Zustandsmaschine in `app/app.js`
+  bleibt führend.
+- **Snooze ist eine lokale Endzeit:** Gespeichert wird ausschließlich ein
+  Unix-Zeitstempel in Millisekunden unter `tawel.alpha.snooze-until.v1`.
+  Dadurch läuft Snooze auch über Display-Sleep korrekt ab und setzt danach
+  automatisch fort. Eine bewusste manuelle Steuerung hebt ihn auf.
+- **Sleep-/Wake-Reparatur:** Ein Tauri-exklusiver Watchdog erkennt einen
+  sichtbaren, aktiven, länger als 12 Sekunden stehenden Videostream und öffnet
+  die gewählte Kamera mit 15 Sekunden Mindestabstand neu. Während Pause,
+  Snooze oder unsichtbarem Dokument wird nicht neu gestartet.
+- **Web-App bleibt unverändert:** Die Mac-Funktionen liegen in injizierten
+  `spike/alpha.js`, `spike/pill.js` und `spike/pill.css`. Office Mode und der
+  Browser-Wartelistenlink werden nur im generierten Mac-Frontend ausgeblendet;
+  `app/` wird nicht geändert.
+- **Capture Exclusion integriert:** Das native Fenster setzt
+  `NSWindowSharingNone`. Pauls früherer Realtest mit Bildschirmaufnahme und Zoom
+  war positiv; für eine öffentliche Aussage bleibt die Wiederholung mit dem
+  konkret ausgelieferten Alpha-Build verpflichtend.
+- **Build-Gate:** Tauri CLI und Rust-Auflösung sind über Workflow-Version und
+  eingechecktes `Cargo.lock` festgeschrieben. Ein DOM-Vertragstest prüft Snooze,
+  Kamera-Pause, automatisches Fortsetzen und Watchdog im macOS-Workflow.
+- **Bewusst später:** Autostart bei Anmeldung, Signierung/Notarisierung,
+  öffentlicher Vertrieb sowie Lizenz- und Preislogik.

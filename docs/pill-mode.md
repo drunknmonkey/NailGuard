@@ -1,5 +1,10 @@
 # Pill-Modus (immer sichtbares Mini-Fenster)
 
+> Historischer Spike-Stand. Der aktuelle private Alpha-Fluss einschließlich
+> Menüleiste, Snooze und Hardware-Abnahme steht in
+> [`docs/mac-alpha-v0.1.md`](mac-alpha-v0.1.md). Alte Build- und Artefaktnamen
+> weiter unten dienen nur der Nachvollziehbarkeit.
+
 Erster Produkt-Baustein auf dem validierten Spike-Scaffold. Aufbauend auf dem
 Spike-Ergebnis: Die WebView-Erkennung läuft mit voller Rate (~50/s), **solange das
 Fenster sichtbar ist – auch unfokussiert**; sobald es `hidden` ist (minimiert oder
