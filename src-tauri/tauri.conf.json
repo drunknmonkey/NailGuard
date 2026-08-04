@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NailGuard Spike",
+  "productName": "Tawel",
   "version": "0.1.0",
-  "identifier": "app.nailguard.spike",
+  "identifier": "app.tawel.alpha",
   "build": {
     "frontendDist": "../spike-dist",
     "beforeBuildCommand": "bash spike/build-frontend.sh",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "NailGuard Spike",
+        "title": "Tawel",
         "width": 960,
         "height": 720,
         "resizable": true,

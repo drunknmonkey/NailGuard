@@ -1,4 +1,4 @@
-// Wegwerf-Spike: minimale Tauri-2-Hülle, die die bestehende NailGuard-PWA lädt.
+// Private Tawel-Mac-Alpha auf Basis der bestehenden Tauri-2-Hülle.
 // Aufgabe der Rust-Seite: jede Sekunde ein Sample in eine CSV schreiben – auch
 // dann, wenn der WebView (rAF/Timer) von macOS gedrosselt oder eingefroren ist.
 // Genau das ist der Kern des Experiments, deshalb tickt der Logger nativ.
@@ -67,7 +67,7 @@ mod macos_camera {
         // Runtime-Diagnose: bestaetigt, dass with_webview/install lief und welche
         // ObjC-Klasse inner() liefert (sollte WKWebView sein). Liegt auf dem Desktop.
         let dbg_path = format!(
-            "{}/Desktop/nailguard-spike-debug.txt",
+            "{}/Desktop/tawel-alpha-debug.txt",
             std::env::var("HOME").unwrap_or_default()
         );
         let wk = webview_ptr.cast::<AnyObject>();
@@ -121,11 +121,11 @@ fn log_dir() -> PathBuf {
     p
 }
 
-/// Pro Start eindeutiger Dateiname: nailguard-spike-log-YYYYMMDD-HHMMSS.csv
+/// Pro Start eindeutiger Dateiname: tawel-alpha-log-YYYYMMDD-HHMMSS.csv
 fn new_log_path() -> PathBuf {
     let mut p = log_dir();
     p.push(format!(
-        "nailguard-spike-log-{}.csv",
+        "tawel-alpha-log-{}.csv",
         chrono::Local::now().format("%Y%m%d-%H%M%S")
     ));
     p

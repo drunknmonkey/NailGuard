@@ -99,7 +99,7 @@
       '<div class="pill-core"></div>' +
       '<div class="pill-controls">' +
       '<button class="pill-btn pill-expand" type="button" title="Vergrößern" aria-label="Vergrößern">⤢</button>' +
-      '<button class="pill-btn pill-close" type="button" title="NailGuard schließen" aria-label="Schließen">✕</button>' +
+      '<button class="pill-btn pill-close" type="button" title="Tawel beenden" aria-label="Tawel beenden">✕</button>' +
       "</div></div>";
     document.body.appendChild(stage);
 
