@@ -12,7 +12,9 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use tauri::{Manager, WindowEvent};
+use tauri::menu::{MenuBuilder, MenuItem};
+use tauri::tray::TrayIconBuilder;
+use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 
 // --- macOS: getUserMedia im WKWebView erlauben ----------------------------------
 // WKWebView verweigert Kamera/Mikrofon auf Web-Ebene, solange der WKUIDelegate die
@@ -110,6 +112,17 @@ struct SpikeState {
     log_path: PathBuf,
 }
 
+/// Vom WebView gemeldeter Produktzustand und veränderbare Menüeinträge.
+/// Die Erkennung selbst bleibt im bestehenden WebView; Rust hält nur genug
+/// Zustand, um Schließen und Menüleisten-Bedienung verlässlich abzubilden.
+struct AlphaUiState {
+    running: AtomicBool,
+    paused: AtomicBool,
+    status_item: MenuItem<tauri::Wry>,
+    pause_item: MenuItem<tauri::Wry>,
+    snooze_items: Vec<MenuItem<tauri::Wry>>,
+}
+
 /// Desktop des Nutzers (Fallback: Home), damit Paul die Datei sofort findet.
 fn log_dir() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
@@ -150,6 +163,41 @@ fn spike_state(visibility: String, has_focus: bool, state: tauri::State<SpikeSta
 #[tauri::command]
 fn spike_log_path(state: tauri::State<SpikeState>) -> String {
     state.log_path.to_string_lossy().into_owned()
+}
+
+/// Hält die native Menüleiste mit dem tatsächlichen WebView-Zustand synchron.
+#[tauri::command]
+fn alpha_status(
+    running: bool,
+    paused: bool,
+    snooze_until: Option<i64>,
+    state: tauri::State<AlphaUiState>,
+) -> Result<(), String> {
+    state.running.store(running, Ordering::Relaxed);
+    state.paused.store(paused, Ordering::Relaxed);
+
+    let status = if !running {
+        "Status: bereit".to_string()
+    } else if let Some(until) = snooze_until.filter(|until| *until > chrono::Utc::now().timestamp_millis()) {
+        let remaining_ms = until - chrono::Utc::now().timestamp_millis();
+        let minutes = (remaining_ms + 59_999) / 60_000;
+        format!("Status: Snooze · {minutes} Min.")
+    } else if paused {
+        "Status: pausiert".to_string()
+    } else {
+        "Status: aktiv".to_string()
+    };
+
+    state.status_item.set_text(status).map_err(cmd_err)?;
+    state
+        .pause_item
+        .set_text(if paused { "Fortsetzen" } else { "Pausieren" })
+        .map_err(cmd_err)?;
+    state.pause_item.set_enabled(running).map_err(cmd_err)?;
+    for item in &state.snooze_items {
+        item.set_enabled(running).map_err(cmd_err)?;
+    }
+    Ok(())
 }
 
 fn cmd_err<E: std::fmt::Display>(err: E) -> String {
@@ -201,10 +249,85 @@ fn pill_position(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
     Ok((p.x, p.y))
 }
 
-/// „Schließen"-Steuerung der Pille: App beenden.
+/// „Schließen"-Steuerung der Pille: App wirklich beenden. Das normale rote
+/// Fenster-X wird separat abgefangen und lässt Tawel in der Pille weiterlaufen.
 #[tauri::command]
-fn close_app(window: tauri::WebviewWindow) {
-    let _ = window.close();
+fn close_app(app: AppHandle) {
+    app.exit(0);
+}
+
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+fn emit_control(app: &AppHandle, action: &str, show_window: bool) {
+    if show_window {
+        show_main_window(app);
+    }
+    let _ = app.emit_to("main", "tawel:control", action);
+}
+
+/// Ruhige Menüleistensteuerung für die private Alpha. Alle Aktionen werden als
+/// kleine Ereignisse an denselben WebView geschickt; Kamera/MediaPipe werden
+/// weder dupliziert noch in einen zweiten Prozess verschoben.
+fn install_tray(app: &tauri::App) -> tauri::Result<()> {
+    let status = MenuItem::with_id(app, "status", "Status: bereit", false, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Tawel öffnen", true, None::<&str>)?;
+    let start = MenuItem::with_id(app, "start", "Start", true, None::<&str>)?;
+    let pause = MenuItem::with_id(app, "pause", "Pausieren", false, None::<&str>)?;
+    let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
+    let snooze_30 = MenuItem::with_id(app, "snooze_30", "Snooze · 30 Minuten", false, None::<&str>)?;
+    let snooze_60 = MenuItem::with_id(app, "snooze_60", "Snooze · 60 Minuten", false, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Tawel beenden", true, None::<&str>)?;
+
+    let menu = MenuBuilder::new(app)
+        .item(&status)
+        .separator()
+        .item(&open)
+        .item(&start)
+        .item(&pause)
+        .separator()
+        .item(&snooze_15)
+        .item(&snooze_30)
+        .item(&snooze_60)
+        .separator()
+        .item(&settings)
+        .item(&quit)
+        .build()?;
+
+    app.manage(AlphaUiState {
+        running: AtomicBool::new(false),
+        paused: AtomicBool::new(false),
+        status_item: status,
+        pause_item: pause,
+        snooze_items: vec![snooze_15, snooze_30, snooze_60],
+    });
+
+    let mut tray = TrayIconBuilder::with_id("tawel-tray")
+        .tooltip("Tawel")
+        .menu(&menu)
+        .show_menu_on_left_click(true)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "open" => emit_control(app, "open", true),
+            "start" => emit_control(app, "start", true),
+            "pause" => emit_control(app, "toggle_pause", false),
+            "snooze_15" => emit_control(app, "snooze_15", false),
+            "snooze_30" => emit_control(app, "snooze_30", false),
+            "snooze_60" => emit_control(app, "snooze_60", false),
+            "settings" => emit_control(app, "settings", true),
+            "quit" => app.exit(0),
+            _ => {}
+        });
+    if let Some(icon) = app.default_window_icon() {
+        tray = tray.icon(icon.clone()).icon_as_template(true);
+    }
+    tray.build(app)?;
+    Ok(())
 }
 
 /// macOS: NSWindow so konfigurieren, dass die Pille auf allen Spaces und als
@@ -236,6 +359,30 @@ fn set_collection_behavior(window: &tauri::WebviewWindow, pill: bool) {
     });
 }
 
+/// macOS bittet, dieses Fenster nicht in Window-Capture/Sharing aufzunehmen.
+/// Der Mechanismus wurde bereits auf echter Hardware mit Bildschirmaufnahme
+/// und Zoom positiv geprüft; für eine öffentliche Garantie bleibt ein Test des
+/// jeweils ausgelieferten Alpha-Builds erforderlich.
+#[cfg(target_os = "macos")]
+fn set_capture_excluded(window: &tauri::WebviewWindow) {
+    let ns_addr = match window.ns_window() {
+        Ok(p) => p as usize,
+        Err(_) => return,
+    };
+    let _ = window.run_on_main_thread(move || {
+        if ns_addr == 0 {
+            return;
+        }
+        unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+            let ns = ns_addr as *mut AnyObject;
+            // NSWindowSharingNone == 0
+            let _: () = msg_send![&*ns, setSharingType: 0usize];
+        }
+    });
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(SpikeState {
@@ -249,12 +396,15 @@ fn main() {
             spike_tick,
             spike_state,
             spike_log_path,
+            alpha_status,
             enter_pill,
             exit_pill,
             pill_position,
             close_app
         ])
         .setup(|app| {
+            install_tray(app)?;
+
             // Frische CSV pro Start + Header (Datei ist immer neu).
             let path = app.state::<SpikeState>().log_path.clone();
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
@@ -268,15 +418,29 @@ fn main() {
             // wenn der WebView keine Events mehr feuert.
             if let Some(win) = app.get_webview_window("main") {
                 let handle = app.handle().clone();
+                let event_window = win.clone();
                 win.on_window_event(move |event| {
-                    if let WindowEvent::Focused(focused) = event {
-                        handle.state::<SpikeState>().focus.store(*focused, Ordering::Relaxed);
+                    match event {
+                        WindowEvent::Focused(focused) => {
+                            handle.state::<SpikeState>().focus.store(*focused, Ordering::Relaxed);
+                        }
+                        WindowEvent::CloseRequested { api, .. } => {
+                            api.prevent_close();
+                            let ui = handle.state::<AlphaUiState>();
+                            if ui.running.load(Ordering::Relaxed) {
+                                let _ = event_window.emit("tawel:control", "dock");
+                            } else {
+                                let _ = event_window.hide();
+                            }
+                        }
+                        _ => {}
                     }
                 });
 
                 // macOS: Kamera-/Mikrofon-Anfragen im WKWebView erlauben.
                 #[cfg(target_os = "macos")]
                 {
+                    set_capture_excluded(&win);
                     let _ = win.with_webview(|webview| unsafe {
                         macos_camera::install(webview.inner().cast());
                     });
