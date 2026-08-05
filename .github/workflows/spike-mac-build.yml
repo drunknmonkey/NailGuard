@@ -33,8 +33,10 @@ jobs:
           bash spike/build-frontend.sh
           node --check spike/alpha.js
           node --check spike/pill.js
+          node --check spike/hint-overlay.js
           node spike/alpha.test.js
           node spike/alpha-frontend.test.js
+          node spike/hint-overlay.test.js
 
       - name: Cache cargo
         uses: actions/cache@v4

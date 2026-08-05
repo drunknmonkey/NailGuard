@@ -7,12 +7,16 @@
  * - Pause/Snooze so ergänzen, dass die Kamera dabei tatsächlich ruht.
  * - Snooze-Ende lokal speichern und automatisch fortsetzen.
  * - Einen nach Sleep/Wake stehen gebliebenen Kamerastream neu öffnen.
+ * - Drei rein visuelle Mac-Hinweise auswählen, speichern und auslösen.
  * - Den bestehenden nativen Callback-Logger ohne sichtbares Debug-Overlay speisen.
  */
 (function () {
   "use strict";
 
   var SNOOZE_KEY = "tawel.alpha.snooze-until.v1";
+  var HINT_STYLE_KEY = "tawel.alpha.hint-style.v1";
+  var HINT_STYLES = ["ring", "vignette", "wash"];
+  var RING_HINT_MS = 2400;
   var WATCHDOG_STALL_MS = 12000;
   var WATCHDOG_COOLDOWN_MS = 15000;
 
@@ -29,6 +33,8 @@
   var previousPaused = false;
   var prestartSettings = false;
   var snoozeUntil = readSnooze();
+  var hintStyle = readHintStyle();
+  var ringHintTimer = null;
   var lastVideoTime = -1;
   var lastProgressAt = Date.now();
   var restartBlockedUntil = 0;
@@ -59,6 +65,44 @@
     if (Number.isFinite(value) && value > Date.now()) return value;
     localStorage.removeItem(SNOOZE_KEY);
     return null;
+  }
+
+  function readHintStyle() {
+    var value = localStorage.getItem(HINT_STYLE_KEY);
+    return HINT_STYLES.indexOf(value) >= 0 ? value : "ring";
+  }
+
+  function syncHintStyle() {
+    invoke("alpha_hint_style", { style: hintStyle }).catch(function () {});
+  }
+
+  function pulseRing() {
+    if (ringHintTimer) clearTimeout(ringHintTimer);
+    document.body.classList.remove("alpha-ring-hint");
+    // Neustart der CSS-Animation auch bei zwei rasch aufeinanderfolgenden
+    // Hinweisen. Das Layout wird nur für die kleine Pill-Schicht gelesen.
+    void document.body.offsetWidth;
+    document.body.classList.add("alpha-ring-hint");
+    ringHintTimer = setTimeout(function () {
+      document.body.classList.remove("alpha-ring-hint");
+      ringHintTimer = null;
+    }, RING_HINT_MS);
+  }
+
+  function showVisualHint() {
+    if (hintStyle === "ring") {
+      pulseRing();
+      return;
+    }
+    invoke("show_visual_hint", { style: hintStyle }).catch(function () {});
+  }
+
+  function setHintStyle(style, preview) {
+    if (HINT_STYLES.indexOf(style) < 0) return;
+    hintStyle = style;
+    localStorage.setItem(HINT_STYLE_KEY, style);
+    syncHintStyle();
+    if (preview) showVisualHint();
   }
 
   function saveSnooze(until) {
@@ -231,6 +275,18 @@
       case "settings":
         openSettings();
         break;
+      case "hint_ring":
+        setHintStyle("ring", true);
+        break;
+      case "hint_vignette":
+        setHintStyle("vignette", true);
+        break;
+      case "hint_wash":
+        setHintStyle("wash", true);
+        break;
+      case "hint_preview":
+        showVisualHint();
+        break;
       case "dock":
         if (isRunning() && window.__tawelPill) window.__tawelPill.enter();
         break;
@@ -313,6 +369,7 @@
   });
   window.addEventListener("focus", pushDiagnosticState);
   window.addEventListener("blur", pushDiagnosticState);
+  window.addEventListener("nailguard:intervention", showVisualHint);
 
   // Office Mode gehört laut Produktentscheidung nur in den Browser. Falls ein
   // importierter/synchroner Einstellungswert ihn aktiviert, zurück zu Fokus.
@@ -323,6 +380,7 @@
 
   setInterval(watchdogTick, 1000);
   pushDiagnosticState();
+  syncHintStyle();
   queueSync();
 
   // Kleine Test-/Diagnoseoberfläche ohne Zugriff auf interne Web-App-Variablen.
@@ -330,5 +388,6 @@
     handleControl: handleControl,
     isRunning: isRunning,
     isPaused: isPaused,
+    hintStyle: function () { return hintStyle; },
   };
 })();

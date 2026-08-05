@@ -73,7 +73,9 @@ async function main() {
   const camera = { stops: 0, restarts: 0 };
   const invocations = [];
   const intervals = [];
+  const timeouts = [];
   const controlListeners = [];
+  const windowListeners = new Map();
   const storage = new Map();
 
   class FakeDate extends Date {
@@ -142,11 +144,23 @@ async function main() {
       removeItem: (key) => storage.delete(key),
     },
     document,
-    setTimeout: (fn) => { fn(); return 1; },
+    setTimeout: (fn, delay = 0) => {
+      if (delay === 0) fn();
+      else timeouts.push({ fn, delay });
+      return timeouts.length;
+    },
+    clearTimeout() {},
     setInterval: (fn) => { intervals.push(fn); return intervals.length; },
     clearInterval() {},
     window: {
-      addEventListener() {},
+      addEventListener(type, listener) {
+        const listeners = windowListeners.get(type) || [];
+        listeners.push(listener);
+        windowListeners.set(type, listeners);
+      },
+      dispatchEvent(event) {
+        for (const listener of windowListeners.get(event.type) || []) listener(event);
+      },
       __TAURI__: {
         core: {
           invoke(command, args) {
@@ -177,6 +191,43 @@ async function main() {
   const alpha = context.window.__tawelAlpha;
   assert.ok(alpha, "Diagnoseoberfläche wurde installiert");
   assert.equal(controlListeners[0].name, "tawel:control");
+  assert.equal(alpha.hintStyle(), "ring");
+  assert.equal(
+    invocations.filter((call) => call.command === "alpha_hint_style").at(-1).args.style,
+    "ring",
+    "Ringpuls ist die gespeicherte Standardvariante",
+  );
+
+  alpha.handleControl("hint_vignette");
+  await flush();
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "vignette");
+  assert.equal(alpha.hintStyle(), "vignette");
+  assert.equal(
+    invocations.filter((call) => call.command === "show_visual_hint").at(-1).args.style,
+    "vignette",
+    "Auswahl zeigt die Vignette sofort als Vorschau",
+  );
+
+  const hintsBeforeDetection = invocations.filter((call) => call.command === "show_visual_hint").length;
+  context.window.dispatchEvent({ type: "nailguard:intervention" });
+  await flush();
+  const detectionHints = invocations.filter((call) => call.command === "show_visual_hint");
+  assert.equal(detectionHints.length, hintsBeforeDetection + 1);
+  assert.equal(detectionHints.at(-1).args.style, "vignette");
+
+  alpha.handleControl("hint_wash");
+  await flush();
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "wash");
+  assert.equal(
+    invocations.filter((call) => call.command === "show_visual_hint").at(-1).args.style,
+    "wash",
+    "Farbhauch nutzt dasselbe echte Interventionssignal",
+  );
+
+  alpha.handleControl("hint_ring");
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "ring");
+  assert.equal(body.classList.contains("alpha-ring-hint"), true);
+  assert.equal(timeouts.at(-1).delay, 2400, "Ringpuls endet selbstständig");
 
   alpha.handleControl("settings");
   await flush();

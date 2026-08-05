@@ -25,6 +25,9 @@ patch --batch --forward -F 0 -d "$DIST" -p0 < "$ROOT/spike/alpha-app.patch"
 cp "$ROOT/spike/alpha.js" "$DIST/alpha.js"
 cp "$ROOT/spike/pill.js" "$DIST/pill.js"
 cp "$ROOT/spike/pill.css" "$DIST/pill.css"
+cp "$ROOT/spike/hint-overlay.html" "$DIST/hint-overlay.html"
+cp "$ROOT/spike/hint-overlay.js" "$DIST/hint-overlay.js"
+cp "$ROOT/spike/hint-overlay.css" "$DIST/hint-overlay.css"
 
 # ... und in die kopierte index.html einbinden (nur im Tauri-Build).
 python3 - "$DIST/index.html" <<'PY'

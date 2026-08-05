@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use tauri::menu::{MenuBuilder, MenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 // --- macOS: getUserMedia im WKWebView erlauben ----------------------------------
 // WKWebView verweigert Kamera/Mikrofon auf Web-Ebene, solange der WKUIDelegate die
@@ -121,6 +121,7 @@ struct AlphaUiState {
     status_item: MenuItem<tauri::Wry>,
     pause_item: MenuItem<tauri::Wry>,
     snooze_items: Vec<MenuItem<tauri::Wry>>,
+    hint_status_item: MenuItem<tauri::Wry>,
 }
 
 /// Desktop des Nutzers (Fallback: Home), damit Paul die Datei sofort findet.
@@ -198,6 +199,22 @@ fn alpha_status(
         item.set_enabled(running).map_err(cmd_err)?;
     }
     Ok(())
+}
+
+/// Spiegelt die lokal gespeicherte Hinweisvariante in der Menüleiste. Die
+/// eigentliche Auswahl bleibt im bestehenden WebView/localStorage, damit sie
+/// ohne zusätzliche native Persistenz über App-Neustarts erhalten bleibt.
+#[tauri::command]
+fn alpha_hint_style(style: String, state: tauri::State<AlphaUiState>) -> Result<(), String> {
+    let label = match style.as_str() {
+        "vignette" => "Vignette",
+        "wash" => "Farbhauch",
+        _ => "Ringpuls",
+    };
+    state
+        .hint_status_item
+        .set_text(format!("Hinweis: {label}"))
+        .map_err(cmd_err)
 }
 
 fn cmd_err<E: std::fmt::Display>(err: E) -> String {
@@ -282,6 +299,11 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
     let snooze_30 = MenuItem::with_id(app, "snooze_30", "Snooze · 30 Minuten", false, None::<&str>)?;
     let snooze_60 = MenuItem::with_id(app, "snooze_60", "Snooze · 60 Minuten", false, None::<&str>)?;
+    let hint_status = MenuItem::with_id(app, "hint_status", "Hinweis: Ringpuls", false, None::<&str>)?;
+    let hint_ring = MenuItem::with_id(app, "hint_ring", "Variante A · Ringpuls", true, None::<&str>)?;
+    let hint_vignette = MenuItem::with_id(app, "hint_vignette", "Variante B · Vignette", true, None::<&str>)?;
+    let hint_wash = MenuItem::with_id(app, "hint_wash", "Variante C · Farbhauch", true, None::<&str>)?;
+    let hint_preview = MenuItem::with_id(app, "hint_preview", "Probe-Hinweis anzeigen", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Tawel beenden", true, None::<&str>)?;
 
@@ -296,6 +318,12 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .item(&snooze_30)
         .item(&snooze_60)
         .separator()
+        .item(&hint_status)
+        .item(&hint_ring)
+        .item(&hint_vignette)
+        .item(&hint_wash)
+        .item(&hint_preview)
+        .separator()
         .item(&settings)
         .item(&quit)
         .build()?;
@@ -306,6 +334,7 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         status_item: status,
         pause_item: pause,
         snooze_items: vec![snooze_15, snooze_30, snooze_60],
+        hint_status_item: hint_status,
     });
 
     let mut tray = TrayIconBuilder::with_id("tawel-tray")
@@ -319,6 +348,10 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
             "snooze_15" => emit_control(app, "snooze_15", false),
             "snooze_30" => emit_control(app, "snooze_30", false),
             "snooze_60" => emit_control(app, "snooze_60", false),
+            "hint_ring" => emit_control(app, "hint_ring", false),
+            "hint_vignette" => emit_control(app, "hint_vignette", false),
+            "hint_wash" => emit_control(app, "hint_wash", false),
+            "hint_preview" => emit_control(app, "hint_preview", false),
             "settings" => emit_control(app, "settings", true),
             "quit" => app.exit(0),
             _ => {}
@@ -383,6 +416,104 @@ fn set_capture_excluded(window: &tauri::WebviewWindow) {
     });
 }
 
+/// Das visuelle Overlay liegt transparent über genau dem Display, auf dem sich
+/// das Tawel-Hauptfenster beziehungsweise die Pille befindet.
+fn fit_hint_overlay_to_main(
+    overlay: &tauri::WebviewWindow,
+    main: &tauri::WebviewWindow,
+) {
+    if let Ok(Some(monitor)) = main.current_monitor() {
+        let _ = overlay.set_position(*monitor.position());
+        let _ = overlay.set_size(*monitor.size());
+    }
+}
+
+/// Native Fenstereigenschaften der reinen Hinweisschicht: auf allen Spaces,
+/// über normalen Fenstern, klickdurchlässig und aus Aufnahmen ausgeschlossen.
+#[cfg(target_os = "macos")]
+fn configure_hint_overlay_macos(window: &tauri::WebviewWindow) {
+    let ns_addr = match window.ns_window() {
+        Ok(p) => p as usize,
+        Err(_) => return,
+    };
+    let _ = window.run_on_main_thread(move || {
+        if ns_addr == 0 {
+            return;
+        }
+        unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+            let ns = ns_addr as *mut AnyObject;
+            // NSWindowSharingNone, CanJoinAllSpaces | Stationary | FullScreenAuxiliary,
+            // Screen-Saver-Level und vollständige Klickdurchlässigkeit.
+            let _: () = msg_send![&*ns, setSharingType: 0usize];
+            let behavior: usize = (1usize << 0) | (1usize << 4) | (1usize << 8);
+            let _: () = msg_send![&*ns, setCollectionBehavior: behavior];
+            let _: () = msg_send![&*ns, setLevel: 1000isize];
+            let _: () = msg_send![&*ns, setIgnoresMouseEvents: true];
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_hint_overlay_macos(_window: &tauri::WebviewWindow) {}
+
+fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
+    let overlay = WebviewWindowBuilder::new(
+        app,
+        "hint-overlay",
+        WebviewUrl::App("hint-overlay.html".into()),
+    )
+    .title("Tawel Hinweis")
+    .transparent(true)
+    .decorations(false)
+    .shadow(false)
+    .always_on_top(true)
+    .resizable(false)
+    .focused(false)
+    .skip_taskbar(true)
+    .visible(false)
+    .build()?;
+
+    let _ = overlay.set_ignore_cursor_events(true);
+    if let Some(main) = app.get_webview_window("main") {
+        fit_hint_overlay_to_main(&overlay, &main);
+    }
+    configure_hint_overlay_macos(&overlay);
+    Ok(())
+}
+
+/// Zeigt ausschließlich eine der beiden ganzflächigen Varianten. Der Ringpuls
+/// läuft im bestehenden Haupt-WebView und ruft diesen Command nicht auf.
+#[tauri::command]
+fn show_visual_hint(style: String, app: AppHandle) -> Result<(), String> {
+    let style = match style.as_str() {
+        "wash" => "wash",
+        "vignette" => "vignette",
+        _ => return Err("Unbekannte Hinweisvariante".to_string()),
+    };
+    let overlay = app
+        .get_webview_window("hint-overlay")
+        .ok_or_else(|| "Hinweisfenster nicht verfügbar".to_string())?;
+    if let Some(main) = app.get_webview_window("main") {
+        fit_hint_overlay_to_main(&overlay, &main);
+    }
+    overlay.show().map_err(cmd_err)?;
+    app.emit_to("hint-overlay", "tawel:visual-hint", style)
+        .map_err(cmd_err)
+}
+
+/// Nach der kurzen CSS-Animation verschwindet das ganzflächige Fenster wieder
+/// vollständig. So kann es das dauerhaft sichtbare Erkennungs-WebView nicht als
+/// vermeintlich verdeckt markieren oder im Alltag Ressourcen binden.
+#[tauri::command]
+fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
+    if let Some(overlay) = app.get_webview_window("hint-overlay") {
+        overlay.hide().map_err(cmd_err)?;
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(SpikeState {
@@ -397,13 +528,17 @@ fn main() {
             spike_state,
             spike_log_path,
             alpha_status,
+            alpha_hint_style,
             enter_pill,
             exit_pill,
             pill_position,
+            show_visual_hint,
+            hide_visual_hint,
             close_app
         ])
         .setup(|app| {
             install_tray(app)?;
+            spawn_hint_overlay(app.handle())?;
 
             // Frische CSV pro Start + Header (Datei ist immer neu).
             let path = app.state::<SpikeState>().log_path.clone();
@@ -445,6 +580,10 @@ fn main() {
                         macos_camera::install(webview.inner().cast());
                     });
                 }
+
+                // Das unsichtbare Overlay darf beim Aufbau keinen Tastaturfokus
+                // behalten; die Bedienung bleibt im normalen Tawel-Fenster.
+                let _ = win.set_focus();
             }
 
             // Nativer 1-Sekunden-Ticker. Läuft unabhängig vom WebView-Throttling.

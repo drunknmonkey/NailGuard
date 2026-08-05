@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Private Mac-Alpha: erlaubt die Kern-IPC für das Hauptfenster. Die eigenen Commands sind als App-Commands erlaubt. getUserMedia wird OS-seitig über NSCameraUsageDescription, Kamera-Entitlement und WKWebView-Delegate freigegeben.",
-  "windows": ["main"],
+  "description": "Private Mac-Alpha: erlaubt Kern-IPC für Hauptfenster und die rein visuelle, klickdurchlässige Hinweisschicht. Eigene Commands sind App-Commands; getUserMedia wird OS-seitig über Nutzungstext, Entitlement und WKWebView-Delegate freigegeben.",
+  "windows": ["main", "hint-overlay"],
   "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

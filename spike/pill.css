@@ -140,6 +140,18 @@ body[data-state="paused"] .pill-core {
   animation-play-state: paused;
 }
 
+/* Hinweisvariante A: derselbe Ring wird bei einem echten Treffer einmal
+   deutlich, aber ohne Text oder Alarmbewegung, nach außen aufgeatmet. */
+body.alpha-ring-hint .pill-ring {
+  border-color: var(--ember);
+  box-shadow: 0 0 30px rgba(196, 106, 74, 0.48);
+  animation: alpha-ring-hint 2.4s var(--ease-calm) both !important;
+}
+body.alpha-ring-hint .pill-core {
+  background: var(--ember);
+  animation: alpha-ring-core-hint 2.4s var(--ease-calm) both !important;
+}
+
 @keyframes pill-breathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
@@ -151,6 +163,17 @@ body[data-state="paused"] .pill-core {
 @keyframes pill-glow {
   0%, 100% { opacity: 0.12; }
   50% { opacity: 0.30; }
+}
+@keyframes alpha-ring-hint {
+  0% { transform: scale(1); opacity: 0.82; }
+  28% { transform: scale(1.17); opacity: 1; }
+  58% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.82; }
+}
+@keyframes alpha-ring-core-hint {
+  0%, 100% { transform: scale(1); opacity: 0.14; }
+  28% { transform: scale(1.14); opacity: 0.42; }
+  58% { transform: scale(1.06); opacity: 0.28; }
 }
 
 /* Bedienelemente nur beim Drüberfahren. */
@@ -190,5 +213,12 @@ body[data-state="paused"] .pill-core {
   .pill-ring,
   .pill-core {
     animation: none !important;
+  }
+  body.alpha-ring-hint .pill-ring {
+    border-width: 4px;
+    box-shadow: 0 0 30px rgba(196, 106, 74, 0.48);
+  }
+  body.alpha-ring-hint .pill-core {
+    opacity: 0.34;
   }
 }

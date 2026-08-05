@@ -1,0 +1,87 @@
+:root {
+  --ember-rgb: 196, 106, 74;
+  --hint-duration: 2600ms;
+  color-scheme: light;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+#hintOverlay,
+.hint-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hint-layer {
+  display: none;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+/* Variante B: Der Arbeitsinhalt in der Mitte bleibt unverändert. Nur aus dem
+   Augenwinkel wächst ein weicher Ember-Saum vom Displayrand herein. */
+#hintOverlay[data-style="vignette"] .hint-vignette {
+  display: block;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 49%,
+    rgba(var(--ember-rgb), 0.025) 62%,
+    rgba(var(--ember-rgb), 0.19) 82%,
+    rgba(var(--ember-rgb), 0.38) 100%
+  );
+}
+
+/* Variante C: Ein sehr leichter Farbhauch verändert kurz die gesamte Fläche.
+   Er ist absichtlich deutlich schwächer als die Vignette, weil die Fläche
+   selbst größer ist. */
+#hintOverlay[data-style="wash"] .hint-wash {
+  display: block;
+  background: rgba(var(--ember-rgb), 0.105);
+}
+
+#hintOverlay.is-active .hint-layer {
+  animation: tawel-visual-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+
+#hintOverlay.is-active[data-style="vignette"] .hint-vignette {
+  animation-name: tawel-vignette-hint;
+}
+
+@keyframes tawel-visual-hint {
+  0% { opacity: 0; }
+  22% { opacity: 1; }
+  58% { opacity: 0.82; }
+  100% { opacity: 0; }
+}
+
+@keyframes tawel-vignette-hint {
+  0% { opacity: 0; transform: scale(1.055); }
+  24% { opacity: 1; transform: scale(1); }
+  58% { opacity: 0.86; transform: scale(1.012); }
+  100% { opacity: 0; transform: scale(1.035); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --hint-duration: 1800ms;
+  }
+
+  #hintOverlay.is-active .hint-layer {
+    animation-name: tawel-reduced-hint;
+    transform: none;
+  }
+
+  @keyframes tawel-reduced-hint {
+    0%, 14% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+}

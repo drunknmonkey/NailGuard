@@ -5,6 +5,9 @@ Produktstatus und offene Entscheidungen bleiben im bestehenden Notion-Eintrag
 „Mac-App – private Alpha“; dieses Dokument beschreibt nur Build, Architektur und
 reproduzierbare Tests im Repository.
 
+Aktueller Hardware-Testbuild: **Tawel 0.1.1** (Pause/Fortsetzen-Fix plus drei
+vergleichbare visuelle Hinweise).
+
 ## Architektur
 
 - Die Alpha bündelt die bestehende Web-App in einer Tauri-2-Hülle. `app/` bleibt
@@ -14,6 +17,10 @@ reproduzierbare Tests im Repository.
 - Kamera, MediaPipe und Erkennung leben weiterhin in genau einem WebView. Für
   zuverlässige `requestAnimationFrame`-Verarbeitung bleibt dieser WebView als
   kleine, always-on-top Pille sichtbar, wenn das Hauptfenster geschlossen wird.
+- Vignette und Farbhauch verwenden ein zweites, rein visuelles Overlay-Fenster
+  ohne Kamera, MediaPipe oder Produktzustand. Es wird nur für die 2,6 Sekunden
+  eines Hinweises eingeblendet und danach vollständig versteckt; die
+  Ein-WebView-Architektur der Erkennung bleibt dadurch erhalten.
 - Die native Menüleiste sendet ausschließlich kleine `tawel:control`-Ereignisse
   an diesen WebView. Sie erzeugt keinen zweiten Stream und keine zweite
   Erkennungsinstanz.
@@ -28,6 +35,10 @@ Die Menüleiste bietet:
 - `Start`
 - `Pausieren` / `Fortsetzen`
 - `Snooze · 15/30/60 Minuten`
+- `Variante A · Ringpuls`
+- `Variante B · Vignette`
+- `Variante C · Farbhauch`
+- `Probe-Hinweis anzeigen`
 - `Einstellungen öffnen`
 - `Tawel beenden`
 
@@ -55,9 +66,31 @@ dadurch kann der Watchdog einen fehlgeschlagenen Neustart erneut versuchen.
 keine Kamerafreigabe an. Office Mode und der Browser-Wartelistenlink werden nur
 im injizierten Mac-Frontend ausgeblendet.
 
+## Drei Hinweisvarianten
+
+Alle drei Varianten reagieren auf dasselbe bestehende
+`nailguard:intervention`-Ereignis. Erkennungsschwelle, Statistik und Timing sind
+dadurch identisch; verglichen wird ausschließlich die visuelle Form:
+
+1. **A · Ringpuls:** Der sichtbare Tawel-Ring atmet einmal in Ember nach außen.
+   Es entsteht kein zusätzliches Fenster über dem Arbeitsinhalt.
+2. **B · Vignette:** Ein weicher Ember-Saum wächst vom gesamten Displayrand
+   herein; die Bildschirmmitte bleibt visuell frei.
+3. **C · Farbhauch:** Das Display erhält kurz eine sehr leichte, gleichmäßige
+   Ember-Tönung. Sie ist flächiger, aber schwächer als die Vignette.
+
+Die Auswahl wird unter `tawel.alpha.hint-style.v1` ausschließlich lokal
+gespeichert und in der Menüleiste als `Hinweis: …` gespiegelt. Beim Auswählen
+einer Variante erscheint sofort eine Vorschau; `Probe-Hinweis anzeigen`
+wiederholt sie, ohne einen Treffer oder eine Statistik zu erzeugen. Ember bleibt
+in allen drei Fällen ausschließlich Warnfarbe. `prefers-reduced-motion` wird
+respektiert.
+
 ## Capture Exclusion
 
-Das Hauptfenster setzt auf macOS `NSWindowSharingNone`. Paul hat den Mechanismus
+Hauptfenster und visuelles Overlay setzen auf macOS `NSWindowSharingNone`. Das
+Overlay ist zusätzlich klickdurchlässig, liegt nur während des Hinweises über
+dem Display und wird danach nativ wieder versteckt. Paul hat den Mechanismus
 auf echter Mac-Hardware bereits mit Bildschirmaufnahme und Zoom positiv geprüft:
 Der sichtbare Impuls wurde nicht aufgezeichnet. Exaktes Datum, macOS-Version und
 Build dieses früheren Tests sind nicht dokumentiert. Der aktuelle integrierte
@@ -70,7 +103,8 @@ Der Workflow `.github/workflows/spike-mac-build.yml` läuft auf `macos-14` und:
 
 1. verwendet Node 20 und Rust stable,
 2. baut das injizierte Frontend und führt `spike/alpha.test.js`,
-   `spike/alpha-frontend.test.js` sowie JavaScript-Syntaxprüfungen aus,
+   `spike/alpha-frontend.test.js`, `spike/hint-overlay.test.js` sowie
+   JavaScript-Syntaxprüfungen aus,
 3. verwendet die festgeschriebene Tauri CLI `2.11.4`,
 4. löst die eingecheckte `src-tauri/Cargo.lock` auf,
 5. baut eine unsignierte `.app` und `.dmg`,
@@ -83,8 +117,10 @@ Lokal ausführbare Prüfungen:
 bash spike/build-frontend.sh
 node --check spike/alpha.js
 node --check spike/pill.js
+node --check spike/hint-overlay.js
 node spike/alpha.test.js
 node spike/alpha-frontend.test.js
+node spike/hint-overlay.test.js
 node --input-type=module --check < app/app.js
 node --input-type=module --check < app/i18n.js
 node --check app/sw.js
@@ -122,9 +158,13 @@ Folgende Punkte benötigen den aktuellen `.dmg` auf echter Mac-Hardware:
    Kameraindikator.
 6. Display-Sleep von mindestens einer Minute; nach dem Aufwachen setzt die
    Erkennung innerhalb von ungefähr 15 Sekunden fort.
-7. Bildschirmaufnahme und Zoom-/Screen-Sharing; der Tawel-Impuls erscheint nicht
-   im geteilten beziehungsweise aufgezeichneten Bild.
-8. App-Neustart; Einstellungen und Kameraauswahl bleiben erhalten.
+7. Ringpuls, Vignette und Farbhauch jeweils über die Menüleiste auswählen,
+   Vorschau ansehen und anschließend mit einem echten Treffer auslösen.
+8. Während Vignette/Farbhauch normal weiterklicken und tippen; das Overlay darf
+   keine Eingabe abfangen.
+9. Bildschirmaufnahme und Zoom-/Screen-Sharing mit Vignette und Farbhauch; der
+   Tawel-Impuls erscheint nicht im geteilten beziehungsweise aufgezeichneten Bild.
+10. App-Neustart; Einstellungen, Kamera- und Hinweiswahl bleiben erhalten.
 
 Noch nicht Bestandteil dieses Alpha-Meilensteins: Autostart bei Anmeldung,
 Signierung/Notarisierung, App Store, Lizenz-/Preislogik und öffentliche

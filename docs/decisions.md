@@ -658,3 +658,28 @@ Callback-Zähler trotz sichtbarem und fokussiertem Fenster dauerhaft bei null.
 - **Regressionstest:** Der Build testet Pause mit Live-Track, Fortsetzen vor dem
   neuen Track, erfolgreichen Wiederanlauf, einen fehlerhaften Frame und den
   erneuten Kamerastart nach einem vorübergehend fehlenden Stream.
+
+---
+
+## 2026-08-04 – Mac-Alpha: drei vergleichbare visuelle Hinweise
+
+Für den Hardwarevergleich werden drei Hinweise in denselben Alpha-Build
+integriert. Sie erhalten dasselbe echte Interventionsereignis; Schwelle,
+Erkennung und Statistik unterscheiden sich nicht.
+
+- **A · Ringpuls:** Der bestehende sichtbare Tawel-Ring atmet einmal deutlicher
+  in Ember. Kleinste und lokalste Variante.
+- **B · Vignette:** Weicher Ember-Saum vom Displayrand, während die Mitte frei
+  bleibt. Grundlage ist der bereits separat getestete Ambient-Glow-Spike.
+- **C · Farbhauch:** Sehr leichte, gleichmäßige Ember-Tönung des Displays als
+  bewusst flächige Vergleichsvariante.
+- **Eine App statt drei Builds:** Auswahl und statistisch neutrale Vorschau
+  liegen in der Menüleiste. Die Wahl wird lokal unter
+  `tawel.alpha.hint-style.v1` gespeichert. Dadurch kann Paul A/B/C unmittelbar
+  nacheinander mit derselben Alpha vergleichen.
+- **Erkennung bleibt ein WebView:** Nur Vignette und Farbhauch nutzen ein
+  zweites, präsentationsreines Overlay ohne Kamera oder MediaPipe. Es ist
+  klickdurchlässig, setzt `NSWindowSharingNone`, wird für 2,6 Sekunden gezeigt
+  und anschließend vollständig versteckt.
+- **Web-Version unverändert:** Sämtliche Dateien und Tests liegen im
+  Mac-spezifischen Buildpfad unter `spike/` beziehungsweise `src-tauri/`.
