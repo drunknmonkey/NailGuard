@@ -207,6 +207,28 @@ async function main() {
   intervals[0]();
   assert.equal(camera.restarts, 2, "Watchdog repariert einen stehenden Stream");
 
+  // Ein asynchroner WKWebView-Kameraneustart kann den alten Stream bereits
+  // entfernt haben, bevor ein neuer Track bereitsteht. Die gestartete Session
+  // darf dadurch nicht als beendet gelten; sonst könnte der Watchdog nie mehr
+  // versuchen, die Kamera zu öffnen.
+  now += 16_000;
+  alpha.handleControl("toggle_pause");
+  await flush();
+  assert.equal(alpha.isPaused(), true);
+  cameraSelect.onChange = () => {
+    camera.restarts += 1;
+    video.srcObject = null;
+  };
+  alpha.handleControl("toggle_pause");
+  await flush();
+  const failedRestartCount = camera.restarts;
+  assert.equal(alpha.isPaused(), false);
+  assert.equal(alpha.isRunning(), true, "Session bleibt während eines fehlenden Streams aktiv");
+
+  now += 16_000;
+  intervals[0]();
+  assert.equal(camera.restarts, failedRestartCount + 1, "Watchdog versucht den Kamerastart erneut");
+
   const lastStatus = invocations.filter((call) => call.command === "alpha_status").at(-1);
   assert.equal(lastStatus.args.running, true);
   assert.equal(lastStatus.args.paused, false);

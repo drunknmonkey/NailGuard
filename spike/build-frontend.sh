@@ -16,6 +16,11 @@ for item in index.html app.js style.css i18n.js sw.js manifest.webmanifest fonts
   cp -R "$ROOT/app/$item" "$DIST/"
 done
 
+# Die Web-App bleibt unverändert. Nur die kopierte Mac-Variante überspringt
+# MediaPipe während einer Pause beziehungsweise ohne Live-Kameratrack und hält
+# ihren rAF-Loop auch nach einem einzelnen ungültigen Frame am Leben.
+patch --batch --forward -F 0 -d "$DIST" -p0 < "$ROOT/spike/alpha-app.patch"
+
 # Alpha-/Pill-Assets dazulegen ...
 cp "$ROOT/spike/alpha.js" "$DIST/alpha.js"
 cp "$ROOT/spike/pill.js" "$DIST/pill.js"

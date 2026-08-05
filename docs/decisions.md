@@ -631,3 +631,30 @@ Alpha-Build weiterentwickelt; es entsteht keine parallele Mac-Architektur.
   Kamera-Pause, automatisches Fortsetzen und Watchdog im macOS-Workflow.
 - **Bewusst später:** Autostart bei Anmeldung, Signierung/Notarisierung,
   öffentlicher Vertrieb sowie Lizenz- und Preislogik.
+
+---
+
+## 2026-08-04 – Mac-Alpha: Erkennung über Pause/Fortsetzen absichern
+
+Der erste Hardwarelauf auf einem MacBook Pro 16″ (2023, M2 Pro, macOS Tahoe
+26.0.1) zeigte: Vor der Pause lief die Erkennung stabil, danach blieb der native
+Callback-Zähler trotz sichtbarem und fokussiertem Fenster dauerhaft bei null.
+
+- **Mac-only statt Web-Änderung:** `app/app.js` bleibt unverändert. Nach dem
+  Kopieren wendet `spike/build-frontend.sh` den kleinen, überprüften Patch
+  `spike/alpha-app.patch` ausschließlich auf `spike-dist/app.js` an.
+- **Kein Frame während Pause oder Track-Wechsel:** Der Mac-Loop ruft MediaPipe
+  nur auf, wenn Tawel nicht pausiert ist und ein Live-Videotrack existiert.
+  Dadurch sieht MediaPipe zwischen Track-Stopp und neuem Stream keinen alten
+  oder bereits ungültigen Frame.
+- **Loop bleibt wiederanlauffähig:** Der nächste `requestAnimationFrame` wird in
+  `finally` geplant. Ein einzelner WKWebView-/MediaPipe-Fehler kann den
+  dauerhaften Erkennungsloop deshalb nicht mehr endgültig beenden; der Fehler
+  selbst wird nicht still verschluckt.
+- **Session und Stream getrennt:** Eine gestartete Tawel-Session gilt während
+  eines Kameraneustarts weiter als aktiv, auch wenn `video.srcObject` kurz leer
+  ist. So kann der Watchdog einen fehlgeschlagenen Kamerastart nach seinem
+  Cooldown erneut versuchen.
+- **Regressionstest:** Der Build testet Pause mit Live-Track, Fortsetzen vor dem
+  neuen Track, erfolgreichen Wiederanlauf, einen fehlerhaften Frame und den
+  erneuten Kamerastart nach einem vorübergehend fehlenden Stream.

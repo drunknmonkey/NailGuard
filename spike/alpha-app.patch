@@ -1,0 +1,25 @@
+--- app.js
++++ app.js
+@@ -588,3 +588,16 @@
+-    if (els.video.currentTime !== state.lastVideoTime && els.video.readyState >= 2) {
+-      state.lastVideoTime = els.video.currentTime;
+-      detection.detectFrame(now);
++    try {
++      // Die Mac-Alpha stoppt ihren Kameratrack während einer Pause. Zwischen
++      // Track-Stopp und neuem Stream darf MediaPipe keinen alten Frame sehen.
++      if (
++        !state.paused &&
++        hasLiveCameraTrack() &&
++        els.video.currentTime !== state.lastVideoTime &&
++        els.video.readyState >= 2
++      ) {
++        state.lastVideoTime = els.video.currentTime;
++        detection.detectFrame(now);
++      }
++    } finally {
++      // Ein einzelner WKWebView-/MediaPipe-Fehler darf den dauerhaften
++      // Erkennungsloop nicht beenden; der Fehler bleibt dennoch sichtbar.
++      requestAnimationFrame(detection.loop);
+@@ -592,2 +604,0 @@
+-
+-    requestAnimationFrame(detection.loop);

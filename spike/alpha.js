@@ -44,8 +44,6 @@
 
   function isRunning() {
     return Boolean(
-      video &&
-      video.srcObject &&
       startPanel && startPanel.hidden &&
       workspace && !workspace.hidden &&
       !prestartSettings

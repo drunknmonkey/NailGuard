@@ -8,8 +8,9 @@ reproduzierbare Tests im Repository.
 ## Architektur
 
 - Die Alpha bündelt die bestehende Web-App in einer Tauri-2-Hülle. `app/` bleibt
-  unverändert; `spike/build-frontend.sh` kopiert die Dateien und ergänzt nur
-  `alpha.js`, `pill.js` und `pill.css` im generierten `spike-dist/`.
+  unverändert; `spike/build-frontend.sh` kopiert die Dateien, wendet den kleinen
+  Mac-only-Patch `alpha-app.patch` an und ergänzt `alpha.js`, `pill.js` und
+  `pill.css` im generierten `spike-dist/`.
 - Kamera, MediaPipe und Erkennung leben weiterhin in genau einem WebView. Für
   zuverlässige `requestAnimationFrame`-Verarbeitung bleibt dieser WebView als
   kleine, always-on-top Pille sichtbar, wenn das Hauptfenster geschlossen wird.
@@ -43,6 +44,13 @@ gespeicherte Kamera neu geöffnet; zwischen Versuchen liegen mindestens 15
 Sekunden. Während Pause/Snooze oder bei unsichtbarem Dokument greift der
 Watchdog nicht ein.
 
+Der Mac-only-Erkennungsloop verarbeitet während einer Pause und ohne Live-Track
+keinen MediaPipe-Frame. Sein nächster `requestAnimationFrame` wird in einem
+`finally` geplant, damit ein einzelner ungültiger Frame den dauerhaften Loop
+nicht mehr beenden kann. Eine bereits gestartete Produktsession bleibt auch dann
+aktiv, wenn ein Kameraneustart den alten Stream kurz vor dem neuen entfernt;
+dadurch kann der Watchdog einen fehlgeschlagenen Neustart erneut versuchen.
+
 `Einstellungen öffnen` funktioniert auch vor dem Kamerastart und fordert dabei
 keine Kamerafreigabe an. Office Mode und der Browser-Wartelistenlink werden nur
 im injizierten Mac-Frontend ausgeblendet.
@@ -61,7 +69,8 @@ Bildschirmaufnahme und Screen-Sharing geprüft werden.
 Der Workflow `.github/workflows/spike-mac-build.yml` läuft auf `macos-14` und:
 
 1. verwendet Node 20 und Rust stable,
-2. führt `spike/alpha.test.js` sowie JavaScript-Syntaxprüfungen aus,
+2. baut das injizierte Frontend und führt `spike/alpha.test.js`,
+   `spike/alpha-frontend.test.js` sowie JavaScript-Syntaxprüfungen aus,
 3. verwendet die festgeschriebene Tauri CLI `2.11.4`,
 4. löst die eingecheckte `src-tauri/Cargo.lock` auf,
 5. baut eine unsignierte `.app` und `.dmg`,
@@ -75,11 +84,29 @@ bash spike/build-frontend.sh
 node --check spike/alpha.js
 node --check spike/pill.js
 node spike/alpha.test.js
+node spike/alpha-frontend.test.js
 node --input-type=module --check < app/app.js
 node --input-type=module --check < app/i18n.js
 node --check app/sw.js
 git diff --check
 ```
+
+## Hardware-Befund vom 2026-08-04
+
+Erster Abnahmelauf auf einem MacBook Pro 16″ (2023), M2 Pro, 16 GB, macOS
+Tahoe 26.0.1:
+
+- Die Erkennung lief vor der Pause 110 protokollierte Sekunden mit
+  durchschnittlich 49,97 abgeschlossenen Detection-Callbacks pro Sekunde.
+- Ab Sekunde 123 blieb der Zähler trotz `visibilityState=visible` und
+  `hasFocus=true` bis zum App-Ende bei null.
+- Damit ist eine bloß falsche Handempfindlichkeit ausgeschlossen. Der erste
+  Alpha-Build hatte zwei konkrete Recovery-Lücken: Ein Framefehler konnte den
+  rAF-Loop vor dessen nächster Planung beenden, und ein vorübergehend fehlender
+  `srcObject`-Stream ließ die bereits gestartete Session fälschlich als beendet
+  erscheinen.
+- Beide Lücken sind im Folge-Build korrigiert und automatisiert abgedeckt. Die
+  Bestätigung auf echter Hardware bleibt bis zum Wiederholungstest offen.
 
 ## Hardware-Abnahme v0.1
 
