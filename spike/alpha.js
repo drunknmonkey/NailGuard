@@ -7,7 +7,8 @@
  * - Pause/Snooze so ergänzen, dass die Kamera dabei tatsächlich ruht.
  * - Snooze-Ende lokal speichern und automatisch fortsetzen.
  * - Einen nach Sleep/Wake stehen gebliebenen Kamerastream neu öffnen.
- * - Drei rein visuelle Mac-Hinweise auswählen, speichern und auslösen.
+ * - Fünf rein visuelle Mac-Hinweise samt grober Intensität auswählen,
+ *   speichern, in den Einstellungen bearbeiten und auslösen.
  * - Den bestehenden nativen Callback-Logger ohne sichtbares Debug-Overlay speisen.
  */
 (function () {
@@ -15,8 +16,57 @@
 
   var SNOOZE_KEY = "tawel.alpha.snooze-until.v1";
   var HINT_STYLE_KEY = "tawel.alpha.hint-style.v1";
-  var HINT_STYLES = ["ring", "vignette", "wash"];
-  var RING_HINT_MS = 2400;
+  var HINT_INTENSITY_KEY = "tawel.alpha.hint-intensity.v1";
+  var HINT_STYLES = [
+    "lavender-vignette",
+    "soft-focus",
+    "desaturate",
+    "ambient-glow",
+    "wash-focus",
+  ];
+  var HINT_STYLE_ALIASES = {
+    ring: "lavender-vignette",
+    vignette: "lavender-vignette",
+    wash: "ambient-glow",
+  };
+  var HINT_COPY = {
+    de: {
+      group: "Visueller Hinweis",
+      styleName: "Variante",
+      styleDesc: "Fünf ruhige Wahrnehmungsimpulse für den Mac-Test",
+      intensityName: "Intensität",
+      intensityDesc: "Drei grobe Stufen zum schnellen Vergleichen",
+      light: "Leicht",
+      medium: "Mittel",
+      strong: "Deutlich",
+      preview: "Probe-Hinweis anzeigen",
+      styles: {
+        "lavender-vignette": "A · Lavendel-Vignette",
+        "soft-focus": "B · Sanfter Fokusverlust",
+        desaturate: "C · Kurze Entsättigung",
+        "ambient-glow": "D · Ambient Glow",
+        "wash-focus": "E · Farbhauch → Fokusverlust",
+      },
+    },
+    en: {
+      group: "Visual cue",
+      styleName: "Variant",
+      styleDesc: "Five calm perception cues for the Mac test",
+      intensityName: "Intensity",
+      intensityDesc: "Three broad levels for quick comparison",
+      light: "Light",
+      medium: "Medium",
+      strong: "Noticeable",
+      preview: "Show sample cue",
+      styles: {
+        "lavender-vignette": "A · Lavender vignette",
+        "soft-focus": "B · Gentle focus shift",
+        desaturate: "C · Brief desaturation",
+        "ambient-glow": "D · Ambient glow",
+        "wash-focus": "E · Color wash → focus shift",
+      },
+    },
+  };
   var WATCHDOG_STALL_MS = 12000;
   var WATCHDOG_COOLDOWN_MS = 15000;
 
@@ -28,13 +78,18 @@
   var video = document.querySelector("#video");
   var settingsTab = document.querySelector('.mode-tab[data-mode="calibration"]');
   var focusTab = document.querySelector('.mode-tab[data-mode="focus"]');
+  var settingsCuesTitle = document.querySelector("#settings-cues-title");
 
   var previousRunning = false;
   var previousPaused = false;
   var prestartSettings = false;
   var snoozeUntil = readSnooze();
   var hintStyle = readHintStyle();
-  var ringHintTimer = null;
+  var hintIntensity = readHintIntensity();
+  var hintStyleSelect = null;
+  var hintIntensityInput = null;
+  var hintIntensityValue = null;
+  var hintSettingsCopy = {};
   var lastVideoTime = -1;
   var lastProgressAt = Date.now();
   var restartBlockedUntil = 0;
@@ -69,39 +124,64 @@
 
   function readHintStyle() {
     var value = localStorage.getItem(HINT_STYLE_KEY);
-    return HINT_STYLES.indexOf(value) >= 0 ? value : "ring";
+    var migrated = HINT_STYLE_ALIASES[value] || value;
+    if (HINT_STYLES.indexOf(migrated) < 0) migrated = "lavender-vignette";
+    if (migrated !== value) localStorage.setItem(HINT_STYLE_KEY, migrated);
+    return migrated;
   }
 
-  function syncHintStyle() {
-    invoke("alpha_hint_style", { style: hintStyle }).catch(function () {});
+  function readHintIntensity() {
+    var value = Math.round(Number(localStorage.getItem(HINT_INTENSITY_KEY)));
+    return Number.isFinite(value) && value >= 1 && value <= 3 ? value : 2;
   }
 
-  function pulseRing() {
-    if (ringHintTimer) clearTimeout(ringHintTimer);
-    document.body.classList.remove("alpha-ring-hint");
-    // Neustart der CSS-Animation auch bei zwei rasch aufeinanderfolgenden
-    // Hinweisen. Das Layout wird nur für die kleine Pill-Schicht gelesen.
-    void document.body.offsetWidth;
-    document.body.classList.add("alpha-ring-hint");
-    ringHintTimer = setTimeout(function () {
-      document.body.classList.remove("alpha-ring-hint");
-      ringHintTimer = null;
-    }, RING_HINT_MS);
+  function currentHintCopy() {
+    return document.documentElement.lang === "en" ? HINT_COPY.en : HINT_COPY.de;
+  }
+
+  function intensityLabel() {
+    var copy = currentHintCopy();
+    return hintIntensity === 1 ? copy.light : hintIntensity === 3 ? copy.strong : copy.medium;
+  }
+
+  function syncHintConfig() {
+    invoke("alpha_hint_style", {
+      style: hintStyle,
+      intensity: hintIntensity,
+    }).catch(function () {});
+  }
+
+  function updateHintControls() {
+    if (hintStyleSelect) hintStyleSelect.value = hintStyle;
+    if (hintIntensityInput) {
+      hintIntensityInput.value = String(hintIntensity);
+      hintIntensityInput.dataset.position = String(hintIntensity);
+    }
+    if (hintIntensityValue) hintIntensityValue.textContent = intensityLabel();
   }
 
   function showVisualHint() {
-    if (hintStyle === "ring") {
-      pulseRing();
-      return;
-    }
-    invoke("show_visual_hint", { style: hintStyle }).catch(function () {});
+    invoke("show_visual_hint", {
+      style: hintStyle,
+      intensity: hintIntensity,
+    }).catch(function () {});
   }
 
   function setHintStyle(style, preview) {
     if (HINT_STYLES.indexOf(style) < 0) return;
     hintStyle = style;
     localStorage.setItem(HINT_STYLE_KEY, style);
-    syncHintStyle();
+    updateHintControls();
+    syncHintConfig();
+    if (preview) showVisualHint();
+  }
+
+  function setHintIntensity(value, preview) {
+    var next = Math.max(1, Math.min(3, Math.round(Number(value)) || 2));
+    hintIntensity = next;
+    localStorage.setItem(HINT_INTENSITY_KEY, String(next));
+    updateHintControls();
+    syncHintConfig();
     if (preview) showVisualHint();
   }
 
@@ -275,14 +355,22 @@
       case "settings":
         openSettings();
         break;
-      case "hint_ring":
-        setHintStyle("ring", true);
-        break;
+      case "hint_lavender_vignette":
       case "hint_vignette":
-        setHintStyle("vignette", true);
+        setHintStyle("lavender-vignette", true);
         break;
+      case "hint_soft_focus":
+        setHintStyle("soft-focus", true);
+        break;
+      case "hint_desaturate":
+        setHintStyle("desaturate", true);
+        break;
+      case "hint_ambient_glow":
       case "hint_wash":
-        setHintStyle("wash", true);
+        setHintStyle("ambient-glow", true);
+        break;
+      case "hint_wash_focus":
+        setHintStyle("wash-focus", true);
         break;
       case "hint_preview":
         showVisualHint();
@@ -322,6 +410,135 @@
     }
   }
 
+  function appendText(parent, tag, className, text) {
+    var element = document.createElement(tag);
+    if (className) element.className = className;
+    element.textContent = text;
+    parent.appendChild(element);
+    return element;
+  }
+
+  function buildHintSettings() {
+    var cuesGroup = settingsCuesTitle && settingsCuesTitle.parentElement;
+    if (!cuesGroup || !cuesGroup.insertAdjacentElement) return;
+
+    var section = document.createElement("section");
+    section.id = "alphaHintSettings";
+    section.className = "settings-group alpha-hint-settings";
+    section.setAttribute("aria-labelledby", "alpha-hint-settings-title");
+
+    hintSettingsCopy.group = appendText(section, "h3", "settings-group-title", "");
+    hintSettingsCopy.group.id = "alpha-hint-settings-title";
+
+    var card = document.createElement("div");
+    card.className = "settings-card";
+    section.appendChild(card);
+
+    var styleRow = document.createElement("div");
+    styleRow.className = "set-row";
+    card.appendChild(styleRow);
+    var styleText = document.createElement("div");
+    styleText.className = "txt";
+    styleRow.appendChild(styleText);
+    hintSettingsCopy.styleName = appendText(styleText, "div", "name", "");
+    hintSettingsCopy.styleDesc = appendText(styleText, "div", "desc", "");
+
+    var styleControl = document.createElement("div");
+    styleControl.className = "set-control alpha-hint-style-control";
+    styleRow.appendChild(styleControl);
+    hintStyleSelect = document.createElement("select");
+    hintStyleSelect.id = "alphaHintStyle";
+    styleControl.appendChild(hintStyleSelect);
+    hintSettingsCopy.options = {};
+    HINT_STYLES.forEach(function (style) {
+      var option = document.createElement("option");
+      option.value = style;
+      hintStyleSelect.appendChild(option);
+      hintSettingsCopy.options[style] = option;
+    });
+
+    var intensityRow = document.createElement("div");
+    intensityRow.className = "set-row alpha-hint-intensity-row";
+    card.appendChild(intensityRow);
+    var intensityText = document.createElement("div");
+    intensityText.className = "txt";
+    intensityRow.appendChild(intensityText);
+    hintSettingsCopy.intensityName = appendText(intensityText, "div", "name", "");
+    hintSettingsCopy.intensityDesc = appendText(intensityText, "div", "desc", "");
+
+    var intensityControl = document.createElement("div");
+    intensityControl.className = "alpha-hint-intensity-control";
+    intensityRow.appendChild(intensityControl);
+    hintIntensityInput = document.createElement("input");
+    hintIntensityInput.id = "alphaHintIntensity";
+    hintIntensityInput.type = "range";
+    hintIntensityInput.min = "1";
+    hintIntensityInput.max = "3";
+    hintIntensityInput.step = "1";
+    intensityControl.appendChild(hintIntensityInput);
+
+    var scale = document.createElement("div");
+    scale.className = "alpha-hint-intensity-scale";
+    intensityControl.appendChild(scale);
+    hintSettingsCopy.light = appendText(scale, "span", "", "");
+    hintIntensityValue = appendText(scale, "output", "", "");
+    hintSettingsCopy.strong = appendText(scale, "span", "", "");
+
+    var actions = document.createElement("div");
+    actions.className = "settings-actions alpha-hint-actions";
+    card.appendChild(actions);
+    hintSettingsCopy.preview = document.createElement("button");
+    hintSettingsCopy.preview.className = "mini-action";
+    hintSettingsCopy.preview.type = "button";
+    hintSettingsCopy.preview.id = "alphaHintPreview";
+    actions.appendChild(hintSettingsCopy.preview);
+
+    cuesGroup.insertAdjacentElement("afterend", section);
+
+    hintStyleSelect.addEventListener("change", function () {
+      setHintStyle(hintStyleSelect.value, true);
+    });
+    hintIntensityInput.addEventListener("input", function () {
+      setHintIntensity(hintIntensityInput.value, false);
+    });
+    hintIntensityInput.addEventListener("change", function () {
+      setHintIntensity(hintIntensityInput.value, true);
+    });
+    hintSettingsCopy.preview.addEventListener("click", showVisualHint);
+
+    Array.prototype.forEach.call(document.querySelectorAll(".lang-option"), function (button) {
+      button.addEventListener("click", function () {
+        setTimeout(renderHintSettingsCopy, 0);
+      });
+    });
+
+    renderHintSettingsCopy();
+    updateHintControls();
+    // app.js läuft als ES-Modul nach dieser klassischen Injektion und setzt
+    // erst dann eine eventuell gespeicherte Sprache. Ein zweiter Render im
+    // nächsten Task übernimmt diesen Initialwert ohne die Web-App anzufassen.
+    setTimeout(renderHintSettingsCopy, 0);
+  }
+
+  function renderHintSettingsCopy() {
+    if (!hintSettingsCopy.group) return;
+    var copy = currentHintCopy();
+    hintSettingsCopy.group.textContent = copy.group;
+    hintSettingsCopy.styleName.textContent = copy.styleName;
+    hintSettingsCopy.styleDesc.textContent = copy.styleDesc;
+    hintSettingsCopy.intensityName.textContent = copy.intensityName;
+    hintSettingsCopy.intensityDesc.textContent = copy.intensityDesc;
+    hintSettingsCopy.light.textContent = copy.light;
+    hintSettingsCopy.strong.textContent = copy.strong;
+    hintSettingsCopy.preview.textContent = copy.preview;
+    hintStyleSelect.setAttribute("aria-label", copy.styleName);
+    hintIntensityInput.setAttribute("aria-label", copy.intensityName);
+    HINT_STYLES.forEach(function (style) {
+      hintSettingsCopy.options[style].textContent = copy.styles[style];
+    });
+    updateHintControls();
+  }
+
   function buildPrestartBackButton() {
     var button = document.createElement("button");
     button.className = "alpha-prestart-back";
@@ -346,6 +563,7 @@
   }
 
   document.body.classList.add("tawel-alpha");
+  buildHintSettings();
   buildPrestartBackButton();
   installControlListener(0);
 
@@ -380,7 +598,7 @@
 
   setInterval(watchdogTick, 1000);
   pushDiagnosticState();
-  syncHintStyle();
+  syncHintConfig();
   queueSync();
 
   // Kleine Test-/Diagnoseoberfläche ohne Zugriff auf interne Web-App-Variablen.
@@ -389,5 +607,7 @@
     isRunning: isRunning,
     isPaused: isPaused,
     hintStyle: function () { return hintStyle; },
+    hintIntensity: function () { return hintIntensity; },
+    showVisualHint: showVisualHint,
   };
 })();

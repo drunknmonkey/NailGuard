@@ -5,8 +5,8 @@ Produktstatus und offene Entscheidungen bleiben im bestehenden Notion-Eintrag
 „Mac-App – private Alpha“; dieses Dokument beschreibt nur Build, Architektur und
 reproduzierbare Tests im Repository.
 
-Aktueller Hardware-Testbuild: **Tawel 0.1.1** (Pause/Fortsetzen-Fix plus drei
-vergleichbare visuelle Hinweise).
+Aktueller Hardware-Testbuild: **Tawel 0.1.2** (bestätigter Pause/Fortsetzen-Fix
+plus fünf ruhige visuelle Hinweise mit drei groben Intensitätsstufen).
 
 ## Architektur
 
@@ -17,8 +17,8 @@ vergleichbare visuelle Hinweise).
 - Kamera, MediaPipe und Erkennung leben weiterhin in genau einem WebView. Für
   zuverlässige `requestAnimationFrame`-Verarbeitung bleibt dieser WebView als
   kleine, always-on-top Pille sichtbar, wenn das Hauptfenster geschlossen wird.
-- Vignette und Farbhauch verwenden ein zweites, rein visuelles Overlay-Fenster
-  ohne Kamera, MediaPipe oder Produktzustand. Es wird nur für die 2,6 Sekunden
+- Alle fünf Testhinweise verwenden ein zweites, rein visuelles Overlay-Fenster
+  ohne Kamera, MediaPipe oder Produktzustand. Es wird nur für die 2,5 Sekunden
   eines Hinweises eingeblendet und danach vollständig versteckt; die
   Ein-WebView-Architektur der Erkennung bleibt dadurch erhalten.
 - Die native Menüleiste sendet ausschließlich kleine `tawel:control`-Ereignisse
@@ -35,9 +35,11 @@ Die Menüleiste bietet:
 - `Start`
 - `Pausieren` / `Fortsetzen`
 - `Snooze · 15/30/60 Minuten`
-- `Variante A · Ringpuls`
-- `Variante B · Vignette`
-- `Variante C · Farbhauch`
+- `A · Lavendel-Vignette`
+- `B · Sanfter Fokusverlust`
+- `C · Kurze Entsättigung`
+- `D · Ambient Glow`
+- `E · Farbhauch → Fokusverlust`
 - `Probe-Hinweis anzeigen`
 - `Einstellungen öffnen`
 - `Tawel beenden`
@@ -66,25 +68,39 @@ dadurch kann der Watchdog einen fehlgeschlagenen Neustart erneut versuchen.
 keine Kamerafreigabe an. Office Mode und der Browser-Wartelistenlink werden nur
 im injizierten Mac-Frontend ausgeblendet.
 
-## Drei Hinweisvarianten
+## Fünf Hinweisvarianten und Intensität
 
-Alle drei Varianten reagieren auf dasselbe bestehende
+Alle fünf Varianten reagieren auf dasselbe bestehende
 `nailguard:intervention`-Ereignis. Erkennungsschwelle, Statistik und Timing sind
 dadurch identisch; verglichen wird ausschließlich die visuelle Form:
 
-1. **A · Ringpuls:** Der sichtbare Tawel-Ring atmet einmal in Ember nach außen.
-   Es entsteht kein zusätzliches Fenster über dem Arbeitsinhalt.
-2. **B · Vignette:** Ein weicher Ember-Saum wächst vom gesamten Displayrand
+1. **A · Lavendel-Vignette:** Ein weicher Lavendelsaum wächst vom Displayrand
    herein; die Bildschirmmitte bleibt visuell frei.
-3. **C · Farbhauch:** Das Display erhält kurz eine sehr leichte, gleichmäßige
-   Ember-Tönung. Sie ist flächiger, aber schwächer als die Vignette.
+2. **B · Sanfter Fokusverlust:** Der gesamte Arbeitsinhalt verliert für einen
+   kurzen Moment minimal an Schärfe.
+3. **C · Kurze Entsättigung:** Der Inhalt bleibt scharf, seine Farben ziehen
+   sich kurz zurück und kehren weich wieder.
+4. **D · Ambient Glow:** Lavendel und Petrol atmen von gegenüberliegenden
+   Displayseiten ein, ohne die Mitte flächig einzufärben.
+5. **E · Farbhauch → Fokusverlust:** Ein leichter Lavendelhauch erscheint
+   zuerst; erst danach folgt der kleine Fokusbruch als sanfte Eskalation.
 
 Die Auswahl wird unter `tawel.alpha.hint-style.v1` ausschließlich lokal
-gespeichert und in der Menüleiste als `Hinweis: …` gespiegelt. Beim Auswählen
-einer Variante erscheint sofort eine Vorschau; `Probe-Hinweis anzeigen`
-wiederholt sie, ohne einen Treffer oder eine Statistik zu erzeugen. Ember bleibt
-in allen drei Fällen ausschließlich Warnfarbe. `prefers-reduced-motion` wird
-respektiert.
+gespeichert. Der Drei-Punkt-Regler `Leicht / Mittel / Deutlich` liegt unter
+`tawel.alpha.hint-intensity.v1`; Standard ist `Mittel`. Variante und Intensität
+stehen gemeinsam in den normalen Tawel-Einstellungen und werden in der
+Menüleiste als `Hinweis: … · …` gespiegelt. Auswahl oder Regler-Änderung zeigt
+eine Vorschau; `Probe-Hinweis anzeigen` wiederholt sie, ohne einen Treffer oder
+eine Statistik zu erzeugen. Alte Werte `ring`, `vignette` und `wash` werden auf
+Lavendel-Vignette beziehungsweise Ambient Glow migriert. Rot/Orange wird im
+gesamten injizierten Mac-Hinweiszustand durch Lavendel ersetzt.
+
+Fokusverlust und Entsättigung verwenden CSS `backdrop-filter`. macOS 26 kann
+den Inhalt hinter einem transparenten WebView direkt im Compositor filtern;
+Tawel nimmt dafür keinen Screenshot auf. Auf älteren, weiterhin baubaren
+macOS-Versionen bleibt eine sehr leichte helle Fallback-Fläche sichtbar. Die
+ästhetische Wirkung wird deshalb auf Pauls macOS-Tahoe-Gerät abgenommen.
+`prefers-reduced-motion` wird respektiert.
 
 ## Capture Exclusion
 
@@ -141,8 +157,9 @@ Tahoe 26.0.1:
   rAF-Loop vor dessen nächster Planung beenden, und ein vorübergehend fehlender
   `srcObject`-Stream ließ die bereits gestartete Session fälschlich als beendet
   erscheinen.
-- Beide Lücken sind im Folge-Build korrigiert und automatisiert abgedeckt. Die
-  Bestätigung auf echter Hardware bleibt bis zum Wiederholungstest offen.
+- Beide Lücken sind im Folge-Build korrigiert und automatisiert abgedeckt.
+  Paul hat Pause/Fortsetzen mit Tawel 0.1.1 anschließend auf derselben Hardware
+  erfolgreich bestätigt.
 
 ## Hardware-Abnahme v0.1
 
@@ -158,13 +175,16 @@ Folgende Punkte benötigen den aktuellen `.dmg` auf echter Mac-Hardware:
    Kameraindikator.
 6. Display-Sleep von mindestens einer Minute; nach dem Aufwachen setzt die
    Erkennung innerhalb von ungefähr 15 Sekunden fort.
-7. Ringpuls, Vignette und Farbhauch jeweils über die Menüleiste auswählen,
-   Vorschau ansehen und anschließend mit einem echten Treffer auslösen.
-8. Während Vignette/Farbhauch normal weiterklicken und tippen; das Overlay darf
+7. Alle fünf Varianten in den Einstellungen auswählen und jeweils in den drei
+   Intensitäten ansehen; Vorschau und echter Treffer müssen gleich aussehen.
+8. Während jeder Variante normal weiterklicken und tippen; das Overlay darf
    keine Eingabe abfangen.
-9. Bildschirmaufnahme und Zoom-/Screen-Sharing mit Vignette und Farbhauch; der
-   Tawel-Impuls erscheint nicht im geteilten beziehungsweise aufgezeichneten Bild.
-10. App-Neustart; Einstellungen, Kamera- und Hinweiswahl bleiben erhalten.
+9. Fokusverlust und Entsättigung müssen den Arbeitsinhalt tatsächlich filtern,
+   nicht nur einen hellen Schleier zeigen.
+10. Bildschirmaufnahme und Zoom-/Screen-Sharing mit allen fünf Varianten; der
+    Tawel-Impuls erscheint nicht im geteilten beziehungsweise aufgezeichneten Bild.
+11. App-Neustart; Einstellungen, Kamera-, Hinweis- und Intensitätswahl bleiben
+    erhalten.
 
 Noch nicht Bestandteil dieses Alpha-Meilensteins: Autostart bei Anmeldung,
 Signierung/Notarisierung, App Store, Lizenz-/Preislogik und öffentliche

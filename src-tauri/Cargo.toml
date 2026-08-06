@@ -1,6 +1,6 @@
 [package]
 name = "tawel-alpha"
-version = "0.1.1"
+version = "0.1.2"
 description = "Private Tawel-Mac-Alpha auf Basis der bestehenden Tauri-2-Hülle."
 edition = "2021"
 rust-version = "1.77"

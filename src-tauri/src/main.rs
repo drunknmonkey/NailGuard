@@ -201,19 +201,30 @@ fn alpha_status(
     Ok(())
 }
 
-/// Spiegelt die lokal gespeicherte Hinweisvariante in der Menüleiste. Die
-/// eigentliche Auswahl bleibt im bestehenden WebView/localStorage, damit sie
-/// ohne zusätzliche native Persistenz über App-Neustarts erhalten bleibt.
+/// Spiegelt die lokal gespeicherte Hinweisvariante samt grober Intensität in
+/// der Menüleiste. Die eigentliche Auswahl bleibt im WebView/localStorage,
+/// damit sie ohne zusätzliche native Persistenz über Neustarts erhalten bleibt.
 #[tauri::command]
-fn alpha_hint_style(style: String, state: tauri::State<AlphaUiState>) -> Result<(), String> {
+fn alpha_hint_style(
+    style: String,
+    intensity: u8,
+    state: tauri::State<AlphaUiState>,
+) -> Result<(), String> {
     let label = match style.as_str() {
-        "vignette" => "Vignette",
-        "wash" => "Farbhauch",
-        _ => "Ringpuls",
+        "soft-focus" => "Fokusverlust",
+        "desaturate" => "Entsättigung",
+        "ambient-glow" => "Ambient Glow",
+        "wash-focus" => "Farbhauch → Fokus",
+        _ => "Lavendel-Vignette",
+    };
+    let intensity_label = match intensity {
+        1 => "leicht",
+        3 => "deutlich",
+        _ => "mittel",
     };
     state
         .hint_status_item
-        .set_text(format!("Hinweis: {label}"))
+        .set_text(format!("Hinweis: {label} · {intensity_label}"))
         .map_err(cmd_err)
 }
 
@@ -299,10 +310,12 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
     let snooze_30 = MenuItem::with_id(app, "snooze_30", "Snooze · 30 Minuten", false, None::<&str>)?;
     let snooze_60 = MenuItem::with_id(app, "snooze_60", "Snooze · 60 Minuten", false, None::<&str>)?;
-    let hint_status = MenuItem::with_id(app, "hint_status", "Hinweis: Ringpuls", false, None::<&str>)?;
-    let hint_ring = MenuItem::with_id(app, "hint_ring", "Variante A · Ringpuls", true, None::<&str>)?;
-    let hint_vignette = MenuItem::with_id(app, "hint_vignette", "Variante B · Vignette", true, None::<&str>)?;
-    let hint_wash = MenuItem::with_id(app, "hint_wash", "Variante C · Farbhauch", true, None::<&str>)?;
+    let hint_status = MenuItem::with_id(app, "hint_status", "Hinweis: Lavendel-Vignette · mittel", false, None::<&str>)?;
+    let hint_lavender_vignette = MenuItem::with_id(app, "hint_lavender_vignette", "A · Lavendel-Vignette", true, None::<&str>)?;
+    let hint_soft_focus = MenuItem::with_id(app, "hint_soft_focus", "B · Sanfter Fokusverlust", true, None::<&str>)?;
+    let hint_desaturate = MenuItem::with_id(app, "hint_desaturate", "C · Kurze Entsättigung", true, None::<&str>)?;
+    let hint_ambient_glow = MenuItem::with_id(app, "hint_ambient_glow", "D · Ambient Glow", true, None::<&str>)?;
+    let hint_wash_focus = MenuItem::with_id(app, "hint_wash_focus", "E · Farbhauch → Fokusverlust", true, None::<&str>)?;
     let hint_preview = MenuItem::with_id(app, "hint_preview", "Probe-Hinweis anzeigen", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Tawel beenden", true, None::<&str>)?;
@@ -319,9 +332,11 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .item(&snooze_60)
         .separator()
         .item(&hint_status)
-        .item(&hint_ring)
-        .item(&hint_vignette)
-        .item(&hint_wash)
+        .item(&hint_lavender_vignette)
+        .item(&hint_soft_focus)
+        .item(&hint_desaturate)
+        .item(&hint_ambient_glow)
+        .item(&hint_wash_focus)
         .item(&hint_preview)
         .separator()
         .item(&settings)
@@ -348,9 +363,11 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
             "snooze_15" => emit_control(app, "snooze_15", false),
             "snooze_30" => emit_control(app, "snooze_30", false),
             "snooze_60" => emit_control(app, "snooze_60", false),
-            "hint_ring" => emit_control(app, "hint_ring", false),
-            "hint_vignette" => emit_control(app, "hint_vignette", false),
-            "hint_wash" => emit_control(app, "hint_wash", false),
+            "hint_lavender_vignette" => emit_control(app, "hint_lavender_vignette", false),
+            "hint_soft_focus" => emit_control(app, "hint_soft_focus", false),
+            "hint_desaturate" => emit_control(app, "hint_desaturate", false),
+            "hint_ambient_glow" => emit_control(app, "hint_ambient_glow", false),
+            "hint_wash_focus" => emit_control(app, "hint_wash_focus", false),
             "hint_preview" => emit_control(app, "hint_preview", false),
             "settings" => emit_control(app, "settings", true),
             "quit" => app.exit(0),
@@ -483,15 +500,26 @@ fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Zeigt ausschließlich eine der beiden ganzflächigen Varianten. Der Ringpuls
-/// läuft im bestehenden Haupt-WebView und ruft diesen Command nicht auf.
+#[derive(Clone, serde::Serialize)]
+struct VisualHintPayload {
+    style: String,
+    intensity: u8,
+}
+
+/// Zeigt eine der fünf ganzflächigen Testvarianten mit einer von drei groben
+/// Intensitäten. Das Overlay nimmt keine Bildschirmbilder auf; WebKit filtert
+/// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
 #[tauri::command]
-fn show_visual_hint(style: String, app: AppHandle) -> Result<(), String> {
+fn show_visual_hint(style: String, intensity: u8, app: AppHandle) -> Result<(), String> {
     let style = match style.as_str() {
-        "wash" => "wash",
-        "vignette" => "vignette",
+        "lavender-vignette" => "lavender-vignette",
+        "soft-focus" => "soft-focus",
+        "desaturate" => "desaturate",
+        "ambient-glow" => "ambient-glow",
+        "wash-focus" => "wash-focus",
         _ => return Err("Unbekannte Hinweisvariante".to_string()),
     };
+    let intensity = intensity.clamp(1, 3);
     let overlay = app
         .get_webview_window("hint-overlay")
         .ok_or_else(|| "Hinweisfenster nicht verfügbar".to_string())?;
@@ -499,8 +527,15 @@ fn show_visual_hint(style: String, app: AppHandle) -> Result<(), String> {
         fit_hint_overlay_to_main(&overlay, &main);
     }
     overlay.show().map_err(cmd_err)?;
-    app.emit_to("hint-overlay", "tawel:visual-hint", style)
-        .map_err(cmd_err)
+    app.emit_to(
+        "hint-overlay",
+        "tawel:visual-hint",
+        VisualHintPayload {
+            style: style.to_string(),
+            intensity,
+        },
+    )
+    .map_err(cmd_err)
 }
 
 /// Nach der kurzen CSS-Animation verschwindet das ganzflächige Fenster wieder

@@ -39,6 +39,15 @@ body.tawel-alpha [data-mode-link="neutral"] {
   display: none !important;
 }
 
+/* Rot/Orange wird in der privaten Mac-Alpha als Wahrnehmungsfarbe vollständig
+   durch Lavendel ersetzt. Die Browser-Version behält ihr bestehendes System. */
+body.tawel-alpha {
+  --warm: #9d88b8;
+  --ember: #75628f;
+  --warm-text: #654f7e;
+  --ember-text: #4f3d65;
+}
+
 .alpha-prestart-back {
   display: none;
   position: fixed;
@@ -59,6 +68,86 @@ body.alpha-settings-before-start .alpha-prestart-back {
 body.alpha-settings-before-start .mode-tabs,
 body.alpha-settings-before-start .pill-enter-btn {
   display: none !important;
+}
+
+/* Mac-exklusive Auswahl der fünf visuellen Testhinweise. Die Produktions-
+   Web-App kennt diese Elemente nicht; sie werden von alpha.js nur in die
+   erzeugte Tauri-Kopie eingefügt. */
+.alpha-hint-settings .settings-card {
+  border-color: color-mix(in srgb, #8f7aae 24%, var(--line));
+  background: color-mix(in srgb, #bfaed6 7%, var(--paper));
+}
+
+.alpha-hint-style-control select {
+  width: min(16.5rem, 42vw);
+  max-width: 100%;
+}
+
+.alpha-hint-intensity-row {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-top: 1.15rem;
+  padding-bottom: 1.1rem;
+}
+
+.alpha-hint-intensity-control {
+  width: 100%;
+  padding: 0 0.15rem;
+}
+
+#alphaHintIntensity {
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(
+    to right,
+    #8f7aae 0 var(--alpha-hint-range-fill, 50%),
+    color-mix(in srgb, var(--line) 88%, white) var(--alpha-hint-range-fill, 50%) 100%
+  );
+}
+
+#alphaHintIntensity[data-position="1"] { --alpha-hint-range-fill: 0%; }
+#alphaHintIntensity[data-position="2"] { --alpha-hint-range-fill: 50%; }
+#alphaHintIntensity[data-position="3"] { --alpha-hint-range-fill: 100%; }
+
+#alphaHintIntensity::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #75628f;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(117, 98, 143, 0.28);
+}
+
+#alphaHintIntensity::-moz-range-thumb {
+  width: 17px;
+  height: 17px;
+  border: 2px solid #75628f;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(117, 98, 143, 0.28);
+}
+
+.alpha-hint-intensity-scale {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-2);
+  margin-top: 0.7rem;
+  color: var(--moss);
+  font-size: var(--text-xs);
+}
+
+.alpha-hint-intensity-scale output {
+  color: var(--pine);
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-align: center;
+}
+
+.alpha-hint-intensity-scale span:last-child {
+  text-align: right;
+}
+
+.alpha-hint-actions {
+  grid-template-columns: 1fr;
 }
 
 /* --- Pill-Modus: Seite transparent, nur der Ring sichtbar --- */
@@ -121,35 +210,23 @@ body[data-state="ember"] .pill-ring-wrap {
   transition: background-color 0.4s ease;
 }
 
-/* Achtung-Zustand: ember, schneller, größere Amplitude, ember-getönter Schatten. */
+/* Wahrnehmungszustand der Mac-Alpha: bewusst Lavendel statt Alarmrot. */
 body[data-state="warm"] .pill-ring,
 body[data-state="ember"] .pill-ring {
-  border-color: var(--ember);
-  box-shadow: 0 0 22px rgba(196, 106, 74, 0.30);
+  border-color: #8f7aae;
+  box-shadow: 0 0 22px rgba(143, 122, 174, 0.32);
   animation-duration: 1.8s;
   animation-name: pill-breathe-strong;
 }
 body[data-state="warm"] .pill-core,
 body[data-state="ember"] .pill-core {
-  background: var(--ember);
+  background: #8f7aae;
   opacity: 0.24;
   animation-duration: 1.8s;
 }
 body[data-state="paused"] .pill-ring,
 body[data-state="paused"] .pill-core {
   animation-play-state: paused;
-}
-
-/* Hinweisvariante A: derselbe Ring wird bei einem echten Treffer einmal
-   deutlich, aber ohne Text oder Alarmbewegung, nach außen aufgeatmet. */
-body.alpha-ring-hint .pill-ring {
-  border-color: var(--ember);
-  box-shadow: 0 0 30px rgba(196, 106, 74, 0.48);
-  animation: alpha-ring-hint 2.4s var(--ease-calm) both !important;
-}
-body.alpha-ring-hint .pill-core {
-  background: var(--ember);
-  animation: alpha-ring-core-hint 2.4s var(--ease-calm) both !important;
 }
 
 @keyframes pill-breathe {
@@ -164,18 +241,6 @@ body.alpha-ring-hint .pill-core {
   0%, 100% { opacity: 0.12; }
   50% { opacity: 0.30; }
 }
-@keyframes alpha-ring-hint {
-  0% { transform: scale(1); opacity: 0.82; }
-  28% { transform: scale(1.17); opacity: 1; }
-  58% { transform: scale(1.08); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.82; }
-}
-@keyframes alpha-ring-core-hint {
-  0%, 100% { transform: scale(1); opacity: 0.14; }
-  28% { transform: scale(1.14); opacity: 0.42; }
-  58% { transform: scale(1.06); opacity: 0.28; }
-}
-
 /* Bedienelemente nur beim Drüberfahren. */
 .pill-controls {
   position: absolute;
@@ -214,11 +279,17 @@ body.alpha-ring-hint .pill-core {
   .pill-core {
     animation: none !important;
   }
-  body.alpha-ring-hint .pill-ring {
-    border-width: 4px;
-    box-shadow: 0 0 30px rgba(196, 106, 74, 0.48);
+}
+
+@media (max-width: 620px) {
+  .alpha-hint-settings .set-row:not(.alpha-hint-intensity-row) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-3);
   }
-  body.alpha-ring-hint .pill-core {
-    opacity: 0.34;
+
+  .alpha-hint-style-control,
+  .alpha-hint-style-control select {
+    width: 100%;
   }
 }

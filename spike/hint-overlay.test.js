@@ -60,22 +60,46 @@ vm.runInNewContext(source, context, { filename: "hint-overlay.js" });
 assert.ok(context.window.__tawelHintOverlay);
 assert.ok(tauriListeners.has("tawel:visual-hint"));
 
-tauriListeners.get("tawel:visual-hint")({ payload: "wash" });
-assert.equal(overlay.dataset.style, "wash");
+tauriListeners.get("tawel:visual-hint")({
+  payload: { style: "soft-focus", intensity: 3 },
+});
+assert.equal(overlay.dataset.style, "soft-focus");
+assert.equal(overlay.dataset.intensity, "3");
 assert.equal(overlay.classList.contains("is-active"), true);
-assert.equal(timeouts.at(-1).delay, 3200);
+assert.equal(timeouts.at(-1).delay, 3400);
 
 listeners.get("animationend")({
-  target: { classList: new ClassList(["hint-layer"]) },
+  target: { classList: new ClassList(["hint-terminal"]) },
 });
 assert.equal(overlay.classList.contains("is-active"), false);
 assert.equal(invocations.at(-1), "hide_visual_hint");
 
-context.window.__tawelHintOverlay.show("vignette");
-assert.equal(overlay.dataset.style, "vignette");
+context.window.__tawelHintOverlay.show("ambient-glow", 1);
+assert.equal(overlay.dataset.style, "ambient-glow");
+assert.equal(overlay.dataset.intensity, "1");
 assert.equal(overlay.classList.contains("is-active"), true);
 
 context.window.__tawelHintOverlay.show("unbekannt");
-assert.equal(overlay.dataset.style, "vignette", "Unbekannte Werte fallen sicher auf Vignette zurück");
+assert.equal(
+  overlay.dataset.style,
+  "lavender-vignette",
+  "Unbekannte Werte fallen sicher auf Lavendel-Vignette zurück",
+);
+assert.equal(overlay.dataset.intensity, "2", "Unbekannte Intensität fällt auf Mittel zurück");
+
+assert.deepEqual(
+  [...context.window.__tawelHintOverlay.styles],
+  ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"],
+);
+
+const html = fs.readFileSync(`${__dirname}/hint-overlay.html`, "utf8");
+const css = fs.readFileSync(`${__dirname}/hint-overlay.css`, "utf8");
+for (const style of context.window.__tawelHintOverlay.styles) {
+  assert.ok(css.includes(`data-style="${style}"`), `${style} besitzt einen CSS-Modus`);
+}
+assert.ok(html.includes("hint-combo-focus"), "Die gestufte Kombination besitzt eine Fokusphase");
+assert.ok(css.includes("backdrop-filter: blur("), "Fokusvarianten filtern den transparenten Hintergrund");
+assert.ok(css.includes("backdrop-filter: saturate("), "Entsättigung filtert den transparenten Hintergrund");
+assert.equal(css.includes("196, 106, 74"), false, "Das frühere Alarmrot ist aus dem Overlay entfernt");
 
 console.log("hint-overlay.test.js: ok");

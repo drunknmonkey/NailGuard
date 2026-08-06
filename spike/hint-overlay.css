@@ -1,6 +1,9 @@
 :root {
-  --ember-rgb: 196, 106, 74;
-  --hint-duration: 2600ms;
+  --lavender-rgb: 143, 122, 174;
+  --lavender-soft-rgb: 190, 174, 214;
+  --petrol-rgb: 74, 132, 126;
+  --paper-rgb: 250, 252, 250;
+  --hint-duration: 2500ms;
   color-scheme: light;
 }
 
@@ -23,43 +26,150 @@ body {
 .hint-layer {
   display: none;
   opacity: 0;
-  will-change: opacity, transform;
+  will-change: opacity, transform, backdrop-filter;
 }
 
-/* Variante B: Der Arbeitsinhalt in der Mitte bleibt unverändert. Nur aus dem
-   Augenwinkel wächst ein weicher Ember-Saum vom Displayrand herein. */
-#hintOverlay[data-style="vignette"] .hint-vignette {
+/* Drei grobe Stufen reichen für den Hardwarevergleich. Die Unterschiede sind
+   bewusst gut spürbar, bleiben aber in allen Stufen weit von einem Alarm weg. */
+#hintOverlay[data-intensity="1"] {
+  --vignette-edge: 0.22;
+  --vignette-mid: 0.092;
+  --focus-blur: 1.4px;
+  --focus-veil: 0.012;
+  --desaturate-value: 0.76;
+  --desaturate-veil: 0.012;
+  --ambient-alpha: 0.24;
+  --ambient-petrol-alpha: 0.197;
+  --ambient-edge-alpha: 0.043;
+  --combo-color-alpha: 0.055;
+  --combo-blur: 1.2px;
+  --combo-veil: 0.009;
+}
+
+#hintOverlay[data-intensity="2"] {
+  --vignette-edge: 0.34;
+  --vignette-mid: 0.143;
+  --focus-blur: 2.7px;
+  --focus-veil: 0.018;
+  --desaturate-value: 0.56;
+  --desaturate-veil: 0.022;
+  --ambient-alpha: 0.38;
+  --ambient-petrol-alpha: 0.312;
+  --ambient-edge-alpha: 0.068;
+  --combo-color-alpha: 0.085;
+  --combo-blur: 2.4px;
+  --combo-veil: 0.013;
+}
+
+#hintOverlay[data-intensity="3"] {
+  --vignette-edge: 0.48;
+  --vignette-mid: 0.202;
+  --focus-blur: 4.4px;
+  --focus-veil: 0.028;
+  --desaturate-value: 0.34;
+  --desaturate-veil: 0.035;
+  --ambient-alpha: 0.56;
+  --ambient-petrol-alpha: 0.459;
+  --ambient-edge-alpha: 0.101;
+  --combo-color-alpha: 0.12;
+  --combo-blur: 4px;
+  --combo-veil: 0.02;
+}
+
+/* A · Lavendel-Vignette: Die Mitte bleibt frei, der Hinweis kommt nur aus
+   dem peripheren Blickfeld. */
+#hintOverlay[data-style="lavender-vignette"] .hint-vignette {
   display: block;
   background: radial-gradient(
     ellipse at center,
     transparent 0%,
-    transparent 49%,
-    rgba(var(--ember-rgb), 0.025) 62%,
-    rgba(var(--ember-rgb), 0.19) 82%,
-    rgba(var(--ember-rgb), 0.38) 100%
+    transparent 48%,
+    rgba(var(--lavender-soft-rgb), 0.025) 61%,
+    rgba(var(--lavender-rgb), var(--vignette-mid)) 82%,
+    rgba(var(--lavender-rgb), var(--vignette-edge)) 100%
   );
 }
 
-/* Variante C: Ein sehr leichter Farbhauch verändert kurz die gesamte Fläche.
-   Er ist absichtlich deutlich schwächer als die Vignette, weil die Fläche
-   selbst größer ist. */
-#hintOverlay[data-style="wash"] .hint-wash {
+/* B · Sanfter Fokusverlust: Seit macOS 26 kann WebKit den Inhalt hinter einem
+   transparenten WebView filtern. Ein minimaler heller Schleier bleibt als
+   Fallback sichtbar, falls ein älterer Compositor den Filter ignoriert. */
+#hintOverlay[data-style="soft-focus"] .hint-focus {
   display: block;
-  background: rgba(var(--ember-rgb), 0.105);
+  background: rgba(var(--paper-rgb), var(--focus-veil));
+  -webkit-backdrop-filter: blur(var(--focus-blur)) saturate(0.96);
+  backdrop-filter: blur(var(--focus-blur)) saturate(0.96);
 }
 
-#hintOverlay.is-active .hint-layer {
-  animation: tawel-visual-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+/* C · Entsättigung: Der Inhalt bleibt scharf, seine Farben ziehen sich kurz
+   zurück. Keine Grau- oder Fehlerfläche wird darübergelegt. */
+#hintOverlay[data-style="desaturate"] .hint-desaturate {
+  display: block;
+  background: rgba(var(--paper-rgb), var(--desaturate-veil));
+  -webkit-backdrop-filter: saturate(var(--desaturate-value));
+  backdrop-filter: saturate(var(--desaturate-value));
 }
 
-#hintOverlay.is-active[data-style="vignette"] .hint-vignette {
-  animation-name: tawel-vignette-hint;
+/* D · Ambient Glow: Zwei ruhige Farbräume atmen von gegenüberliegenden
+   Displayseiten ein. Das Zentrum bleibt lesbar und unverändert. */
+#hintOverlay[data-style="ambient-glow"] .hint-ambient {
+  display: block;
+  background:
+    radial-gradient(ellipse at 0% 28%, rgba(var(--lavender-rgb), var(--ambient-alpha)) 0%, transparent 45%),
+    radial-gradient(ellipse at 100% 72%, rgba(var(--petrol-rgb), var(--ambient-petrol-alpha)) 0%, transparent 45%),
+    radial-gradient(ellipse at center, transparent 0%, transparent 66%, rgba(var(--lavender-soft-rgb), var(--ambient-edge-alpha)) 100%);
 }
 
-@keyframes tawel-visual-hint {
+/* E · Farbhauch → Fokusverlust: Erst ein freundlicher Lavendelton, erst danach
+   der kleine Wahrnehmungsbruch. So lässt sich die sanfte Eskalation testen. */
+#hintOverlay[data-style="wash-focus"] .hint-combo,
+.hint-combo-color,
+.hint-combo-focus {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#hintOverlay[data-style="wash-focus"] .hint-combo {
+  display: block;
+}
+
+.hint-combo-color {
+  background: rgba(var(--lavender-soft-rgb), var(--combo-color-alpha));
+  opacity: 0;
+}
+
+.hint-combo-focus {
+  background: rgba(var(--paper-rgb), var(--combo-veil));
+  -webkit-backdrop-filter: blur(var(--combo-blur)) saturate(0.92);
+  backdrop-filter: blur(var(--combo-blur)) saturate(0.92);
+  opacity: 0;
+}
+
+#hintOverlay.is-active[data-style="lavender-vignette"] .hint-vignette {
+  animation: tawel-vignette-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+
+#hintOverlay.is-active[data-style="soft-focus"] .hint-focus,
+#hintOverlay.is-active[data-style="desaturate"] .hint-desaturate {
+  animation: tawel-filter-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+
+#hintOverlay.is-active[data-style="ambient-glow"] .hint-ambient {
+  animation: tawel-ambient-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+
+#hintOverlay.is-active[data-style="wash-focus"] .hint-combo-color {
+  animation: tawel-combo-color var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+
+#hintOverlay.is-active[data-style="wash-focus"] .hint-combo-focus {
+  animation: tawel-combo-focus var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+
+@keyframes tawel-filter-hint {
   0% { opacity: 0; }
   22% { opacity: 1; }
-  58% { opacity: 0.82; }
+  60% { opacity: 0.82; }
   100% { opacity: 0; }
 }
 
@@ -70,18 +180,41 @@ body {
   100% { opacity: 0; transform: scale(1.035); }
 }
 
+@keyframes tawel-ambient-hint {
+  0% { opacity: 0; transform: scale(1.04); }
+  26% { opacity: 1; transform: scale(1); }
+  62% { opacity: 0.88; transform: scale(1.012); }
+  100% { opacity: 0; transform: scale(1.035); }
+}
+
+@keyframes tawel-combo-color {
+  0% { opacity: 0; }
+  16% { opacity: 1; }
+  44% { opacity: 0.74; }
+  72%, 100% { opacity: 0; }
+}
+
+@keyframes tawel-combo-focus {
+  0%, 24% { opacity: 0; }
+  48% { opacity: 1; }
+  70% { opacity: 0.82; }
+  100% { opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --hint-duration: 1800ms;
+    --hint-duration: 1900ms;
   }
 
-  #hintOverlay.is-active .hint-layer {
+  #hintOverlay.is-active .hint-terminal,
+  #hintOverlay.is-active .hint-combo-color {
     animation-name: tawel-reduced-hint;
     transform: none;
   }
 
   @keyframes tawel-reduced-hint {
-    0%, 14% { opacity: 1; }
+    0% { opacity: 0; }
+    14%, 58% { opacity: 1; }
     100% { opacity: 0; }
   }
 }

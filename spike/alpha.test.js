@@ -22,14 +22,38 @@ class ClassList {
 class Element {
   constructor(name) {
     this.name = name;
+    this.id = "";
+    this.className = "";
     this.hidden = false;
     this.classList = new ClassList();
     this.dataset = {};
+    this.attributes = new Map();
     this.listeners = new Map();
+    this.children = [];
+    this.parentElement = null;
+    this.value = "";
     this.srcObject = null;
     this.currentTime = 0;
     this.readyState = 2;
     this.textContent = "";
+  }
+  appendChild(child) {
+    child.parentElement = this;
+    this.children.push(child);
+    return child;
+  }
+  insertAdjacentElement(position, child) {
+    assert.equal(position, "afterend");
+    assert.ok(this.parentElement, "afterend benötigt ein Elternelement");
+    const siblings = this.parentElement.children;
+    const index = siblings.indexOf(this);
+    child.parentElement = this.parentElement;
+    siblings.splice(index + 1, 0, child);
+    return child;
+  }
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value));
+    if (name === "id") this.id = String(value);
   }
   addEventListener(type, listener) {
     const list = this.listeners.get(type) || [];
@@ -77,6 +101,8 @@ async function main() {
   const controlListeners = [];
   const windowListeners = new Map();
   const storage = new Map();
+  const createdElements = [];
+  storage.set("tawel.alpha.hint-style.v1", "ring");
 
   class FakeDate extends Date {
     static now() { return now; }
@@ -91,6 +117,12 @@ async function main() {
   const video = new Element("video");
   const settingsTab = new Element("settingsTab");
   const focusTab = new Element("focusTab");
+  const settingsPage = new Element("settingsPage");
+  const settingsCuesGroup = new Element("settingsCuesGroup");
+  const settingsCuesTitle = new Element("settingsCuesTitle");
+  settingsCuesTitle.id = "settings-cues-title";
+  settingsPage.appendChild(settingsCuesGroup);
+  settingsCuesGroup.appendChild(settingsCuesTitle);
   workspace.hidden = true;
 
   startButton.onClick = () => {
@@ -114,6 +146,7 @@ async function main() {
     ["#pauseButton", pauseButton],
     ["#cameraSelect", cameraSelect],
     ["#video", video],
+    ["#settings-cues-title", settingsCuesTitle],
     ['.mode-tab[data-mode="calibration"]', settingsTab],
     ['.mode-tab[data-mode="focus"]', focusTab],
   ]);
@@ -123,12 +156,15 @@ async function main() {
     visibilityState: "visible",
     documentElement: { lang: "de" },
     querySelector: (selector) => selectorMap.get(selector) || null,
-    createElement: (name) => new Element(name),
+    querySelectorAll: () => [],
+    createElement: (name) => {
+      const element = new Element(name);
+      createdElements.push(element);
+      return element;
+    },
     addEventListener() {},
     hasFocus: () => true,
   };
-  body.appendChild = () => {};
-
   const context = {
     console,
     Date: FakeDate,
@@ -191,43 +227,98 @@ async function main() {
   const alpha = context.window.__tawelAlpha;
   assert.ok(alpha, "Diagnoseoberfläche wurde installiert");
   assert.equal(controlListeners[0].name, "tawel:control");
-  assert.equal(alpha.hintStyle(), "ring");
+  assert.equal(alpha.hintStyle(), "lavender-vignette");
+  assert.equal(alpha.hintIntensity(), 2);
   assert.equal(
-    invocations.filter((call) => call.command === "alpha_hint_style").at(-1).args.style,
-    "ring",
-    "Ringpuls ist die gespeicherte Standardvariante",
+    storage.get("tawel.alpha.hint-style.v1"),
+    "lavender-vignette",
+    "Die alte Ring-Auswahl wird ruhig auf die Lavendel-Vignette migriert",
   );
+  const initialHintSync = invocations.filter((call) => call.command === "alpha_hint_style").at(-1);
+  assert.equal(initialHintSync.args.style, "lavender-vignette");
+  assert.equal(initialHintSync.args.intensity, 2);
 
-  alpha.handleControl("hint_vignette");
+  const settingsSection = createdElements.find((element) => element.id === "alphaHintSettings");
+  const styleSelect = createdElements.find((element) => element.id === "alphaHintStyle");
+  const intensityInput = createdElements.find((element) => element.id === "alphaHintIntensity");
+  const intensityOutput = createdElements.find((element) => element.name === "output");
+  const previewButton = createdElements.find((element) => element.id === "alphaHintPreview");
+  assert.ok(settingsSection, "Mac-Hinweise wurden in die Einstellungen eingefügt");
+  assert.equal(settingsPage.children[1], settingsSection, "Hinweise stehen direkt nach der Ton-Gruppe");
+  assert.deepEqual(
+    styleSelect.children.map((option) => option.value),
+    ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"],
+    "Alle fünf Varianten sind im Einstellungsmenü auswählbar",
+  );
+  assert.equal(styleSelect.value, "lavender-vignette");
+  assert.equal(intensityInput.value, "2");
+  assert.equal(intensityOutput.textContent, "Mittel");
+
+  styleSelect.value = "soft-focus";
+  styleSelect.dispatchEvent({ type: "change" });
   await flush();
-  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "vignette");
-  assert.equal(alpha.hintStyle(), "vignette");
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "soft-focus");
+  assert.equal(alpha.hintStyle(), "soft-focus");
   assert.equal(
     invocations.filter((call) => call.command === "show_visual_hint").at(-1).args.style,
-    "vignette",
-    "Auswahl zeigt die Vignette sofort als Vorschau",
+    "soft-focus",
+    "Die Auswahl zeigt den sanften Fokusverlust sofort als Vorschau",
   );
+
+  intensityInput.value = "3";
+  intensityInput.dispatchEvent({ type: "input" });
+  assert.equal(storage.get("tawel.alpha.hint-intensity.v1"), "3");
+  assert.equal(alpha.hintIntensity(), 3);
+  assert.equal(intensityOutput.textContent, "Deutlich");
+  intensityInput.dispatchEvent({ type: "change" });
+  await flush();
+  const intensityPreview = invocations.filter((call) => call.command === "show_visual_hint").at(-1);
+  assert.equal(intensityPreview.args.style, "soft-focus");
+  assert.equal(intensityPreview.args.intensity, 3, "Die Vorschau übernimmt die grobe Intensität");
 
   const hintsBeforeDetection = invocations.filter((call) => call.command === "show_visual_hint").length;
   context.window.dispatchEvent({ type: "nailguard:intervention" });
   await flush();
   const detectionHints = invocations.filter((call) => call.command === "show_visual_hint");
   assert.equal(detectionHints.length, hintsBeforeDetection + 1);
-  assert.equal(detectionHints.at(-1).args.style, "vignette");
+  assert.equal(detectionHints.at(-1).args.style, "soft-focus");
+  assert.equal(detectionHints.at(-1).args.intensity, 3);
 
-  alpha.handleControl("hint_wash");
+  alpha.handleControl("hint_desaturate");
   await flush();
-  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "wash");
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "desaturate");
   assert.equal(
     invocations.filter((call) => call.command === "show_visual_hint").at(-1).args.style,
-    "wash",
-    "Farbhauch nutzt dasselbe echte Interventionssignal",
+    "desaturate",
+    "Die native Menüauswahl nutzt dieselbe Vorschau",
   );
 
-  alpha.handleControl("hint_ring");
-  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "ring");
-  assert.equal(body.classList.contains("alpha-ring-hint"), true);
-  assert.equal(timeouts.at(-1).delay, 2400, "Ringpuls endet selbstständig");
+  alpha.handleControl("hint_ambient_glow");
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "ambient-glow");
+  alpha.handleControl("hint_wash_focus");
+  assert.equal(storage.get("tawel.alpha.hint-style.v1"), "wash-focus");
+  const previewsBeforeButton = invocations.filter((call) => call.command === "show_visual_hint").length;
+  previewButton.click();
+  assert.equal(
+    invocations.filter((call) => call.command === "show_visual_hint").length,
+    previewsBeforeButton + 1,
+    "Probe-Hinweis ist direkt in den Einstellungen erreichbar",
+  );
+
+  const nativeSource = fs.readFileSync(`${__dirname}/../src-tauri/src/main.rs`, "utf8");
+  for (const action of [
+    "hint_lavender_vignette",
+    "hint_soft_focus",
+    "hint_desaturate",
+    "hint_ambient_glow",
+    "hint_wash_focus",
+  ]) {
+    assert.ok(nativeSource.includes(`"${action}"`), `${action} ist auch nativ verdrahtet`);
+  }
+  assert.ok(
+    nativeSource.includes("fn show_visual_hint(style: String, intensity: u8"),
+    "Native Vorschau erhält dieselbe Intensität wie die Einstellungsoberfläche",
+  );
 
   alpha.handleControl("settings");
   await flush();

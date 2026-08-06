@@ -683,3 +683,34 @@ Erkennung und Statistik unterscheiden sich nicht.
   und anschließend vollständig versteckt.
 - **Web-Version unverändert:** Sämtliche Dateien und Tests liegen im
   Mac-spezifischen Buildpfad unter `spike/` beziehungsweise `src-tauri/`.
+
+---
+
+## 2026-08-05 – Mac-Alpha: ruhige Hinweise erweitern und grob dosierbar machen
+
+Der erste Hardwarevergleich bestätigte den Pause/Fortsetzen-Fix. Ringpuls war
+kaum zu erkennen; Vignette und Farbhauch waren brauchbarer, das bisherige
+Ember-Rot wirkte jedoch zu stark wie ein Alarm. Für die nächste Vergleichsrunde
+wird deshalb ausschließlich die Hinweisform erweitert – Erkennung und Timing
+bleiben identisch.
+
+- **Fünf Varianten:** Lavendel-Vignette, sanfter Fokusverlust, kurze
+  Entsättigung, Ambient Glow in Lavendel/Petrol und eine gestufte Kombination
+  `Farbhauch → Fokusverlust`.
+- **Drei Intensitäten:** Ein gemeinsamer Regler mit `Leicht`, `Mittel` und
+  `Deutlich`; Standard ist `Mittel`. Die Stufen verändern nur Stärke, nicht
+  Dauer, Erkennungsschwelle oder Statistik.
+- **Einstellungen statt Testmenü allein:** Variante, Intensität und eine
+  statistisch neutrale Vorschau liegen direkt im Mac-Einstellungsbereich. Die
+  Menüleiste spiegelt die Konfiguration und behält die Schnellwahl.
+- **Kein Alarmrot:** Mac-spezifische Hinweiszustände verwenden Lavendel sowie
+  Petrol. Die Produktions-Web-App und ihr bestehendes Farbsystem bleiben
+  unverändert.
+- **Keine Bildschirmaufnahme:** Unschärfe und Entsättigung verwenden auf
+  macOS 26 `backdrop-filter` hinter dem transparenten, klickdurchlässigen
+  Overlay. Das Overlay erhält keine Bildschirm- oder Kamerapixel.
+- **Lokale Migration:** Alte gespeicherte Werte werden auf die nächstliegende
+  neue Variante abgebildet; Intensität wird separat lokal gespeichert.
+- **Hardware-Gate:** Tatsächliche Unschärfe/Entsättigung, Klickdurchlässigkeit,
+  Capture Exclusion und die subjektiv passende Stärke bleiben Teil des
+  Tests auf Pauls MacBook Pro mit macOS Tahoe 26.0.1.
