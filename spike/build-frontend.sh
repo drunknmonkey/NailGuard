@@ -22,6 +22,7 @@ done
 patch --batch --forward -F 0 -d "$DIST" -p0 < "$ROOT/spike/alpha-app.patch"
 
 # Alpha-/Pill-Assets dazulegen ...
+cp "$ROOT/spike/diagnostics.js" "$DIST/diagnostics.js"
 cp "$ROOT/spike/alpha.js" "$DIST/alpha.js"
 cp "$ROOT/spike/pill.js" "$DIST/pill.js"
 cp "$ROOT/spike/pill.css" "$DIST/pill.css"
@@ -39,6 +40,7 @@ if "./pill.css" not in html:
 if "./alpha.js" not in html:
     html = html.replace(
         "  </body>",
+        '    <script src="./diagnostics.js"></script>\n'
         '    <script src="./alpha.js"></script>\n'
         '    <script src="./pill.js"></script>\n  </body>',
         1,

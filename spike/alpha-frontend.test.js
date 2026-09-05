@@ -10,7 +10,12 @@ assert.ok(!source.includes("requestAnimationFrame(detection.loop)"), "Auch Ersts
 let now = 0, detections = 0, frameError = false;
 const tasks = new Map();
 let nextId = 0;
+const telemetry = { loops: 0, attempts: 0, errors: 0 };
 const context = {
+  window: { __tawelDiagnostic: {
+    loop(running, paused, eligible) { telemetry.loops++; if (eligible) telemetry.attempts++; },
+    error() { telemetry.errors++; },
+  } },
   state: { running: true, paused: false, lastVideoTime: -1 },
   els: { video: { currentTime: 1, readyState: 2 } },
   live: true,
@@ -60,4 +65,7 @@ assert.equal(detections, 4);
 context.state.running = false;
 tick();
 assert.equal(tasks.size, 0, "Beendete Session plant nichts mehr");
+assert.equal(telemetry.errors, 1, "Fehler wird getrennt protokolliert");
+assert.equal(telemetry.attempts, 4);
+assert.equal(telemetry.loops, 7, "Timer wird auch ohne neue Frames protokolliert");
 console.log("alpha-frontend.test.js: ok");

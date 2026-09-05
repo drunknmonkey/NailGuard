@@ -5,8 +5,8 @@ Produktstatus und offene Entscheidungen bleiben im bestehenden Notion-Eintrag
 „Mac-App – private Alpha“; dieses Dokument beschreibt nur Build, Architektur und
 reproduzierbare Tests im Repository.
 
-Aktueller Hardware-Testbuild: **Tawel 0.1.3** (fensterunabhängiger Erkennungstakt;
-Hintergrundbetrieb ohne Pille muss auf echter Mac-Hardware abgenommen werden).
+Aktueller Hardware-Testbuild: **Tawel 0.1.4 – Diagnose**. Der Hardwaretest von 0.1.3
+zeigte weiterhin Stillstand bei unsichtbarem Fenster; 0.1.4 trennt die Ursachen.
 
 ## Architektur
 
@@ -216,3 +216,55 @@ Capture-Exclusion-Garantie.
 - Lokale Tests beweisen weder fortlaufende WKWebView-Kameraframes noch
   die visuelle Wirkung auf macOS. Falls diese weiterhin einfrieren, ist eine
   native Kamera-/Erkennungslösung nötig; diese ist nicht Teil von 0.1.3.
+
+
+## 2026-09-05 – Diagnosebuild 0.1.4
+
+**Beleg:** Pauls `tawel-alpha-log-20260905-105039.csv`, 2.546 Zeilen,
+10:50:41–11:33:24 (+02:00). Alle sechs `hidden`-Phasen verlieren nach dem
+Übergang die erfolgreichen Durchläufe. Sichtbar ohne Fokus bleibt die Auswertung
+aktiv. Das alte Log enthält keine Build-ID und keinen Pausenstatus; der Bezug
+zu 0.1.3 stammt aus dem laufenden Testablauf, nicht aus dem CSV selbst.
+
+Die ersten fünf CSV-Spalten bleiben erhalten. Neue Diagnose-Spalten:
+
+| Felder | Aussage |
+| --- | --- |
+| `app_version`, `build_sha` | Kompilierte Version und Workflow-Commit; lokaler Build: `local` |
+| `native_visible`, `native_minimized` | Direkt vom nativen Fenster gelesener Zustand; Fehler: `unknown` |
+| `js_received_age_ms`, `js_sequence` | Alter des zuletzt nativ empfangenen Snapshots; -1 vor erstem Empfang |
+| `timer_total` | Tatsächliche Eintritte in den Erkennungsloop, auch ohne neue Videoframes |
+| `heartbeat_total` | Separater JavaScript-Intervall-Timer, unabhängig vom Erkennungsloop |
+| `video_changes_total`, `video_time`, `decoded_frames` | Fortschritt der Videozeit und optionale Playback-Framezahl (-1: nicht unterstützt) |
+| `attempts_total`, `errors_total` | Begonnene Auswertungen und im Loop gefangene Fehler |
+| `running`, `paused` | Letzter aus der App-Zustandsmaschine gemeldeter Zustand |
+| `video_ready_state`, `video_paused`, `track_live`, `track_muted` | Zustand des HTML-Videos und Kameratracks |
+| `watchdog_total`, `restarts_total`, `ipc_failures` | Watchdog-Aufrufe, angeforderte Neustarts, gescheiterte Diagnoseübertragung |
+| `last_error_kind`, `last_error_stage`, `last_error_at_ms` | Fehlerklasse, Phase (frame/face/hand/postprocess), Zeitpunkt; kein Fehlertext/Stack |
+
+Zähler sind kumulativ pro App-Start. Differenzen aufeinanderfolgender frischer
+Snapshots zeigen den Fortschritt; sie sind keine garantierten Ein-Sekunden-Raten.
+Die bisherigen `callbacks_letzte_sekunde` zählen weiterhin erfolgreiche Abschlüsse.
+
+Der native Logger schreibt auch bei fehlenden JS-Meldungen jede Sekunde weiter.
+Snapshots werden vor einer möglichen synchronen Auswertung verschickt; höchstens
+einer ist gleichzeitig unterwegs. Sequenzprüfung verhindert veraltete Übernahmen.
+Diese Diagnose fügt geringe IPC-Last hinzu und ist kein Performance-Benchmark.
+
+**Interpretation:**
+- Frische Snapshots + Timerfortschritt + stehende Videozeit: Video-/Stream-Pfad prüfen.
+- Heartbeat fortlaufend + Erkennungstimer stehend: Erkennungsscheduler prüfen.
+- Steigende Fehlerzahl: gemeldete Phase der Auswertung prüfen.
+- Empfangsalter steigt und alle JS-Werte stehen: JS/IPC antwortet nicht; das allein
+  beweist noch keine Kameraursache. Kumulative Werte beim Wiederanzeigen helfen,
+  verzögerte IPC-Zustellung von ausgebliebenen JS-Ticks zu unterscheiden.
+- Fortschritt der Videozeit/Playback-Zähler ist ein Indikator, kein Beweis für
+  unterschiedliche Bildinhalte. Es werden keine Bilder oder Landmarks exportiert.
+
+**Kurzer Hardwarelauf:** 20 s sichtbar, 60 s Hintergrund-Button, 20 s wieder
+sichtbar, 60 s minimiert, wieder öffnen und über Menü beenden. Danach die neueste
+CSV vom Schreibtisch senden. Währenddessen nicht pausieren/snoozen.
+
+Automatisierte Tests prüfen stehendes Video bei laufendem Timer, unabhängigen
+Heartbeat, Fehlerklasse ohne sensible Meldungstexte, IPC-Rückstau ohne wachsende
+Warteschlange und den JS/Rust-Snapshot-Vertrag. Die Auswertungslogik bleibt gleich.

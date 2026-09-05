@@ -221,6 +221,7 @@
     if (!cameraSelect || now < restartBlockedUntil || !isRunning() || isPaused()) return;
     restartBlockedUntil = now + WATCHDOG_COOLDOWN_MS;
     lastProgressAt = now;
+    if (window.__tawelDiagnostic) window.__tawelDiagnostic.restart();
     cameraSelect.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
@@ -399,6 +400,7 @@
   }
 
   function watchdogTick() {
+    if (window.__tawelDiagnostic) window.__tawelDiagnostic.watchdog();
     finishExpiredSnooze();
     syncNativeState();
 

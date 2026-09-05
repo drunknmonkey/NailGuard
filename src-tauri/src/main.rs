@@ -98,6 +98,53 @@ mod macos_camera {
 // --------------------------------------------------------------------------------
 
 
+/// Nur skalare Diagnosewerte; niemals Kamerabilder, Landmarks oder Fehlertexte.
+#[derive(Clone, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DiagnosticSample {
+    sequence: u64,
+    timer_total: u64,
+    heartbeat_total: u64,
+    video_changes_total: u64,
+    attempts_total: u64,
+    errors_total: u64,
+    ipc_failures: u64,
+    watchdog_total: u64,
+    restarts_total: u64,
+    running: bool,
+    paused: bool,
+    video_time: f64,
+    ready_state: u32,
+    video_paused: bool,
+    track_live: bool,
+    track_muted: bool,
+    decoded_frames: i64,
+    last_error_kind: String,
+    last_error_stage: String,
+    last_error_at_ms: i64,
+}
+
+#[derive(Default)]
+struct DiagnosticState {
+    latest: DiagnosticSample,
+    received: Option<Instant>,
+}
+
+// CSV bleibt einzeilig. Freitexte/Stacks werden bereits in JS nicht übernommen.
+fn diagnostic_label(value: &str) -> String {
+    value.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(32).collect()
+}
+
+#[tauri::command]
+fn alpha_diagnostic(sample: DiagnosticSample, state: tauri::State<Mutex<DiagnosticState>>) {
+    if let Ok(mut diagnostic) = state.lock() {
+        if sample.sequence > diagnostic.latest.sequence {
+            diagnostic.latest = sample;
+            diagnostic.received = Some(Instant::now());
+        }
+    }
+}
+
 /// Gemeinsamer Zustand zwischen WebView-Befehlen und nativem Ticker.
 struct SpikeState {
     /// Vom WebView gemeldete Detection-Callbacks seit dem letzten Tick.
@@ -582,6 +629,7 @@ fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
+        .manage(Mutex::new(DiagnosticState::default()))
         .manage(SpikeState {
             count: AtomicU64::new(0),
             start: Instant::now(),
@@ -591,6 +639,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             spike_tick,
+            alpha_diagnostic,
             spike_state,
             spike_log_path,
             alpha_status,
@@ -612,7 +661,7 @@ fn main() {
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
                 let _ = writeln!(
                     f,
-                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus"
+                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms"
                 );
             }
 
@@ -674,8 +723,32 @@ fn main() {
                         .unwrap_or_else(|_| "?".to_string());
                     let focus = state.focus.load(Ordering::Relaxed);
                     let ts = chrono::Local::now().to_rfc3339();
+                    let diagnostic = handle.state::<Mutex<DiagnosticState>>();
+                    let (d, age_ms) = diagnostic.lock().map(|v| {
+                        (v.latest.clone(), v.received.map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1))
+                    }).unwrap_or_else(|_| (DiagnosticSample::default(), -1));
+                    let window = handle.get_webview_window("main");
+                    let native_visible = window.as_ref().and_then(|w| w.is_visible().ok());
+                    let native_minimized = window.as_ref().and_then(|w| w.is_minimized().ok());
+                    let fields = vec![
+                        ts, secs.to_string(), count.to_string(), vis, focus.to_string(),
+                        env!("CARGO_PKG_VERSION").to_string(),
+                        option_env!("TAWEL_BUILD_SHA").unwrap_or("local").to_string(),
+                        native_visible.map(|v| v.to_string()).unwrap_or_else(|| "unknown".into()),
+                        native_minimized.map(|v| v.to_string()).unwrap_or_else(|| "unknown".into()),
+                        age_ms.to_string(), d.sequence.to_string(),
+                        d.timer_total.to_string(), d.heartbeat_total.to_string(),
+                        d.video_changes_total.to_string(), d.attempts_total.to_string(),
+                        d.errors_total.to_string(), d.ipc_failures.to_string(),
+                        d.watchdog_total.to_string(), d.restarts_total.to_string(),
+                        d.running.to_string(), d.paused.to_string(), d.video_time.to_string(),
+                        d.ready_state.to_string(), d.video_paused.to_string(),
+                        d.track_live.to_string(), d.track_muted.to_string(), d.decoded_frames.to_string(),
+                        diagnostic_label(&d.last_error_kind), diagnostic_label(&d.last_error_stage),
+                        d.last_error_at_ms.to_string(),
+                    ];
                     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
-                        let _ = writeln!(f, "{},{},{},{},{}", ts, secs, count, vis, focus);
+                        let _ = writeln!(f, "{}", fields.join(","));
                     }
                 }
             });

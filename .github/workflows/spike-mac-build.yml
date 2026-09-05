@@ -37,6 +37,8 @@ jobs:
           node spike/alpha.test.js
           node spike/alpha-frontend.test.js
           node spike/pill.test.js
+          node --check spike/diagnostics.js
+          node spike/diagnostics.test.js
           node spike/hint-overlay.test.js
 
       - name: Cache cargo
@@ -62,6 +64,7 @@ jobs:
         env:
           # Unsigniert: keine Apple-Signatur/Notarisierung.
           APPLE_SIGNING_IDENTITY: "-"
+          TAWEL_BUILD_SHA: ${{ github.sha }}
 
       - name: Inspect bundle (Kamera-Diagnose)
         run: |

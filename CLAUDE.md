@@ -45,7 +45,8 @@ HandLandmarker erkannt.
 Wegwerf-Experiment (nicht Produkt-Code). Misst rAF-Throttling im WKWebView.
 Ergebnis des ursprünglichen Spikes: Camera OK, rAF im Hintergrund gedrosselt.
 Alpha 0.1.3 ersetzt den Erkennungstakt durch einen Timer; die Pille ist optional.
-Hintergrund-Kameraframes bleiben bis zum Hardwaretest ausdrücklich ungeprüft.
+Hardwaretest 0.1.3: Erkennung stoppt bei verstecktem Fenster weiterhin.
+0.1.4 ist eine Diagnoseversion; Hintergrundbetrieb ist damit nicht als behoben freigegeben.
 
 ## Design: „Atem & Ruhe"
 
