@@ -41,6 +41,11 @@ jobs:
           node spike/diagnostics.test.js
           node spike/hint-overlay.test.js
 
+      - name: Test native proximity logic
+        run: |
+          swiftc spike/native/ProximityGate.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
+          /tmp/tawel-native-tests
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:

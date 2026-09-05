@@ -387,6 +387,21 @@ async function main() {
   now += 60_000;
   intervals[0]();
   assert.equal(camera.restarts, restartsPaused, "Schlaf/Unsichtbarkeit hebt Pause nicht auf");
+  alpha.handleControl("toggle_pause");
+  await flush();
+  video.srcObject = liveStream(camera);
+  const stopsBeforeNative = camera.stops;
+  alpha.handleControl("native_start");
+  await flush();
+  assert.equal(alpha.isPaused(), true, "Web-Erkennung ruht vor nativem Test");
+  assert.equal(camera.stops, stopsBeforeNative + 1, "Web-Kameratrack wird vor nativem Start gestoppt");
+  assert.ok(invocations.some(call => call.command === "native_start"));
+  assert.equal(body.classList.contains("native-test-active"), true);
+  assert.equal(startButton.disabled, true, "Kein paralleler Web-Kamerastart");
+  alpha.handleControl("native_stop");
+  await flush();
+  assert.equal(startButton.disabled, false);
+  assert.equal(body.classList.contains("native-test-active"), false);
   console.log("alpha.test.js: ok");
 }
 

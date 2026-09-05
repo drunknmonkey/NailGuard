@@ -336,6 +336,26 @@
 
   function handleControl(action) {
     switch (action) {
+      case "native_start":
+        // Beide Kamerapfade dürfen nie gleichzeitig laufen.
+        if (startButton && startButton.disabled && !isRunning()) break;
+        clearSnooze(false);
+        if (isRunning() && !isPaused() && pauseButton) pauseButton.click();
+        syncNativeState();
+        invoke("native_start", { style: hintStyle, intensity: hintIntensity }).then(function () {
+          document.body.classList.add("native-test-active");
+          if (startButton) startButton.disabled = true;
+          if (cameraSelect) cameraSelect.disabled = true;
+          if (pauseButton) pauseButton.disabled = true;
+        }).catch(function () {});
+        break;
+      case "native_stop":
+        document.body.classList.remove("native-test-active");
+        if (startButton) startButton.disabled = false;
+        if (cameraSelect) cameraSelect.disabled = false;
+        if (pauseButton) pauseButton.disabled = false;
+        queueSync();
+        break;
       case "open":
         leavePill();
         break;
@@ -574,6 +594,12 @@
   document.body.classList.add("tawel-alpha");
   buildHintSettings();
   buildPrestartBackButton();
+  var nativeBanner = document.createElement("div");
+  nativeBanner.className = "native-test-banner";
+  nativeBanner.textContent = document.documentElement.lang === "en"
+    ? "Native test · Control via menu bar · Separate sensitivity"
+    : "Nativer Test · Steuerung über Menüleiste · Eigene Empfindlichkeit";
+  document.body.appendChild(nativeBanner);
   installControlListener(0);
 
   // Ein bewusster Klick während eines Snooze beendet dessen Auto-Fortsetzen.

@@ -1,3 +1,4 @@
+mod native;
 // Private Tawel-Mac-Alpha auf Basis der bestehenden Tauri-2-Hülle.
 // Aufgabe der Rust-Seite: jede Sekunde ein Sample in eine CSV schreiben – auch
 // dann, wenn der WebView (rAF/Timer) von macOS gedrosselt oder eingefroren ist.
@@ -221,7 +222,9 @@ fn alpha_status(
     paused: bool,
     snooze_until: Option<i64>,
     state: tauri::State<AlphaUiState>,
+    app: AppHandle,
 ) -> Result<(), String> {
+    if native::enabled(&app) { return Ok(()); }
     state.running.store(running, Ordering::Relaxed);
     state.paused.store(paused, Ordering::Relaxed);
 
@@ -259,7 +262,9 @@ fn alpha_hint_style(
     style: String,
     intensity: u8,
     state: tauri::State<AlphaUiState>,
+    app: AppHandle,
 ) -> Result<(), String> {
+    native::set_hint(&app, &style, intensity);
     let label = match style.as_str() {
         "soft-focus" => "Fokusverlust",
         "desaturate" => "Entsättigung",
@@ -389,6 +394,11 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let hint_wash_focus = MenuItem::with_id(app, "hint_wash_focus", "E · Farbhauch → Fokusverlust", true, None::<&str>)?;
     let hint_preview = MenuItem::with_id(app, "hint_preview", "Probe-Hinweis anzeigen", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
+    let native_test = MenuItem::with_id(app, "native_test", "Native Erkennung testen", true, None::<&str>)?;
+    let native_less = MenuItem::with_id(app, "native_less", "Native Empfindlichkeit: später", true, None::<&str>)?;
+    let native_medium = MenuItem::with_id(app, "native_medium", "Native Empfindlichkeit: mittel", true, None::<&str>)?;
+    let native_more = MenuItem::with_id(app, "native_more", "Native Empfindlichkeit: früher", true, None::<&str>)?;
+    let native_stop = MenuItem::with_id(app, "native_stop", "Nativen Test beenden", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Tawel beenden", true, None::<&str>)?;
 
     let menu = MenuBuilder::new(app)
@@ -413,6 +423,13 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .item(&hint_preview)
         .separator()
         .item(&settings)
+        .separator()
+        .item(&native_test)
+        .item(&native_less)
+        .item(&native_medium)
+        .item(&native_more)
+        .item(&native_stop)
+        .separator()
         .item(&quit)
         .build()?;
 
@@ -430,7 +447,10 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .tooltip("Tawel")
         .menu(&menu)
         .show_menu_on_left_click(true)
-        .on_menu_event(|app, event| match event.id().as_ref() {
+        .on_menu_event(|app, event| {
+            if native::handle_menu(app, event.id().as_ref()) { return; }
+            match event.id().as_ref() {
+            "native_test" => emit_control(app, "native_start", true),
             "open" => emit_control(app, "open", true),
             "background" => {
                 if let Some(window) = app.get_webview_window("main") { let _ = window.hide(); }
@@ -450,6 +470,7 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
             "settings" => emit_control(app, "settings", true),
             "quit" => app.exit(0),
             _ => {}
+            }
         });
     if let Some(icon) = app.default_window_icon() {
         tray = tray.icon(icon.clone()).icon_as_template(true);
@@ -640,6 +661,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             spike_tick,
             alpha_diagnostic,
+            native::native_start,
             spike_state,
             spike_log_path,
             alpha_status,
@@ -654,6 +676,7 @@ fn main() {
         ])
         .setup(|app| {
             install_tray(app)?;
+            native::install(app.handle());
             spawn_hint_overlay(app.handle())?;
 
             // Frische CSV pro Start + Header (Datei ist immer neu).
@@ -661,7 +684,7 @@ fn main() {
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
                 let _ = writeln!(
                     f,
-                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms"
+                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms"
                 );
             }
 
@@ -706,7 +729,7 @@ fn main() {
                     let state = handle.state::<SpikeState>();
                     let count = state.count.swap(0, Ordering::Relaxed);
                     let ui = handle.state::<AlphaUiState>();
-                    let active = ui.running.load(Ordering::Relaxed) && !ui.paused.load(Ordering::Relaxed);
+                    let active = !native::enabled(&handle) && ui.running.load(Ordering::Relaxed) && !ui.paused.load(Ordering::Relaxed);
                     empty_seconds = if active && count == 0 { empty_seconds.saturating_add(1) } else { 0 };
                     let stalled = empty_seconds >= 12;
                     let was_stalled = ui.stalled.swap(stalled, Ordering::Relaxed);
@@ -730,7 +753,7 @@ fn main() {
                     let window = handle.get_webview_window("main");
                     let native_visible = window.as_ref().and_then(|w| w.is_visible().ok());
                     let native_minimized = window.as_ref().and_then(|w| w.is_minimized().ok());
-                    let fields = vec![
+                    let mut fields = vec![
                         ts, secs.to_string(), count.to_string(), vis, focus.to_string(),
                         env!("CARGO_PKG_VERSION").to_string(),
                         option_env!("TAWEL_BUILD_SHA").unwrap_or("local").to_string(),
@@ -747,6 +770,7 @@ fn main() {
                         diagnostic_label(&d.last_error_kind), diagnostic_label(&d.last_error_stage),
                         d.last_error_at_ms.to_string(),
                     ];
+                    fields.extend(native::csv_fields(&handle));
                     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
                         let _ = writeln!(f, "{}", fields.join(","));
                     }

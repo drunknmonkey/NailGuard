@@ -46,7 +46,9 @@ Wegwerf-Experiment (nicht Produkt-Code). Misst rAF-Throttling im WKWebView.
 Ergebnis des ursprünglichen Spikes: Camera OK, rAF im Hintergrund gedrosselt.
 Alpha 0.1.3 ersetzt den Erkennungstakt durch einen Timer; die Pille ist optional.
 Hardwaretest 0.1.3: Erkennung stoppt bei verstecktem Fenster weiterhin.
-0.1.4 ist eine Diagnoseversion; Hintergrundbetrieb ist damit nicht als behoben freigegeben.
+0.1.4 diagnostiziert Video-Pause und Timer-Drosselung. 0.1.5 ergänzt einen
+separaten nativen AVFoundation/Vision-Testmodus (andere Erkennung, eigene
+Empfindlichkeit). Hintergrundbetrieb bleibt bis Hardwaretest ungeprüft.
 
 ## Design: „Atem & Ruhe"
 

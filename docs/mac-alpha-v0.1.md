@@ -268,3 +268,58 @@ CSV vom Schreibtisch senden. Währenddessen nicht pausieren/snoozen.
 Automatisierte Tests prüfen stehendes Video bei laufendem Timer, unabhängigen
 Heartbeat, Fehlerklasse ohne sensible Meldungstexte, IPC-Rückstau ohne wachsende
 Warteschlange und den JS/Rust-Snapshot-Vertrag. Die Auswertungslogik bleibt gleich.
+
+
+## 2026-09-05 – Nativer Testmodus 0.1.5
+
+Pauls 0.1.4-Log bestätigt beim Verstecken/minimieren: Video pausiert,
+JS-Erkennungstakt ca. 1 Hz, keine Auswertungsfehler. Zusätzlicher Hardwarehinweis:
+Beim Wechsel des macOS-Schreibtischs ging die Kamera-LED unmittelbar aus.
+
+0.1.5 ergänzt einen bewusst separat wählbaren nativen Testmodus im selben
+App-Prozess. Swift wird statisch eingebunden; kein zusätzlicher Hintergrunddienst
+und kein zweiter App-Download. AVFoundation liefert Kameraframes an eine serielle
+Queue, Apple Vision erkennt Gesicht/Lippen und Fingerspitzen. Frameverarbeitung
+ist auf höchstens 15 Hz begrenzt, überzählige Kameraframes werden verworfen.
+
+**Bedienung:** Menüleiste → „Native Erkennung testen“. Ein laufender Web-Stream
+wird davor pausiert und gestoppt; paralleler Start/Kamerawechsel in der Web-UI
+wird gesperrt. Start, Pause/Fortsetzen und Snooze in der Menüleiste steuern im
+nativen Modus direkt die native Session. „Nativen Test beenden“ beendet die native
+Session; der vorherige Web-Pfad bleibt bewusst pausiert. Fenster schließen,
+minimieren oder Schreibtisch wechseln steuert die Kamera nicht mehr.
+
+**Modelländerung:** Apple Vision ist nicht MediaPipe. Deshalb separate
+Empfindlichkeit (später/mittel/früher) mit Abstand relativ zur Gesichtsbreite;
+keine Übernahme der MediaPipe-Kalibrierung. Haltezeit 2 s, Cooldown 15 s,
+Hysterese und erneute Annäherung nach einem Hinweis. Datenlücken >0,5 s setzen
+die Haltezeit zurück. Native Hinweise fließen im Test noch nicht in die Web-
+Statistik; Gesichtsberührung außerhalb des Munds und der Kalibrierungswizard
+gehören weiterhin zum bisherigen Web-Pfad. Diese Unterschiede müssen vor
+Ablösung des bisherigen Modells geprüft/integriert werden.
+
+Die fünf visuellen Hinweise samt Intensität verwenden die vorhandene Overlay-
+Technik. Ein nativer Treffer löst das Overlay direkt aus, ohne auf JavaScript
+im unsichtbaren Hauptfenster zu warten. Die Auswahl der visuellen Variante
+bleibt in den Einstellungen; native Empfindlichkeit liegt im Menü. Native
+Empfindlichkeit ist für den Test sitzungsbezogen (Default mittel).
+
+Interne Kamera wird bevorzugt, ansonsten macOS-Standardkamera. Ein Kameraauswahl-
+menü für den nativen Pfad folgt bei erfolgreichem Hardwaretest. Keine Audio-
+Capture-Session, keine Bilder/Video/Landmarks auf Platte oder im Netzwerk.
+Kameraberechtigung wird über AVFoundation respektiert. Systemschlaf stoppt die
+Session; Aufwachen startet nur eine zuvor gewollte aktive Session neu.
+Ein nativer Watchdog versucht bei ausbleibenden Frames begrenzt einen Neustart.
+
+CSV ergänzt `native_enabled`, `native_status`, `native_frames_total`,
+`native_errors_total`, `native_hints_total`, `native_frame_age_ms`. Diese nativen
+Zähler sind entscheidend; die alten JS-Zähler dürfen im nativen Modus ruhen.
+Statuswerte: 0 beendet, 1 startet, 2 laufend, 3 Pause/Snooze, 4 Berechtigung fehlt,
+5 Kamera fehlt, 6 Startfehler, 8 Systemschlaf. Fehlende Gesicht/Hand-Pose zählt
+als erfolgreich analysierter Frame, aber erzeugt keinen Hinweis.
+
+Hardware-Abnahme: nativen Test starten, Kamera-LED und Hand-zum-Mund prüfen;
+je eine Minute ausgeblendet, minimiert und auf anderem macOS-Schreibtisch.
+Dann Pause/Fortsetzen, Snooze, Schlaf/Aufwachen und endgültiges Beenden prüfen.
+Native Frames/Fehler/Hinweise plus LED-Verhalten zurückmelden. Vorher keine
+Zusage über Erkennungsqualität oder dauerhaften Hintergrundbetrieb.

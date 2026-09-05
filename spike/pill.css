@@ -293,3 +293,10 @@ body[data-state="paused"] .pill-core {
     width: 100%;
   }
 }
+
+.native-test-banner { display: none; }
+body.native-test-active .native-test-banner {
+  display: block; position: fixed; top: 12px; left: 12px; right: 12px;
+  z-index: 100; padding: 12px; border-radius: 12px; background: #edf2ed;
+  color: #1e3b34; font: 14px var(--font-body); text-align: center;
+}
