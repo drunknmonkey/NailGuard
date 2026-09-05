@@ -1,9 +1,10 @@
-mod native;
 // Private Tawel-Mac-Alpha auf Basis der bestehenden Tauri-2-Hülle.
 // Aufgabe der Rust-Seite: jede Sekunde ein Sample in eine CSV schreiben – auch
 // dann, wenn der WebView (rAF/Timer) von macOS gedrosselt oder eingefroren ist.
 // Genau das ist der Kern des Experiments, deshalb tickt der Logger nativ.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+mod native;
 
 use std::fs::OpenOptions;
 use std::io::Write;
