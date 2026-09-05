@@ -18,7 +18,7 @@ done
 
 # Die Web-App bleibt unverändert. Nur die kopierte Mac-Variante überspringt
 # MediaPipe während einer Pause beziehungsweise ohne Live-Kameratrack und hält
-# ihren rAF-Loop auch nach einem einzelnen ungültigen Frame am Leben.
+# ihren fensterunabhängigen Timer auch nach ungültigen Frames am Leben.
 patch --batch --forward -F 0 -d "$DIST" -p0 < "$ROOT/spike/alpha-app.patch"
 
 # Alpha-/Pill-Assets dazulegen ...

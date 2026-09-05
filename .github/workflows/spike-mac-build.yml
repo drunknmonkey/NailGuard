@@ -36,6 +36,7 @@ jobs:
           node --check spike/hint-overlay.js
           node spike/alpha.test.js
           node spike/alpha-frontend.test.js
+          node spike/pill.test.js
           node spike/hint-overlay.test.js
 
       - name: Cache cargo

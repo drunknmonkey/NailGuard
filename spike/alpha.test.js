@@ -343,11 +343,11 @@ async function main() {
   assert.equal(camera.restarts, 1, "Fortsetzen öffnet den Kamerastream neu");
   assert.equal(storage.has("tawel.alpha.snooze-until.v1"), false);
 
+  document.visibilityState = "hidden";
   video.currentTime = 10;
   intervals[0]();
-  now += 16_000;
-  intervals[0]();
-  assert.equal(camera.restarts, 2, "Watchdog repariert einen stehenden Stream");
+  for (let i = 0; i < 16; i++) { now += 1000; intervals[0](); }
+  assert.equal(camera.restarts, 2, "Watchdog repariert einen stehenden Stream auch unsichtbar");
 
   // Ein asynchroner WKWebView-Kameraneustart kann den alten Stream bereits
   // entfernt haben, bevor ein neuer Track bereitsteht. Die gestartete Session
@@ -366,14 +366,27 @@ async function main() {
   const failedRestartCount = camera.restarts;
   assert.equal(alpha.isPaused(), false);
   assert.equal(alpha.isRunning(), true, "Session bleibt während eines fehlenden Streams aktiv");
-
-  now += 16_000;
+  now += 1000;
   intervals[0]();
   assert.equal(camera.restarts, failedRestartCount + 1, "Watchdog versucht den Kamerastart erneut");
+  for (let i = 0; i < 14; i++) { now += 1000; intervals[0](); }
+  assert.equal(camera.restarts, failedRestartCount + 1, "Cooldown verhindert Neustart-Schleife");
+  now += 1000;
+  intervals[0]();
+  assert.equal(camera.restarts, failedRestartCount + 2, "Nächster Versuch nach 15 Sekunden");
 
   const lastStatus = invocations.filter((call) => call.command === "alpha_status").at(-1);
   assert.equal(lastStatus.args.running, true);
   assert.equal(lastStatus.args.paused, false);
+  alpha.handleControl("background");
+  assert.equal(invocations.at(-1).command, "background_app");
+  assert.equal(alpha.isRunning(), true, "Hintergrundmodus beendet Session nicht");
+  alpha.handleControl("toggle_pause");
+  await flush();
+  const restartsPaused = camera.restarts;
+  now += 60_000;
+  intervals[0]();
+  assert.equal(camera.restarts, restartsPaused, "Schlaf/Unsichtbarkeit hebt Pause nicht auf");
   console.log("alpha.test.js: ok");
 }
 

@@ -1,7 +1,7 @@
 /*
  * Pill-Modus, Variante A „Reiner Ring".
  *
- * EIN Fenster, ein WebView: Kamera-Stream + rAF-Erkennung laufen über den
+ * EIN Fenster, ein WebView: Kamera-Stream + Timer-Erkennung laufen über den
  * Moduswechsel hinweg unverändert weiter. Der Wechsel ändert nur die CSS-Klasse
  * body.pill-mode und – über kleine Rust-Commands – die Fenster-Eigenschaften.
  *
@@ -42,10 +42,14 @@
   }
 
   async function enterPill() {
-    if (document.body.classList.contains("pill-mode")) return;
     var p = savedPos();
     document.body.classList.add("pill-mode");
-    await invoke("enter_pill", { x: p ? p.x : null, y: p ? p.y : null });
+    try {
+      await invoke("enter_pill", { x: p ? p.x : null, y: p ? p.y : null });
+    } catch (error) {
+      document.body.classList.remove("pill-mode");
+      throw error;
+    }
     if (saveTimer) clearInterval(saveTimer);
     saveTimer = setInterval(function () {
       invoke("pill_position").then(storePos).catch(function () {});
@@ -101,7 +105,7 @@
       '<div class="pill-core"></div>' +
       '<div class="pill-controls">' +
       '<button class="pill-btn pill-expand" type="button" title="Vergrößern" aria-label="Vergrößern">⤢</button>' +
-      '<button class="pill-btn pill-close" type="button" title="Tawel beenden" aria-label="Tawel beenden">✕</button>' +
+      '<button class="pill-btn pill-close" type="button" title="Im Hintergrund weiterlaufen" aria-label="Im Hintergrund weiterlaufen">✕</button>' +
       "</div></div>";
     document.body.appendChild(stage);
 
@@ -109,7 +113,7 @@
     wireDrag(wrap);
     stage.querySelector(".pill-expand").addEventListener("click", exitPill);
     stage.querySelector(".pill-close").addEventListener("click", function () {
-      invoke("close_app");
+      invoke("background_app");
     });
 
     var enter = document.createElement("button");
@@ -118,7 +122,9 @@
     enter.textContent = document.documentElement.lang === "en"
       ? "Keep running in background"
       : "Im Hintergrund weiterlaufen";
-    enter.addEventListener("click", enterPill);
+    enter.addEventListener("click", function () {
+      invoke("background_app");
+    });
     document.body.appendChild(enter);
   }
 

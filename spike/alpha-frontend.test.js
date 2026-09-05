@@ -1,71 +1,63 @@
-/* Regressionstest für den ausschließlich erzeugten Mac-Frontend-Loop. */
+/* Test des erzeugten Mac-Loops mit vollständig stillgelegtem Rendering. */
 "use strict";
-
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-
-const sourcePath = process.argv[2] || `${__dirname}/../spike-dist/app.js`;
-const source = fs.readFileSync(sourcePath, "utf8");
-const loopMatch = source.match(/\n  loop\(now\) \{([\s\S]*?)\n  \},\n\n  detectFrame\(now\)/);
-
-assert.ok(loopMatch, "Erkennungsloop im erzeugten Mac-Frontend gefunden");
-
-function runLoop({ paused, liveTrack, frameError = null }) {
-  let scheduled = 0;
-  let detections = 0;
-  const context = {
-    state: { running: true, paused, lastVideoTime: -1 },
-    els: { video: { currentTime: 1, readyState: 2 } },
-    hasLiveCameraTrack: () => liveTrack,
-    requestAnimationFrame(callback) {
-      scheduled += 1;
-      assert.equal(typeof callback, "function");
-    },
-    detection: {
-      detectFrame() {
-        detections += 1;
-        if (frameError) throw frameError;
-      },
-    },
-  };
-
-  vm.runInNewContext(
-    `detection.loop = function (now) {${loopMatch[1]}\n};`,
-    context,
-    { filename: sourcePath },
-  );
-
-  let thrown = null;
-  try {
-    context.detection.loop(1000);
-  } catch (error) {
-    thrown = error;
-  }
-
-  return { detections, scheduled, thrown };
+const source = fs.readFileSync(`${__dirname}/../spike-dist/app.js`, "utf8");
+const methods = source.slice(source.indexOf("  timer: null,"), source.indexOf("  detectFrame(now)"));
+assert.ok(methods.includes("scheduleNextFrame"));
+assert.ok(!source.includes("requestAnimationFrame(detection.loop)"), "Auch Erststart hängt nicht am Rendering");
+let now = 0, detections = 0, frameError = false;
+const tasks = new Map();
+let nextId = 0;
+const context = {
+  state: { running: true, paused: false, lastVideoTime: -1 },
+  els: { video: { currentTime: 1, readyState: 2 } },
+  live: true,
+  hasLiveCameraTrack: () => context.live,
+  performance: { now: () => now },
+  document: { visibilityState: "hidden" },
+  requestAnimationFrame() { throw new Error("Rendering darf nicht benötigt werden"); },
+  setTimeout(fn, delay) { tasks.set(++nextId, { fn, delay }); return nextId; },
+  detect() { detections++; if (frameError) throw new Error("frame-error"); },
+};
+vm.runInNewContext(`var detection = {${methods} detectFrame: detect};`, context);
+const d = context.detection;
+function tick() {
+  assert.equal(tasks.size, 1, "Genau ein ausstehender Durchlauf");
+  const [id, task] = tasks.entries().next().value;
+  tasks.delete(id);
+  now += task.delay;
+  task.fn();
 }
-
-assert.deepEqual(
-  runLoop({ paused: true, liveTrack: true }),
-  { detections: 0, scheduled: 1, thrown: null },
-  "Pause verarbeitet keinen Kameraframe, hält den Loop aber am Leben",
-);
-assert.deepEqual(
-  runLoop({ paused: false, liveTrack: false }),
-  { detections: 0, scheduled: 1, thrown: null },
-  "Fortsetzen wartet auf einen neuen Live-Track",
-);
-assert.deepEqual(
-  runLoop({ paused: false, liveTrack: true }),
-  { detections: 1, scheduled: 1, thrown: null },
-  "Ein neuer Live-Track wird wieder ausgewertet",
-);
-
-const frameError = new Error("ungueltiger-frame");
-const failedFrame = runLoop({ paused: false, liveTrack: true, frameError });
-assert.equal(failedFrame.detections, 1);
-assert.equal(failedFrame.scheduled, 1, "Auch nach einem Framefehler ist der nächste Loop geplant");
-assert.equal(failedFrame.thrown, frameError, "Der Fehler wird nicht still verschluckt");
-
+d.scheduleNextFrame();
+d.scheduleNextFrame();
+assert.equal(tasks.size, 1, "Doppelstart erzeugt keinen zweiten Loop");
+tick();
+assert.equal(detections, 1, "Verstecktes Fenster verarbeitet einen Frame");
+tick();
+assert.equal(detections, 1, "Derselbe Frame wird nicht zweimal verarbeitet");
+context.state.paused = true;
+context.els.video.currentTime++;
+tick();
+assert.equal(detections, 1, "Pause wertet keine Frames aus");
+assert.equal([...tasks.values()][0].delay, 200, "Pause reduziert Timerlast");
+context.state.paused = false;
+context.live = false;
+tick();
+assert.equal(detections, 1, "Kein ungültiger Frame beim Kamerawechsel");
+context.live = true;
+tick();
+assert.equal(detections, 2, "Fortsetzen im Hintergrund funktioniert");
+frameError = true;
+context.els.video.currentTime++;
+assert.throws(tick, /frame-error/);
+assert.equal(tasks.size, 1, "Framefehler beendet den Loop nicht");
+frameError = false;
+context.els.video.currentTime++;
+tick();
+assert.equal(detections, 4);
+context.state.running = false;
+tick();
+assert.equal(tasks.size, 0, "Beendete Session plant nichts mehr");
 console.log("alpha-frontend.test.js: ok");

@@ -118,6 +118,7 @@ struct SpikeState {
 struct AlphaUiState {
     running: AtomicBool,
     paused: AtomicBool,
+    stalled: AtomicBool,
     status_item: MenuItem<tauri::Wry>,
     pause_item: MenuItem<tauri::Wry>,
     snooze_items: Vec<MenuItem<tauri::Wry>>,
@@ -185,6 +186,8 @@ fn alpha_status(
         format!("Status: Snooze · {minutes} Min.")
     } else if paused {
         "Status: pausiert".to_string()
+    } else if state.stalled.load(Ordering::Relaxed) {
+        "Status: Erkennung unterbrochen".to_string()
     } else {
         "Status: aktiv".to_string()
     };
@@ -233,7 +236,7 @@ fn cmd_err<E: std::fmt::Display>(err: E) -> String {
 }
 
 /// Pill-Modus: kompaktes, rahmenloses, immer sichtbares Mini-Fenster. Das WebView
-/// (Kamera + rAF-Erkennung) bleibt dasselbe – nur die Fenster-Eigenschaften ändern sich.
+/// (Kamera + Timer-Erkennung) bleibt dasselbe – nur die Fenster-Eigenschaften ändern sich.
 #[tauri::command]
 fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> Result<(), String> {
     window.set_decorations(false).map_err(cmd_err)?;
@@ -245,9 +248,23 @@ fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> R
         .map_err(cmd_err)?;
     // Auf allen Spaces/Workspaces sichtbar (Desktop-only, Fehler nicht fatal).
     let _ = window.set_visible_on_all_workspaces(true);
-    if let (Some(x), Some(y)) = (x, y) {
-        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)));
+    // Gespeicherte Position kann nach Monitorwechsel außerhalb liegen.
+    let monitors = window.available_monitors().map_err(cmd_err)?;
+    let valid = x.zip(y).filter(|(x, y)| monitors.iter().any(|m| {
+        let p = m.position();
+        let size = m.size();
+        let extent = (130.0 * m.scale_factor()).ceil() as i64;
+        i64::from(*x) >= i64::from(p.x) && i64::from(*y) >= i64::from(p.y)
+            && i64::from(*x) + extent <= i64::from(p.x) + i64::from(size.width)
+            && i64::from(*y) + extent <= i64::from(p.y) + i64::from(size.height)
+    }));
+    if let Some((x, y)) = valid {
+        window.set_position(tauri::PhysicalPosition::new(x, y)).map_err(cmd_err)?;
+    } else {
+        window.center().map_err(cmd_err)?;
     }
+    window.unminimize().map_err(cmd_err)?;
+    window.show().map_err(cmd_err)?;
     #[cfg(target_os = "macos")]
     set_collection_behavior(&window, true);
     Ok(())
@@ -277,11 +294,16 @@ fn pill_position(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
     Ok((p.x, p.y))
 }
 
-/// „Schließen"-Steuerung der Pille: App wirklich beenden. Das normale rote
-/// Fenster-X wird separat abgefangen und lässt Tawel in der Pille weiterlaufen.
+/// Explizites Beenden. Fenster-X und Pillen-X verstecken nur die Oberfläche.
 #[tauri::command]
 fn close_app(app: AppHandle) {
     app.exit(0);
+}
+
+/// Versteckt nur die Oberfläche. Session, Kamera und Timer bleiben bestehen.
+#[tauri::command]
+fn background_app(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.hide().map_err(cmd_err)
 }
 
 fn show_main_window(app: &AppHandle) {
@@ -305,6 +327,8 @@ fn emit_control(app: &AppHandle, action: &str, show_window: bool) {
 fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let status = MenuItem::with_id(app, "status", "Status: bereit", false, None::<&str>)?;
     let open = MenuItem::with_id(app, "open", "Tawel öffnen", true, None::<&str>)?;
+    let background = MenuItem::with_id(app, "background", "Im Hintergrund weiterlaufen", true, None::<&str>)?;
+    let pill = MenuItem::with_id(app, "pill", "Pille anzeigen (optional)", true, None::<&str>)?;
     let start = MenuItem::with_id(app, "start", "Start", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pausieren", false, None::<&str>)?;
     let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
@@ -324,6 +348,8 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .item(&status)
         .separator()
         .item(&open)
+        .item(&background)
+        .item(&pill)
         .item(&start)
         .item(&pause)
         .separator()
@@ -346,6 +372,7 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     app.manage(AlphaUiState {
         running: AtomicBool::new(false),
         paused: AtomicBool::new(false),
+        stalled: AtomicBool::new(false),
         status_item: status,
         pause_item: pause,
         snooze_items: vec![snooze_15, snooze_30, snooze_60],
@@ -358,6 +385,10 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "open" => emit_control(app, "open", true),
+            "background" => {
+                if let Some(window) = app.get_webview_window("main") { let _ = window.hide(); }
+            }
+            "pill" => emit_control(app, "dock", false),
             "start" => emit_control(app, "start", true),
             "pause" => emit_control(app, "toggle_pause", false),
             "snooze_15" => emit_control(app, "snooze_15", false),
@@ -569,7 +600,8 @@ fn main() {
             pill_position,
             show_visual_hint,
             hide_visual_hint,
-            close_app
+            close_app,
+            background_app
         ])
         .setup(|app| {
             install_tray(app)?;
@@ -596,12 +628,7 @@ fn main() {
                         }
                         WindowEvent::CloseRequested { api, .. } => {
                             api.prevent_close();
-                            let ui = handle.state::<AlphaUiState>();
-                            if ui.running.load(Ordering::Relaxed) {
-                                let _ = event_window.emit("tawel:control", "dock");
-                            } else {
-                                let _ = event_window.hide();
-                            }
+                            let _ = event_window.hide();
                         }
                         _ => {}
                     }
@@ -623,20 +650,33 @@ fn main() {
 
             // Nativer 1-Sekunden-Ticker. Läuft unabhängig vom WebView-Throttling.
             let handle = app.handle().clone();
-            thread::spawn(move || loop {
-                thread::sleep(Duration::from_secs(1));
-                let state = handle.state::<SpikeState>();
-                let count = state.count.swap(0, Ordering::Relaxed);
-                let secs = state.start.elapsed().as_secs();
-                let vis = state
-                    .visibility
-                    .lock()
-                    .map(|v| v.clone())
-                    .unwrap_or_else(|_| "?".to_string());
-                let focus = state.focus.load(Ordering::Relaxed);
-                let ts = chrono::Local::now().to_rfc3339();
-                if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
-                    let _ = writeln!(f, "{},{},{},{},{}", ts, secs, count, vis, focus);
+            thread::spawn(move || {
+                let mut empty_seconds = 0u32;
+                loop {
+                    thread::sleep(Duration::from_secs(1));
+                    let state = handle.state::<SpikeState>();
+                    let count = state.count.swap(0, Ordering::Relaxed);
+                    let ui = handle.state::<AlphaUiState>();
+                    let active = ui.running.load(Ordering::Relaxed) && !ui.paused.load(Ordering::Relaxed);
+                    empty_seconds = if active && count == 0 { empty_seconds.saturating_add(1) } else { 0 };
+                    let stalled = empty_seconds >= 12;
+                    let was_stalled = ui.stalled.swap(stalled, Ordering::Relaxed);
+                    if stalled {
+                        let _ = ui.status_item.set_text("Status: Erkennung unterbrochen");
+                    } else if was_stalled && active {
+                        let _ = ui.status_item.set_text("Status: aktiv");
+                    }
+                    let secs = state.start.elapsed().as_secs();
+                    let vis = state
+                        .visibility
+                        .lock()
+                        .map(|v| v.clone())
+                        .unwrap_or_else(|_| "?".to_string());
+                    let focus = state.focus.load(Ordering::Relaxed);
+                    let ts = chrono::Local::now().to_rfc3339();
+                    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
+                        let _ = writeln!(f, "{},{},{},{},{}", ts, secs, count, vis, focus);
+                    }
                 }
             });
 

@@ -91,6 +91,7 @@
   var hintIntensityValue = null;
   var hintSettingsCopy = {};
   var lastVideoTime = -1;
+  var lastWatchdogAt = Date.now();
   var lastProgressAt = Date.now();
   var restartBlockedUntil = 0;
   var syncQueued = false;
@@ -375,6 +376,9 @@
       case "hint_preview":
         showVisualHint();
         break;
+      case "background":
+        invoke("background_app").catch(function () {});
+        break;
       case "dock":
         if (isRunning() && window.__tawelPill) window.__tawelPill.enter();
         break;
@@ -398,8 +402,11 @@
     finishExpiredSnooze();
     syncNativeState();
 
-    if (!isRunning() || isPaused() || document.visibilityState !== "visible") return;
     var now = Date.now();
+    // Nach echtem Systemschlaf erst neue Frames abwarten, nicht sofort neu öffnen.
+    if (now - lastWatchdogAt > 5000) lastProgressAt = now;
+    lastWatchdogAt = now;
+    if (!isRunning() || isPaused()) return;
     if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
       lastVideoTime = video.currentTime;
       lastProgressAt = now;

@@ -17,7 +17,7 @@ heißen historisch NailGuard und bleiben so (Migrationsrisiko ohne Nutzen).
   neutrale Notizseite dargestellt, während die Erkennung weiterläuft.
 - **Mac-App** (via Tauri 2.x): das Kernprodukt, in Entwicklung. Soll
   zuverlässig im Hintergrund laufen; ein Office-Mode-Tab ist dort nicht
-  nötig, im Vordergrund soll nur ein dezenter Statuspunkt bleiben.
+  nötig, eine sichtbare Pille ist optional; Steuerung über die Menüleiste.
   Bildschirmrand-Glühen mit Unsichtbarkeit in
   Calls/Screen-Sharing/Aufnahmen ist ein ZIEL (nur im Spike validiert) –
   immer als „geplant/soll" formulieren, nie als Fakt.
@@ -43,8 +43,9 @@ HandLandmarker erkannt.
 ### Tauri-Spike (`spike/`, `src-tauri/`)
 
 Wegwerf-Experiment (nicht Produkt-Code). Misst rAF-Throttling im WKWebView.
-Ergebnis: Camera OK (3-teiliger Fix nötig), rAF im Hintergrund gedrosselt → **Pill-Modus**
-als Lösung (immer sichtbarer Ring, Erkennung bleibt auf voller Rate).
+Ergebnis des ursprünglichen Spikes: Camera OK, rAF im Hintergrund gedrosselt.
+Alpha 0.1.3 ersetzt den Erkennungstakt durch einen Timer; die Pille ist optional.
+Hintergrund-Kameraframes bleiben bis zum Hardwaretest ausdrücklich ungeprüft.
 
 ## Design: „Atem & Ruhe"
 

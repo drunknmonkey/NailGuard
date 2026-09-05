@@ -5,8 +5,8 @@ Produktstatus und offene Entscheidungen bleiben im bestehenden Notion-Eintrag
 „Mac-App – private Alpha“; dieses Dokument beschreibt nur Build, Architektur und
 reproduzierbare Tests im Repository.
 
-Aktueller Hardware-Testbuild: **Tawel 0.1.2** (bestätigter Pause/Fortsetzen-Fix
-plus fünf ruhige visuelle Hinweise mit drei groben Intensitätsstufen).
+Aktueller Hardware-Testbuild: **Tawel 0.1.3** (fensterunabhängiger Erkennungstakt;
+Hintergrundbetrieb ohne Pille muss auf echter Mac-Hardware abgenommen werden).
 
 ## Architektur
 
@@ -14,9 +14,12 @@ plus fünf ruhige visuelle Hinweise mit drei groben Intensitätsstufen).
   unverändert; `spike/build-frontend.sh` kopiert die Dateien, wendet den kleinen
   Mac-only-Patch `alpha-app.patch` an und ergänzt `alpha.js`, `pill.js` und
   `pill.css` im generierten `spike-dist/`.
-- Kamera, MediaPipe und Erkennung leben weiterhin in genau einem WebView. Für
-  zuverlässige `requestAnimationFrame`-Verarbeitung bleibt dieser WebView als
-  kleine, always-on-top Pille sichtbar, wenn das Hauptfenster geschlossen wird.
+- Kamera, MediaPipe und Erkennung leben weiterhin in genau einem WebView. Ein begrenzter
+  Timer (33 ms nach jedem Durchlauf, pausiert 200 ms) ersetzt den bisherigen
+  `requestAnimationFrame`-Takt, einschließlich Erststart. Die vorhandene
+  `backgroundThrottling: disabled`-Einstellung bleibt bestehen. Schließen und
+  der Hintergrund-Button verstecken das Fenster; Minimieren bleibt erlaubt.
+  Die Pille ist eine optionale Anzeige über das Menü, keine Voraussetzung.
 - Alle fünf Testhinweise verwenden ein zweites, rein visuelles Overlay-Fenster
   ohne Kamera, MediaPipe oder Produktzustand. Es wird nur für die 2,5 Sekunden
   eines Hinweises eingeblendet und danach vollständig versteckt; die
@@ -32,6 +35,8 @@ plus fünf ruhige visuelle Hinweise mit drei groben Intensitätsstufen).
 Die Menüleiste bietet:
 
 - `Tawel öffnen`
+- `Im Hintergrund weiterlaufen`
+- `Pille anzeigen (optional)`
 - `Start`
 - `Pausieren` / `Fortsetzen`
 - `Snooze · 15/30/60 Minuten`
@@ -52,13 +57,13 @@ Display-Sleep wird automatisch fortgesetzt. Eine bewusste manuelle Pause oder
 ein neuer Start hebt den Snooze auf.
 
 Ein Watchdog prüft einmal pro Sekunde, ob sich die Videozeit bewegt. Bei einem
-sichtbaren, aktiven und länger als 12 Sekunden stehenden Stream wird die
+aktiven und länger als 12 Sekunden stehenden Stream (auch unsichtbar) wird die
 gespeicherte Kamera neu geöffnet; zwischen Versuchen liegen mindestens 15
-Sekunden. Während Pause/Snooze oder bei unsichtbarem Dokument greift der
-Watchdog nicht ein.
+Sekunden. Während Pause/Snooze greift der Watchdog nicht ein. Nach einer
+Timerlücke durch Systemschlaf beginnt die Wartezeit für stehende Frames neu.
 
 Der Mac-only-Erkennungsloop verarbeitet während einer Pause und ohne Live-Track
-keinen MediaPipe-Frame. Sein nächster `requestAnimationFrame` wird in einem
+keinen MediaPipe-Frame. Sein nächster Timer wird in einem
 `finally` geplant, damit ein einzelner ungültiger Frame den dauerhaften Loop
 nicht mehr beenden kann. Eine bereits gestartete Produktsession bleibt auch dann
 aktiv, wenn ein Kameraneustart den alten Stream kurz vor dem neuen entfernt;
@@ -189,3 +194,25 @@ Folgende Punkte benötigen den aktuellen `.dmg` auf echter Mac-Hardware:
 Noch nicht Bestandteil dieses Alpha-Meilensteins: Autostart bei Anmeldung,
 Signierung/Notarisierung, App Store, Lizenz-/Preislogik und öffentliche
 Capture-Exclusion-Garantie.
+
+
+## 2026-09-05 – Hintergrundbetrieb 0.1.3
+
+- Ein ausstehender Timer verhindert doppelte Loops; unveränderte Videoframes
+  werden weiterhin nicht erneut ausgewertet. Zeitbasis ist `performance.now()`.
+- Roter Fensterknopf, Hintergrund-Button und Pillen-X verstecken nur das Fenster.
+  Wirkliches Beenden bleibt im Menü. Öffnen stellt ein minimiertes Fenster wieder her.
+- Optionale Pille wird ausdrücklich gezeigt/entminimiert. Ungültige gespeicherte
+  Monitorpositionen werden zentriert, fehlgeschlagene Übergänge setzen CSS zurück.
+- Der native Logger prüft erfolgreiche Erkennungsdurchläufe. Nach 12 Sekunden
+  ohne Durchlauf bei aktiver Session zeigt das Menü „Erkennung unterbrochen“.
+  Ein zurückkehrender Callback hebt den Fehler auf; Pause/Snooze bleibt führend.
+- Rückkehr in den Vordergrund öffnet bei bewusster Pause keine Kamera mehr.
+- Regression: tatsächlicher erzeugter Timerloop ohne jedes rAF, versteckte
+  Kamera-Reparatur, begrenzte Neustarts, Pause/Fortsetzen und Framefehler.
+- Hardwaretest: je mindestens zwei Minuten Hintergrund-Button, Minimieren,
+  Schließen und Cmd-H; jeweils Hand-zum-Mund und Callback-CSV prüfen. Danach
+  Pause/Fortsetzen, Snooze, Schlaf/Aufwachen sowie optionale Pille testen.
+- Lokale Tests beweisen weder fortlaufende WKWebView-Kameraframes noch
+  die visuelle Wirkung auf macOS. Falls diese weiterhin einfrieren, ist eine
+  native Kamera-/Erkennungslösung nötig; diese ist nicht Teil von 0.1.3.
