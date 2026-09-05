@@ -1,7 +1,7 @@
 [package]
-name = "nailguard-spike"
-version = "0.1.0"
-description = "Wegwerf-Spike: Tauri-2-Hülle für NailGuard zur Messung von Kamera + Hintergrund-Throttling."
+name = "tawel-alpha"
+version = "0.1.5"
+description = "Private Tawel-Mac-Alpha auf Basis der bestehenden Tauri-2-Hülle."
 edition = "2021"
 rust-version = "1.77"
 
@@ -9,7 +9,7 @@ rust-version = "1.77"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["macos-private-api"] }
+tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 

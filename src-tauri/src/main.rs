@@ -1,8 +1,10 @@
-// Wegwerf-Spike: minimale Tauri-2-Hülle, die die bestehende NailGuard-PWA lädt.
+// Private Tawel-Mac-Alpha auf Basis der bestehenden Tauri-2-Hülle.
 // Aufgabe der Rust-Seite: jede Sekunde ein Sample in eine CSV schreiben – auch
 // dann, wenn der WebView (rAF/Timer) von macOS gedrosselt oder eingefroren ist.
 // Genau das ist der Kern des Experiments, deshalb tickt der Logger nativ.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+mod native;
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -12,7 +14,9 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use tauri::{Manager, WindowEvent};
+use tauri::menu::{MenuBuilder, MenuItem};
+use tauri::tray::TrayIconBuilder;
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 // --- macOS: getUserMedia im WKWebView erlauben ----------------------------------
 // WKWebView verweigert Kamera/Mikrofon auf Web-Ebene, solange der WKUIDelegate die
@@ -67,7 +71,7 @@ mod macos_camera {
         // Runtime-Diagnose: bestaetigt, dass with_webview/install lief und welche
         // ObjC-Klasse inner() liefert (sollte WKWebView sein). Liegt auf dem Desktop.
         let dbg_path = format!(
-            "{}/Desktop/nailguard-spike-debug.txt",
+            "{}/Desktop/tawel-alpha-debug.txt",
             std::env::var("HOME").unwrap_or_default()
         );
         let wk = webview_ptr.cast::<AnyObject>();
@@ -96,6 +100,53 @@ mod macos_camera {
 // --------------------------------------------------------------------------------
 
 
+/// Nur skalare Diagnosewerte; niemals Kamerabilder, Landmarks oder Fehlertexte.
+#[derive(Clone, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DiagnosticSample {
+    sequence: u64,
+    timer_total: u64,
+    heartbeat_total: u64,
+    video_changes_total: u64,
+    attempts_total: u64,
+    errors_total: u64,
+    ipc_failures: u64,
+    watchdog_total: u64,
+    restarts_total: u64,
+    running: bool,
+    paused: bool,
+    video_time: f64,
+    ready_state: u32,
+    video_paused: bool,
+    track_live: bool,
+    track_muted: bool,
+    decoded_frames: i64,
+    last_error_kind: String,
+    last_error_stage: String,
+    last_error_at_ms: i64,
+}
+
+#[derive(Default)]
+struct DiagnosticState {
+    latest: DiagnosticSample,
+    received: Option<Instant>,
+}
+
+// CSV bleibt einzeilig. Freitexte/Stacks werden bereits in JS nicht übernommen.
+fn diagnostic_label(value: &str) -> String {
+    value.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(32).collect()
+}
+
+#[tauri::command]
+fn alpha_diagnostic(sample: DiagnosticSample, state: tauri::State<Mutex<DiagnosticState>>) {
+    if let Ok(mut diagnostic) = state.lock() {
+        if sample.sequence > diagnostic.latest.sequence {
+            diagnostic.latest = sample;
+            diagnostic.received = Some(Instant::now());
+        }
+    }
+}
+
 /// Gemeinsamer Zustand zwischen WebView-Befehlen und nativem Ticker.
 struct SpikeState {
     /// Vom WebView gemeldete Detection-Callbacks seit dem letzten Tick.
@@ -110,6 +161,19 @@ struct SpikeState {
     log_path: PathBuf,
 }
 
+/// Vom WebView gemeldeter Produktzustand und veränderbare Menüeinträge.
+/// Die Erkennung selbst bleibt im bestehenden WebView; Rust hält nur genug
+/// Zustand, um Schließen und Menüleisten-Bedienung verlässlich abzubilden.
+struct AlphaUiState {
+    running: AtomicBool,
+    paused: AtomicBool,
+    stalled: AtomicBool,
+    status_item: MenuItem<tauri::Wry>,
+    pause_item: MenuItem<tauri::Wry>,
+    snooze_items: Vec<MenuItem<tauri::Wry>>,
+    hint_status_item: MenuItem<tauri::Wry>,
+}
+
 /// Desktop des Nutzers (Fallback: Home), damit Paul die Datei sofort findet.
 fn log_dir() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
@@ -121,11 +185,11 @@ fn log_dir() -> PathBuf {
     p
 }
 
-/// Pro Start eindeutiger Dateiname: nailguard-spike-log-YYYYMMDD-HHMMSS.csv
+/// Pro Start eindeutiger Dateiname: tawel-alpha-log-YYYYMMDD-HHMMSS.csv
 fn new_log_path() -> PathBuf {
     let mut p = log_dir();
     p.push(format!(
-        "nailguard-spike-log-{}.csv",
+        "tawel-alpha-log-{}.csv",
         chrono::Local::now().format("%Y%m%d-%H%M%S")
     ));
     p
@@ -152,12 +216,80 @@ fn spike_log_path(state: tauri::State<SpikeState>) -> String {
     state.log_path.to_string_lossy().into_owned()
 }
 
+/// Hält die native Menüleiste mit dem tatsächlichen WebView-Zustand synchron.
+#[tauri::command]
+fn alpha_status(
+    running: bool,
+    paused: bool,
+    snooze_until: Option<i64>,
+    state: tauri::State<AlphaUiState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    if native::enabled(&app) { return Ok(()); }
+    state.running.store(running, Ordering::Relaxed);
+    state.paused.store(paused, Ordering::Relaxed);
+
+    let status = if !running {
+        "Status: bereit".to_string()
+    } else if let Some(until) = snooze_until.filter(|until| *until > chrono::Utc::now().timestamp_millis()) {
+        let remaining_ms = until - chrono::Utc::now().timestamp_millis();
+        let minutes = (remaining_ms + 59_999) / 60_000;
+        format!("Status: Snooze · {minutes} Min.")
+    } else if paused {
+        "Status: pausiert".to_string()
+    } else if state.stalled.load(Ordering::Relaxed) {
+        "Status: Erkennung unterbrochen".to_string()
+    } else {
+        "Status: aktiv".to_string()
+    };
+
+    state.status_item.set_text(status).map_err(cmd_err)?;
+    state
+        .pause_item
+        .set_text(if paused { "Fortsetzen" } else { "Pausieren" })
+        .map_err(cmd_err)?;
+    state.pause_item.set_enabled(running).map_err(cmd_err)?;
+    for item in &state.snooze_items {
+        item.set_enabled(running).map_err(cmd_err)?;
+    }
+    Ok(())
+}
+
+/// Spiegelt die lokal gespeicherte Hinweisvariante samt grober Intensität in
+/// der Menüleiste. Die eigentliche Auswahl bleibt im WebView/localStorage,
+/// damit sie ohne zusätzliche native Persistenz über Neustarts erhalten bleibt.
+#[tauri::command]
+fn alpha_hint_style(
+    style: String,
+    intensity: u8,
+    state: tauri::State<AlphaUiState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    native::set_hint(&app, &style, intensity);
+    let label = match style.as_str() {
+        "soft-focus" => "Fokusverlust",
+        "desaturate" => "Entsättigung",
+        "ambient-glow" => "Ambient Glow",
+        "wash-focus" => "Farbhauch → Fokus",
+        _ => "Lavendel-Vignette",
+    };
+    let intensity_label = match intensity {
+        1 => "leicht",
+        3 => "deutlich",
+        _ => "mittel",
+    };
+    state
+        .hint_status_item
+        .set_text(format!("Hinweis: {label} · {intensity_label}"))
+        .map_err(cmd_err)
+}
+
 fn cmd_err<E: std::fmt::Display>(err: E) -> String {
     err.to_string()
 }
 
 /// Pill-Modus: kompaktes, rahmenloses, immer sichtbares Mini-Fenster. Das WebView
-/// (Kamera + rAF-Erkennung) bleibt dasselbe – nur die Fenster-Eigenschaften ändern sich.
+/// (Kamera + Timer-Erkennung) bleibt dasselbe – nur die Fenster-Eigenschaften ändern sich.
 #[tauri::command]
 fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> Result<(), String> {
     window.set_decorations(false).map_err(cmd_err)?;
@@ -169,9 +301,23 @@ fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> R
         .map_err(cmd_err)?;
     // Auf allen Spaces/Workspaces sichtbar (Desktop-only, Fehler nicht fatal).
     let _ = window.set_visible_on_all_workspaces(true);
-    if let (Some(x), Some(y)) = (x, y) {
-        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)));
+    // Gespeicherte Position kann nach Monitorwechsel außerhalb liegen.
+    let monitors = window.available_monitors().map_err(cmd_err)?;
+    let valid = x.zip(y).filter(|(x, y)| monitors.iter().any(|m| {
+        let p = m.position();
+        let size = m.size();
+        let extent = (130.0 * m.scale_factor()).ceil() as i64;
+        i64::from(*x) >= i64::from(p.x) && i64::from(*y) >= i64::from(p.y)
+            && i64::from(*x) + extent <= i64::from(p.x) + i64::from(size.width)
+            && i64::from(*y) + extent <= i64::from(p.y) + i64::from(size.height)
+    }));
+    if let Some((x, y)) = valid {
+        window.set_position(tauri::PhysicalPosition::new(x, y)).map_err(cmd_err)?;
+    } else {
+        window.center().map_err(cmd_err)?;
     }
+    window.unminimize().map_err(cmd_err)?;
+    window.show().map_err(cmd_err)?;
     #[cfg(target_os = "macos")]
     set_collection_behavior(&window, true);
     Ok(())
@@ -201,10 +347,137 @@ fn pill_position(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
     Ok((p.x, p.y))
 }
 
-/// „Schließen"-Steuerung der Pille: App beenden.
+/// Explizites Beenden. Fenster-X und Pillen-X verstecken nur die Oberfläche.
 #[tauri::command]
-fn close_app(window: tauri::WebviewWindow) {
-    let _ = window.close();
+fn close_app(app: AppHandle) {
+    app.exit(0);
+}
+
+/// Versteckt nur die Oberfläche. Session, Kamera und Timer bleiben bestehen.
+#[tauri::command]
+fn background_app(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.hide().map_err(cmd_err)
+}
+
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+fn emit_control(app: &AppHandle, action: &str, show_window: bool) {
+    if show_window {
+        show_main_window(app);
+    }
+    let _ = app.emit_to("main", "tawel:control", action);
+}
+
+/// Ruhige Menüleistensteuerung für die private Alpha. Alle Aktionen werden als
+/// kleine Ereignisse an denselben WebView geschickt; Kamera/MediaPipe werden
+/// weder dupliziert noch in einen zweiten Prozess verschoben.
+fn install_tray(app: &tauri::App) -> tauri::Result<()> {
+    let status = MenuItem::with_id(app, "status", "Status: bereit", false, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Tawel öffnen", true, None::<&str>)?;
+    let background = MenuItem::with_id(app, "background", "Im Hintergrund weiterlaufen", true, None::<&str>)?;
+    let pill = MenuItem::with_id(app, "pill", "Pille anzeigen (optional)", true, None::<&str>)?;
+    let start = MenuItem::with_id(app, "start", "Start", true, None::<&str>)?;
+    let pause = MenuItem::with_id(app, "pause", "Pausieren", false, None::<&str>)?;
+    let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
+    let snooze_30 = MenuItem::with_id(app, "snooze_30", "Snooze · 30 Minuten", false, None::<&str>)?;
+    let snooze_60 = MenuItem::with_id(app, "snooze_60", "Snooze · 60 Minuten", false, None::<&str>)?;
+    let hint_status = MenuItem::with_id(app, "hint_status", "Hinweis: Lavendel-Vignette · mittel", false, None::<&str>)?;
+    let hint_lavender_vignette = MenuItem::with_id(app, "hint_lavender_vignette", "A · Lavendel-Vignette", true, None::<&str>)?;
+    let hint_soft_focus = MenuItem::with_id(app, "hint_soft_focus", "B · Sanfter Fokusverlust", true, None::<&str>)?;
+    let hint_desaturate = MenuItem::with_id(app, "hint_desaturate", "C · Kurze Entsättigung", true, None::<&str>)?;
+    let hint_ambient_glow = MenuItem::with_id(app, "hint_ambient_glow", "D · Ambient Glow", true, None::<&str>)?;
+    let hint_wash_focus = MenuItem::with_id(app, "hint_wash_focus", "E · Farbhauch → Fokusverlust", true, None::<&str>)?;
+    let hint_preview = MenuItem::with_id(app, "hint_preview", "Probe-Hinweis anzeigen", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
+    let native_test = MenuItem::with_id(app, "native_test", "Native Erkennung testen", true, None::<&str>)?;
+    let native_less = MenuItem::with_id(app, "native_less", "Native Empfindlichkeit: später", true, None::<&str>)?;
+    let native_medium = MenuItem::with_id(app, "native_medium", "Native Empfindlichkeit: mittel", true, None::<&str>)?;
+    let native_more = MenuItem::with_id(app, "native_more", "Native Empfindlichkeit: früher", true, None::<&str>)?;
+    let native_stop = MenuItem::with_id(app, "native_stop", "Nativen Test beenden", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Tawel beenden", true, None::<&str>)?;
+
+    let menu = MenuBuilder::new(app)
+        .item(&status)
+        .separator()
+        .item(&open)
+        .item(&background)
+        .item(&pill)
+        .item(&start)
+        .item(&pause)
+        .separator()
+        .item(&snooze_15)
+        .item(&snooze_30)
+        .item(&snooze_60)
+        .separator()
+        .item(&hint_status)
+        .item(&hint_lavender_vignette)
+        .item(&hint_soft_focus)
+        .item(&hint_desaturate)
+        .item(&hint_ambient_glow)
+        .item(&hint_wash_focus)
+        .item(&hint_preview)
+        .separator()
+        .item(&settings)
+        .separator()
+        .item(&native_test)
+        .item(&native_less)
+        .item(&native_medium)
+        .item(&native_more)
+        .item(&native_stop)
+        .separator()
+        .item(&quit)
+        .build()?;
+
+    app.manage(AlphaUiState {
+        running: AtomicBool::new(false),
+        paused: AtomicBool::new(false),
+        stalled: AtomicBool::new(false),
+        status_item: status,
+        pause_item: pause,
+        snooze_items: vec![snooze_15, snooze_30, snooze_60],
+        hint_status_item: hint_status,
+    });
+
+    let mut tray = TrayIconBuilder::with_id("tawel-tray")
+        .tooltip("Tawel")
+        .menu(&menu)
+        .show_menu_on_left_click(true)
+        .on_menu_event(|app, event| {
+            if native::handle_menu(app, event.id().as_ref()) { return; }
+            match event.id().as_ref() {
+            "native_test" => emit_control(app, "native_start", true),
+            "open" => emit_control(app, "open", true),
+            "background" => {
+                if let Some(window) = app.get_webview_window("main") { let _ = window.hide(); }
+            }
+            "pill" => emit_control(app, "dock", false),
+            "start" => emit_control(app, "start", true),
+            "pause" => emit_control(app, "toggle_pause", false),
+            "snooze_15" => emit_control(app, "snooze_15", false),
+            "snooze_30" => emit_control(app, "snooze_30", false),
+            "snooze_60" => emit_control(app, "snooze_60", false),
+            "hint_lavender_vignette" => emit_control(app, "hint_lavender_vignette", false),
+            "hint_soft_focus" => emit_control(app, "hint_soft_focus", false),
+            "hint_desaturate" => emit_control(app, "hint_desaturate", false),
+            "hint_ambient_glow" => emit_control(app, "hint_ambient_glow", false),
+            "hint_wash_focus" => emit_control(app, "hint_wash_focus", false),
+            "hint_preview" => emit_control(app, "hint_preview", false),
+            "settings" => emit_control(app, "settings", true),
+            "quit" => app.exit(0),
+            _ => {}
+            }
+        });
+    if let Some(icon) = app.default_window_icon() {
+        tray = tray.icon(icon.clone()).icon_as_template(true);
+    }
+    tray.build(app)?;
+    Ok(())
 }
 
 /// macOS: NSWindow so konfigurieren, dass die Pille auf allen Spaces und als
@@ -236,8 +509,149 @@ fn set_collection_behavior(window: &tauri::WebviewWindow, pill: bool) {
     });
 }
 
+/// macOS bittet, dieses Fenster nicht in Window-Capture/Sharing aufzunehmen.
+/// Der Mechanismus wurde bereits auf echter Hardware mit Bildschirmaufnahme
+/// und Zoom positiv geprüft; für eine öffentliche Garantie bleibt ein Test des
+/// jeweils ausgelieferten Alpha-Builds erforderlich.
+#[cfg(target_os = "macos")]
+fn set_capture_excluded(window: &tauri::WebviewWindow) {
+    let ns_addr = match window.ns_window() {
+        Ok(p) => p as usize,
+        Err(_) => return,
+    };
+    let _ = window.run_on_main_thread(move || {
+        if ns_addr == 0 {
+            return;
+        }
+        unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+            let ns = ns_addr as *mut AnyObject;
+            // NSWindowSharingNone == 0
+            let _: () = msg_send![&*ns, setSharingType: 0usize];
+        }
+    });
+}
+
+/// Das visuelle Overlay liegt transparent über genau dem Display, auf dem sich
+/// das Tawel-Hauptfenster beziehungsweise die Pille befindet.
+fn fit_hint_overlay_to_main(
+    overlay: &tauri::WebviewWindow,
+    main: &tauri::WebviewWindow,
+) {
+    if let Ok(Some(monitor)) = main.current_monitor() {
+        let _ = overlay.set_position(*monitor.position());
+        let _ = overlay.set_size(*monitor.size());
+    }
+}
+
+/// Native Fenstereigenschaften der reinen Hinweisschicht: auf allen Spaces,
+/// über normalen Fenstern, klickdurchlässig und aus Aufnahmen ausgeschlossen.
+#[cfg(target_os = "macos")]
+fn configure_hint_overlay_macos(window: &tauri::WebviewWindow) {
+    let ns_addr = match window.ns_window() {
+        Ok(p) => p as usize,
+        Err(_) => return,
+    };
+    let _ = window.run_on_main_thread(move || {
+        if ns_addr == 0 {
+            return;
+        }
+        unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+            let ns = ns_addr as *mut AnyObject;
+            // NSWindowSharingNone, CanJoinAllSpaces | Stationary | FullScreenAuxiliary,
+            // Screen-Saver-Level und vollständige Klickdurchlässigkeit.
+            let _: () = msg_send![&*ns, setSharingType: 0usize];
+            let behavior: usize = (1usize << 0) | (1usize << 4) | (1usize << 8);
+            let _: () = msg_send![&*ns, setCollectionBehavior: behavior];
+            let _: () = msg_send![&*ns, setLevel: 1000isize];
+            let _: () = msg_send![&*ns, setIgnoresMouseEvents: true];
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_hint_overlay_macos(_window: &tauri::WebviewWindow) {}
+
+fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
+    let overlay = WebviewWindowBuilder::new(
+        app,
+        "hint-overlay",
+        WebviewUrl::App("hint-overlay.html".into()),
+    )
+    .title("Tawel Hinweis")
+    .transparent(true)
+    .decorations(false)
+    .shadow(false)
+    .always_on_top(true)
+    .resizable(false)
+    .focused(false)
+    .skip_taskbar(true)
+    .visible(false)
+    .build()?;
+
+    let _ = overlay.set_ignore_cursor_events(true);
+    if let Some(main) = app.get_webview_window("main") {
+        fit_hint_overlay_to_main(&overlay, &main);
+    }
+    configure_hint_overlay_macos(&overlay);
+    Ok(())
+}
+
+#[derive(Clone, serde::Serialize)]
+struct VisualHintPayload {
+    style: String,
+    intensity: u8,
+}
+
+/// Zeigt eine der fünf ganzflächigen Testvarianten mit einer von drei groben
+/// Intensitäten. Das Overlay nimmt keine Bildschirmbilder auf; WebKit filtert
+/// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
+#[tauri::command]
+fn show_visual_hint(style: String, intensity: u8, app: AppHandle) -> Result<(), String> {
+    let style = match style.as_str() {
+        "lavender-vignette" => "lavender-vignette",
+        "soft-focus" => "soft-focus",
+        "desaturate" => "desaturate",
+        "ambient-glow" => "ambient-glow",
+        "wash-focus" => "wash-focus",
+        _ => return Err("Unbekannte Hinweisvariante".to_string()),
+    };
+    let intensity = intensity.clamp(1, 3);
+    let overlay = app
+        .get_webview_window("hint-overlay")
+        .ok_or_else(|| "Hinweisfenster nicht verfügbar".to_string())?;
+    if let Some(main) = app.get_webview_window("main") {
+        fit_hint_overlay_to_main(&overlay, &main);
+    }
+    overlay.show().map_err(cmd_err)?;
+    app.emit_to(
+        "hint-overlay",
+        "tawel:visual-hint",
+        VisualHintPayload {
+            style: style.to_string(),
+            intensity,
+        },
+    )
+    .map_err(cmd_err)
+}
+
+/// Nach der kurzen CSS-Animation verschwindet das ganzflächige Fenster wieder
+/// vollständig. So kann es das dauerhaft sichtbare Erkennungs-WebView nicht als
+/// vermeintlich verdeckt markieren oder im Alltag Ressourcen binden.
+#[tauri::command]
+fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
+    if let Some(overlay) = app.get_webview_window("hint-overlay") {
+        overlay.hide().map_err(cmd_err)?;
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
+        .manage(Mutex::new(DiagnosticState::default()))
         .manage(SpikeState {
             count: AtomicU64::new(0),
             start: Instant::now(),
@@ -247,20 +661,31 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             spike_tick,
+            alpha_diagnostic,
+            native::native_start,
             spike_state,
             spike_log_path,
+            alpha_status,
+            alpha_hint_style,
             enter_pill,
             exit_pill,
             pill_position,
-            close_app
+            show_visual_hint,
+            hide_visual_hint,
+            close_app,
+            background_app
         ])
         .setup(|app| {
+            install_tray(app)?;
+            native::install(app.handle());
+            spawn_hint_overlay(app.handle())?;
+
             // Frische CSV pro Start + Header (Datei ist immer neu).
             let path = app.state::<SpikeState>().log_path.clone();
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
                 let _ = writeln!(
                     f,
-                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus"
+                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms"
                 );
             }
 
@@ -268,37 +693,88 @@ fn main() {
             // wenn der WebView keine Events mehr feuert.
             if let Some(win) = app.get_webview_window("main") {
                 let handle = app.handle().clone();
+                let event_window = win.clone();
                 win.on_window_event(move |event| {
-                    if let WindowEvent::Focused(focused) = event {
-                        handle.state::<SpikeState>().focus.store(*focused, Ordering::Relaxed);
+                    match event {
+                        WindowEvent::Focused(focused) => {
+                            handle.state::<SpikeState>().focus.store(*focused, Ordering::Relaxed);
+                        }
+                        WindowEvent::CloseRequested { api, .. } => {
+                            api.prevent_close();
+                            let _ = event_window.hide();
+                        }
+                        _ => {}
                     }
                 });
 
                 // macOS: Kamera-/Mikrofon-Anfragen im WKWebView erlauben.
                 #[cfg(target_os = "macos")]
                 {
+                    set_capture_excluded(&win);
                     let _ = win.with_webview(|webview| unsafe {
                         macos_camera::install(webview.inner().cast());
                     });
                 }
+
+                // Das unsichtbare Overlay darf beim Aufbau keinen Tastaturfokus
+                // behalten; die Bedienung bleibt im normalen Tawel-Fenster.
+                let _ = win.set_focus();
             }
 
             // Nativer 1-Sekunden-Ticker. Läuft unabhängig vom WebView-Throttling.
             let handle = app.handle().clone();
-            thread::spawn(move || loop {
-                thread::sleep(Duration::from_secs(1));
-                let state = handle.state::<SpikeState>();
-                let count = state.count.swap(0, Ordering::Relaxed);
-                let secs = state.start.elapsed().as_secs();
-                let vis = state
-                    .visibility
-                    .lock()
-                    .map(|v| v.clone())
-                    .unwrap_or_else(|_| "?".to_string());
-                let focus = state.focus.load(Ordering::Relaxed);
-                let ts = chrono::Local::now().to_rfc3339();
-                if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
-                    let _ = writeln!(f, "{},{},{},{},{}", ts, secs, count, vis, focus);
+            thread::spawn(move || {
+                let mut empty_seconds = 0u32;
+                loop {
+                    thread::sleep(Duration::from_secs(1));
+                    let state = handle.state::<SpikeState>();
+                    let count = state.count.swap(0, Ordering::Relaxed);
+                    let ui = handle.state::<AlphaUiState>();
+                    let active = !native::enabled(&handle) && ui.running.load(Ordering::Relaxed) && !ui.paused.load(Ordering::Relaxed);
+                    empty_seconds = if active && count == 0 { empty_seconds.saturating_add(1) } else { 0 };
+                    let stalled = empty_seconds >= 12;
+                    let was_stalled = ui.stalled.swap(stalled, Ordering::Relaxed);
+                    if stalled {
+                        let _ = ui.status_item.set_text("Status: Erkennung unterbrochen");
+                    } else if was_stalled && active {
+                        let _ = ui.status_item.set_text("Status: aktiv");
+                    }
+                    let secs = state.start.elapsed().as_secs();
+                    let vis = state
+                        .visibility
+                        .lock()
+                        .map(|v| v.clone())
+                        .unwrap_or_else(|_| "?".to_string());
+                    let focus = state.focus.load(Ordering::Relaxed);
+                    let ts = chrono::Local::now().to_rfc3339();
+                    let diagnostic = handle.state::<Mutex<DiagnosticState>>();
+                    let (d, age_ms) = diagnostic.lock().map(|v| {
+                        (v.latest.clone(), v.received.map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1))
+                    }).unwrap_or_else(|_| (DiagnosticSample::default(), -1));
+                    let window = handle.get_webview_window("main");
+                    let native_visible = window.as_ref().and_then(|w| w.is_visible().ok());
+                    let native_minimized = window.as_ref().and_then(|w| w.is_minimized().ok());
+                    let mut fields = vec![
+                        ts, secs.to_string(), count.to_string(), vis, focus.to_string(),
+                        env!("CARGO_PKG_VERSION").to_string(),
+                        option_env!("TAWEL_BUILD_SHA").unwrap_or("local").to_string(),
+                        native_visible.map(|v| v.to_string()).unwrap_or_else(|| "unknown".into()),
+                        native_minimized.map(|v| v.to_string()).unwrap_or_else(|| "unknown".into()),
+                        age_ms.to_string(), d.sequence.to_string(),
+                        d.timer_total.to_string(), d.heartbeat_total.to_string(),
+                        d.video_changes_total.to_string(), d.attempts_total.to_string(),
+                        d.errors_total.to_string(), d.ipc_failures.to_string(),
+                        d.watchdog_total.to_string(), d.restarts_total.to_string(),
+                        d.running.to_string(), d.paused.to_string(), d.video_time.to_string(),
+                        d.ready_state.to_string(), d.video_paused.to_string(),
+                        d.track_live.to_string(), d.track_muted.to_string(), d.decoded_frames.to_string(),
+                        diagnostic_label(&d.last_error_kind), diagnostic_label(&d.last_error_stage),
+                        d.last_error_at_ms.to_string(),
+                    ];
+                    fields.extend(native::csv_fields(&handle));
+                    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&state.log_path) {
+                        let _ = writeln!(f, "{}", fields.join(","));
+                    }
                 }
             });
 

@@ -589,3 +589,128 @@ Landingpage und Entwicklungskontext eindeutig getrennt:
   entstehen auf Tablet-/Desktopbreiten keine künstlich großen vertikalen
   Abstände mehr.
 - **Navigation:** Der Anker heißt korrekt „Warum Tawel“ statt „Worum Tawel“.
+
+---
+
+## 2026-08-04 – Private Mac-Alpha: Ein WebView, native Menüleiste und lokaler Lifecycle
+
+Umsetzung auf `agent/mac-alpha-v0-1`, ausgehend vom verifizierten `main`-Stand
+`b5e9f32`. Die bestehende Tauri-Hülle wird gezielt zum selbst nutzbaren
+Alpha-Build weiterentwickelt; es entsteht keine parallele Mac-Architektur.
+
+- **Ein WebView bleibt verbindlich:** Kamera, MediaPipe und Erkennung laufen in
+  derselben Instanz. Weil ein verdecktes/minimiertes WKWebView die
+  `requestAnimationFrame`-Schleife nachweislich stoppt, dockt ein laufendes Tawel
+  beim Schließen als sichtbare always-on-top Pille an.
+- **Menüleiste als native Steuerfläche:** Rust hält nur Produktstatus und
+  Menüeinträge. Start, Pause/Fortsetzen, Snooze 15/30/60, Einstellungen und
+  Beenden werden als kleine Tauri-Ereignisse an den bestehenden WebView
+  gesendet. Es gibt keinen zweiten Kamera- oder Erkennungsprozess.
+- **Pause spart Kameraressourcen:** Der Mac-Adapter stoppt beim Pausieren den
+  Kameratrack. Beim Fortsetzen wird der Stream über die vorhandene, lokal
+  gespeicherte Kameraauswahl neu geöffnet. Die Zustandsmaschine in `app/app.js`
+  bleibt führend.
+- **Snooze ist eine lokale Endzeit:** Gespeichert wird ausschließlich ein
+  Unix-Zeitstempel in Millisekunden unter `tawel.alpha.snooze-until.v1`.
+  Dadurch läuft Snooze auch über Display-Sleep korrekt ab und setzt danach
+  automatisch fort. Eine bewusste manuelle Steuerung hebt ihn auf.
+- **Sleep-/Wake-Reparatur:** Ein Tauri-exklusiver Watchdog erkennt einen
+  sichtbaren, aktiven, länger als 12 Sekunden stehenden Videostream und öffnet
+  die gewählte Kamera mit 15 Sekunden Mindestabstand neu. Während Pause,
+  Snooze oder unsichtbarem Dokument wird nicht neu gestartet.
+- **Web-App bleibt unverändert:** Die Mac-Funktionen liegen in injizierten
+  `spike/alpha.js`, `spike/pill.js` und `spike/pill.css`. Office Mode und der
+  Browser-Wartelistenlink werden nur im generierten Mac-Frontend ausgeblendet;
+  `app/` wird nicht geändert.
+- **Capture Exclusion integriert:** Das native Fenster setzt
+  `NSWindowSharingNone`. Pauls früherer Realtest mit Bildschirmaufnahme und Zoom
+  war positiv; für eine öffentliche Aussage bleibt die Wiederholung mit dem
+  konkret ausgelieferten Alpha-Build verpflichtend.
+- **Build-Gate:** Tauri CLI und Rust-Auflösung sind über Workflow-Version und
+  eingechecktes `Cargo.lock` festgeschrieben. Ein DOM-Vertragstest prüft Snooze,
+  Kamera-Pause, automatisches Fortsetzen und Watchdog im macOS-Workflow.
+- **Bewusst später:** Autostart bei Anmeldung, Signierung/Notarisierung,
+  öffentlicher Vertrieb sowie Lizenz- und Preislogik.
+
+---
+
+## 2026-08-04 – Mac-Alpha: Erkennung über Pause/Fortsetzen absichern
+
+Der erste Hardwarelauf auf einem MacBook Pro 16″ (2023, M2 Pro, macOS Tahoe
+26.0.1) zeigte: Vor der Pause lief die Erkennung stabil, danach blieb der native
+Callback-Zähler trotz sichtbarem und fokussiertem Fenster dauerhaft bei null.
+
+- **Mac-only statt Web-Änderung:** `app/app.js` bleibt unverändert. Nach dem
+  Kopieren wendet `spike/build-frontend.sh` den kleinen, überprüften Patch
+  `spike/alpha-app.patch` ausschließlich auf `spike-dist/app.js` an.
+- **Kein Frame während Pause oder Track-Wechsel:** Der Mac-Loop ruft MediaPipe
+  nur auf, wenn Tawel nicht pausiert ist und ein Live-Videotrack existiert.
+  Dadurch sieht MediaPipe zwischen Track-Stopp und neuem Stream keinen alten
+  oder bereits ungültigen Frame.
+- **Loop bleibt wiederanlauffähig:** Der nächste `requestAnimationFrame` wird in
+  `finally` geplant. Ein einzelner WKWebView-/MediaPipe-Fehler kann den
+  dauerhaften Erkennungsloop deshalb nicht mehr endgültig beenden; der Fehler
+  selbst wird nicht still verschluckt.
+- **Session und Stream getrennt:** Eine gestartete Tawel-Session gilt während
+  eines Kameraneustarts weiter als aktiv, auch wenn `video.srcObject` kurz leer
+  ist. So kann der Watchdog einen fehlgeschlagenen Kamerastart nach seinem
+  Cooldown erneut versuchen.
+- **Regressionstest:** Der Build testet Pause mit Live-Track, Fortsetzen vor dem
+  neuen Track, erfolgreichen Wiederanlauf, einen fehlerhaften Frame und den
+  erneuten Kamerastart nach einem vorübergehend fehlenden Stream.
+
+---
+
+## 2026-08-04 – Mac-Alpha: drei vergleichbare visuelle Hinweise
+
+Für den Hardwarevergleich werden drei Hinweise in denselben Alpha-Build
+integriert. Sie erhalten dasselbe echte Interventionsereignis; Schwelle,
+Erkennung und Statistik unterscheiden sich nicht.
+
+- **A · Ringpuls:** Der bestehende sichtbare Tawel-Ring atmet einmal deutlicher
+  in Ember. Kleinste und lokalste Variante.
+- **B · Vignette:** Weicher Ember-Saum vom Displayrand, während die Mitte frei
+  bleibt. Grundlage ist der bereits separat getestete Ambient-Glow-Spike.
+- **C · Farbhauch:** Sehr leichte, gleichmäßige Ember-Tönung des Displays als
+  bewusst flächige Vergleichsvariante.
+- **Eine App statt drei Builds:** Auswahl und statistisch neutrale Vorschau
+  liegen in der Menüleiste. Die Wahl wird lokal unter
+  `tawel.alpha.hint-style.v1` gespeichert. Dadurch kann Paul A/B/C unmittelbar
+  nacheinander mit derselben Alpha vergleichen.
+- **Erkennung bleibt ein WebView:** Nur Vignette und Farbhauch nutzen ein
+  zweites, präsentationsreines Overlay ohne Kamera oder MediaPipe. Es ist
+  klickdurchlässig, setzt `NSWindowSharingNone`, wird für 2,6 Sekunden gezeigt
+  und anschließend vollständig versteckt.
+- **Web-Version unverändert:** Sämtliche Dateien und Tests liegen im
+  Mac-spezifischen Buildpfad unter `spike/` beziehungsweise `src-tauri/`.
+
+---
+
+## 2026-08-05 – Mac-Alpha: ruhige Hinweise erweitern und grob dosierbar machen
+
+Der erste Hardwarevergleich bestätigte den Pause/Fortsetzen-Fix. Ringpuls war
+kaum zu erkennen; Vignette und Farbhauch waren brauchbarer, das bisherige
+Ember-Rot wirkte jedoch zu stark wie ein Alarm. Für die nächste Vergleichsrunde
+wird deshalb ausschließlich die Hinweisform erweitert – Erkennung und Timing
+bleiben identisch.
+
+- **Fünf Varianten:** Lavendel-Vignette, sanfter Fokusverlust, kurze
+  Entsättigung, Ambient Glow in Lavendel/Petrol und eine gestufte Kombination
+  `Farbhauch → Fokusverlust`.
+- **Drei Intensitäten:** Ein gemeinsamer Regler mit `Leicht`, `Mittel` und
+  `Deutlich`; Standard ist `Mittel`. Die Stufen verändern nur Stärke, nicht
+  Dauer, Erkennungsschwelle oder Statistik.
+- **Einstellungen statt Testmenü allein:** Variante, Intensität und eine
+  statistisch neutrale Vorschau liegen direkt im Mac-Einstellungsbereich. Die
+  Menüleiste spiegelt die Konfiguration und behält die Schnellwahl.
+- **Kein Alarmrot:** Mac-spezifische Hinweiszustände verwenden Lavendel sowie
+  Petrol. Die Produktions-Web-App und ihr bestehendes Farbsystem bleiben
+  unverändert.
+- **Keine Bildschirmaufnahme:** Unschärfe und Entsättigung verwenden auf
+  macOS 26 `backdrop-filter` hinter dem transparenten, klickdurchlässigen
+  Overlay. Das Overlay erhält keine Bildschirm- oder Kamerapixel.
+- **Lokale Migration:** Alte gespeicherte Werte werden auf die nächstliegende
+  neue Variante abgebildet; Intensität wird separat lokal gespeichert.
+- **Hardware-Gate:** Tatsächliche Unschärfe/Entsättigung, Klickdurchlässigkeit,
+  Capture Exclusion und die subjektiv passende Stärke bleiben Teil des
+  Tests auf Pauls MacBook Pro mit macOS Tahoe 26.0.1.
