@@ -69,7 +69,11 @@ extern "C" fn receive(event: i32, value: f64, _auxiliary: f64) {
         2 => {
             state.hints.fetch_add(1, Ordering::Relaxed);
             if let Ok(hint) = state.hint.lock() {
-                let _ = show_visual_hint(hint.0.clone(), hint.1, app.clone());
+                let (style, intensity) = hint.clone();
+                let ui_app = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    if enabled(&ui_app) { let _ = show_visual_hint(style, intensity, ui_app); }
+                });
             }
         }
         3 => {
@@ -85,11 +89,15 @@ extern "C" fn receive(event: i32, value: f64, _auxiliary: f64) {
                 8 => "Native Erkennung: Systemschlaf",
                 _ => "Native Erkennung: beendet",
             };
-            let ui = app.state::<AlphaUiState>();
-            let _ = ui.status_item.set_text(label);
-            let _ = ui.pause_item.set_text(if status == 3 { "Fortsetzen" } else { "Pausieren" });
-            let _ = ui.pause_item.set_enabled(status == 2 || status == 3);
-            for item in &ui.snooze_items { let _ = item.set_enabled(status == 2); }
+            let ui_app = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                if !enabled(&ui_app) { return; }
+                let ui = ui_app.state::<AlphaUiState>();
+                let _ = ui.status_item.set_text(label);
+                let _ = ui.pause_item.set_text(if status == 3 { "Fortsetzen" } else { "Pausieren" });
+                let _ = ui.pause_item.set_enabled(status == 2 || status == 3);
+                for item in &ui.snooze_items { let _ = item.set_enabled(status == 2); }
+            });
         }
         4 => { state.errors.fetch_add(1, Ordering::Relaxed); }
         _ => {}
