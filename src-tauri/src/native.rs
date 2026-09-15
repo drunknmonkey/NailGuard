@@ -26,6 +26,7 @@ pub struct NativeState {
     connection: AtomicI32, device_source: AtomicI32, interrupted: AtomicI32,
     runtime_error: AtomicI32, device_flags: AtomicI32, dropped: AtomicU64,
     last_raw: Mutex<Option<Instant>>,
+    faces: AtomicU64, hands: AtomicU64, distance_milli: AtomicI32,
     frames: AtomicU64,
     errors: AtomicU64,
     hints: AtomicU64,
@@ -43,6 +44,7 @@ pub fn install(app: &AppHandle) {
         interrupted: AtomicI32::new(0), runtime_error: AtomicI32::new(0),
         device_flags: AtomicI32::new(0), dropped: AtomicU64::new(0),
         stage: AtomicI32::new(0), last_raw: Mutex::new(None),
+        faces: AtomicU64::new(0), hands: AtomicU64::new(0), distance_milli: AtomicI32::new(-1),
         frames: AtomicU64::new(0), errors: AtomicU64::new(0), hints: AtomicU64::new(0),
         last_frame: Mutex::new(None), hint: Mutex::new(("lavender-vignette".into(), 2)),
     });
@@ -74,13 +76,14 @@ fn stop(app: &AppHandle) {
     let _ = ui.pause_item.set_enabled(false);
 }
 
-extern "C" fn receive(event: i32, value: f64, _auxiliary: f64) {
+extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
     let Some(app) = APP.get() else { return };
     let state = app.state::<NativeState>();
     if !state.enabled.load(Ordering::Relaxed) { return; }
     match event {
         1 => {
             state.frames.fetch_add(1, Ordering::Relaxed);
+            state.distance_milli.store(if value.is_finite() && value >= 0. { (value * 1000.).round() as i32 } else { -1 }, Ordering::Relaxed);
             if let Ok(mut last) = state.last_frame.lock() { *last = Some(Instant::now()); }
         }
         2 => {
@@ -139,6 +142,10 @@ extern "C" fn receive(event: i32, value: f64, _auxiliary: f64) {
         16 => { state.runtime_error.store(value as i32, Ordering::Relaxed); }
         17 => { state.device_flags.store(value as i32, Ordering::Relaxed); }
         18 => { state.dropped.fetch_add(1, Ordering::Relaxed); }
+        19 => {
+            if value > 0. { state.faces.fetch_add(1, Ordering::Relaxed); }
+            if auxiliary > 0. { state.hands.fetch_add(1, Ordering::Relaxed); }
+        }
         _ => {}
     }
 }
@@ -171,7 +178,7 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
     let age = state.last_frame.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
     let raw_age = state.last_raw.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
     if enabled(app) && matches!(state.status.load(Ordering::Relaxed), 2 | 9) {
-        let _ = app.state::<AlphaUiState>().status_item.set_text(native_health::label(raw_age, age));
+        let _ = app.state::<AlphaUiState>().status_item.set_text(native_health::device_label(state.device_flags.load(Ordering::Relaxed), raw_age, age));
     }
     vec![enabled(app).to_string(), state.status.load(Ordering::Relaxed).to_string(),
         state.frames.load(Ordering::Relaxed).to_string(), state.errors.load(Ordering::Relaxed).to_string(),
@@ -188,5 +195,7 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
         state.interrupted.load(Ordering::Relaxed).to_string(),
         state.runtime_error.load(Ordering::Relaxed).to_string(),
         state.device_flags.load(Ordering::Relaxed).to_string(),
-        state.dropped.load(Ordering::Relaxed).to_string()]
+        state.dropped.load(Ordering::Relaxed).to_string(),
+        state.faces.load(Ordering::Relaxed).to_string(), state.hands.load(Ordering::Relaxed).to_string(),
+        state.distance_milli.load(Ordering::Relaxed).to_string()]
 }

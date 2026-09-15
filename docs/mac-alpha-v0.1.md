@@ -371,3 +371,21 @@ CSV und tawel-native-camera-debug.txt senden.
 macOS-Korrektur: native_interrupted ist -1 (Session-Interruption-API nicht
 verfügbar). Gerätesuspendierung steht in native_device_flags. Laufzeitfehler
 verwenden NSNotification.Name.AVCaptureSessionRuntimeError.
+
+
+## 2026-09-15 – Hardwarebefund und 0.1.8
+
+Paul bestätigt zuvor zugeklapptes MacBook. 0.1.7-Log zeigt zunächst suspendierte
+FaceTime HD-Kamera, danach 613 Bilder und 332 abgeschlossene Auswertungen ohne
+Fehler oder Neustarts. Keine Hinweise und nur sichtbares Fenster: Hinweisqualität
+und Hintergrundbetrieb sind weiterhin offen. Die früheren Null-Frames allein
+belegen damit keinen Defekt der nativen Vision-Verarbeitung.
+
+0.1.8 zeigt suspendierte/getrennte Kamera ausdrücklich an und unterlässt dort
+Watchdog-Neustarts. Nach Rückkehr der Kamera gelten normale Frischeprüfungen.
+Suspendierung ist nicht eindeutig mit geschlossenem Deckel gleichzusetzen.
+Gerätezustandswechsel werden lokal protokolliert. CSV ergänzt Zähler für Frames
+mit Gesicht bzw. Hand und den letzten relativen Mund-Finger-Abstand mal 1000
+(-1 nicht messbar). Keine Koordinaten/Bilder. Hinweisgrenzen bleiben unverändert.
+Native externe Kameraauswahl ist noch nicht implementiert; dieser Test verwendet
+weiterhin bevorzugt die interne Kamera und benötigt ein offenes MacBook.

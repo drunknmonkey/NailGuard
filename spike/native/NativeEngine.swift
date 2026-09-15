@@ -9,6 +9,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private let queue = DispatchQueue(label: "app.tawel.native-capture")
     private let session = AVCaptureSession()
     private var callback: NativeCallback?
+    private var lastDeviceFlags: Int?
     private var selectedDevice: AVCaptureDevice?
     private var videoOutput: AVCaptureVideoDataOutput?
     private var configured = false
@@ -63,6 +64,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 if self.wanted && !self.sleeping { self.startSession() }
             }
             if self.wanted && !self.sleeping && self.snoozeUntil == nil && self.configured &&
+                self.selectedDevice?.isConnected == true && self.selectedDevice?.isSuspended == false &&
                 Date().timeIntervalSince(self.lastFrameAt) > 12 && Date().timeIntervalSince(self.lastRestart) > 15 {
                 self.callback?(10, 0, 0)
                 self.lastRestart = Date(); self.stopSession(); self.startSession()
@@ -88,7 +90,12 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         let connectionState = connection.map { ($0.isEnabled ? 1 : 0) | ($0.isActive ? 2 : 0) } ?? -1
         callback?(13, Double(connectionState), 0)
         if let device = selectedDevice {
-            callback?(17, Double((device.isConnected ? 1 : 0) | (device.isSuspended ? 2 : 0)), 0)
+            let flags = (device.isConnected ? 1 : 0) | (device.isSuspended ? 2 : 0)
+            callback?(17, Double(flags), 0)
+            if lastDeviceFlags != flags {
+                diagnostic("device connected=\(device.isConnected) suspended=\(device.isSuspended)")
+                lastDeviceFlags = flags
+            }
         }
         callback?(15, -1, 0) // AVCaptureSession.isInterrupted ist unter macOS nicht verfügbar.
     }
@@ -219,6 +226,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                         }
                     }
                 }
+                callback?(19, Double(face.results?.count ?? 0), Double(hands.results?.count ?? 0))
                 callback?(12, 5, 0)
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
                 if !announcedActive { announcedActive = true; report(2) }
