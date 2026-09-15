@@ -347,3 +347,23 @@ zusammen mit Vision, während native CSV weiterläuft, blockiert diese Queue.
 
 Test: App frisch öffnen, direkt Native Erkennung testen, Fenster offen lassen,
 60 Sekunden warten, zwischendurch Hand zum Mund. CSV senden.
+
+
+## 2026-09-15 – Kameraeingang 0.1.7
+
+0.1.6: 55 Queue-Ticks, kein Kamera-Delegate-Eingang, kein Vision-Start, drei
+Neustarts ohne Erfolg. 0.1.7 erfasst Geräteauswahl, Aufnahmeverbindung,
+Unterbrechungen, Laufzeitfehler und verworfene Frames. Kameraname/-typ und
+Graph-Konfiguration stehen lokal in tawel-native-camera-debug.txt auf dem
+Schreibtisch. Keine Geräte-ID, Bilder oder Landmarks. Datei hängt neue Starts an.
+
+Videoverbindung wird vor Start geprüft und explizit aktiviert; VGA-Preset nur
+bei Unterstützung, sonst High falls unterstützt. Bestehende Gerätepriorität
+bleibt erhalten (Built-in, sonst Systemstandard) und wird nun sichtbar.
+CSV: native_connection_flags (-1 fehlt; Bit 1 enabled, Bit 2 active),
+native_device_source (1 Built-in, 2 Standard-Fallback), native_interrupted,
+native_runtime_error_code (letzter Fehler), native_device_flags (Bit 1 connected,
+Bit 2 suspended), native_dropped_total. Kein bestätigter Kamera- oder Hintergrundfix.
+
+Test frisch starten, Native Erkennung testen, 60 Sekunden Fenster offen lassen;
+CSV und tawel-native-camera-debug.txt senden.

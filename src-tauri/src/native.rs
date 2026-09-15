@@ -23,6 +23,8 @@ pub struct NativeState {
     queue_ticks: AtomicU64,
     restarts: AtomicU64,
     stage: AtomicI32,
+    connection: AtomicI32, device_source: AtomicI32, interrupted: AtomicI32,
+    runtime_error: AtomicI32, device_flags: AtomicI32, dropped: AtomicU64,
     last_raw: Mutex<Option<Instant>>,
     frames: AtomicU64,
     errors: AtomicU64,
@@ -37,6 +39,9 @@ pub fn install(app: &AppHandle) {
         raw_frames: AtomicU64::new(0), vision_started: AtomicU64::new(0),
         face_finished: AtomicU64::new(0), hands_finished: AtomicU64::new(0),
         queue_ticks: AtomicU64::new(0), restarts: AtomicU64::new(0),
+        connection: AtomicI32::new(-1), device_source: AtomicI32::new(0),
+        interrupted: AtomicI32::new(0), runtime_error: AtomicI32::new(0),
+        device_flags: AtomicI32::new(0), dropped: AtomicU64::new(0),
         stage: AtomicI32::new(0), last_raw: Mutex::new(None),
         frames: AtomicU64::new(0), errors: AtomicU64::new(0), hints: AtomicU64::new(0),
         last_frame: Mutex::new(None), hint: Mutex::new(("lavender-vignette".into(), 2)),
@@ -104,6 +109,7 @@ extern "C" fn receive(event: i32, value: f64, _auxiliary: f64) {
                 6 => "Native Erkennung: Kamerastart fehlgeschlagen",
                 8 => "Native Erkennung: Systemschlaf",
                 9 => "Native Erkennung: wartet auf Kamerabilder",
+                10 => "Native Erkennung: Kameraverbindung fehlt",
                 _ => "Native Erkennung: beendet",
             };
             let ui_app = app.clone();
@@ -127,6 +133,12 @@ extern "C" fn receive(event: i32, value: f64, _auxiliary: f64) {
         9 => { state.queue_ticks.fetch_add(1, Ordering::Relaxed); }
         10 => { state.restarts.fetch_add(1, Ordering::Relaxed); }
         12 => { state.stage.store(value as i32, Ordering::Relaxed); }
+        13 => { state.connection.store(value as i32, Ordering::Relaxed); }
+        14 => { state.device_source.store(value as i32, Ordering::Relaxed); }
+        15 => { state.interrupted.store(value as i32, Ordering::Relaxed); }
+        16 => { state.runtime_error.store(value as i32, Ordering::Relaxed); }
+        17 => { state.device_flags.store(value as i32, Ordering::Relaxed); }
+        18 => { state.dropped.fetch_add(1, Ordering::Relaxed); }
         _ => {}
     }
 }
@@ -170,5 +182,11 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
         state.hands_finished.load(Ordering::Relaxed).to_string(),
         state.queue_ticks.load(Ordering::Relaxed).to_string(),
         state.restarts.load(Ordering::Relaxed).to_string(),
-        state.stage.load(Ordering::Relaxed).to_string(), raw_age.to_string()]
+        state.stage.load(Ordering::Relaxed).to_string(), raw_age.to_string(),
+        state.connection.load(Ordering::Relaxed).to_string(),
+        state.device_source.load(Ordering::Relaxed).to_string(),
+        state.interrupted.load(Ordering::Relaxed).to_string(),
+        state.runtime_error.load(Ordering::Relaxed).to_string(),
+        state.device_flags.load(Ordering::Relaxed).to_string(),
+        state.dropped.load(Ordering::Relaxed).to_string()]
 }
