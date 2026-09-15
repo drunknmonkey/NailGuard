@@ -31,18 +31,12 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         super.init()
         hands.maximumHandCount = 2
         let notifications = NotificationCenter.default
-        observers.append(notifications.addObserver(forName: AVCaptureSession.runtimeErrorNotification, object: session, queue: nil) { [weak self] note in
+        observers.append(notifications.addObserver(forName: NSNotification.Name.AVCaptureSessionRuntimeError, object: session, queue: nil) { [weak self] note in
             let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
             self?.queue.async { [weak self] in
                 self?.callback?(16, Double(error?.code ?? 0), 0)
                 self?.diagnostic("runtime_error domain=\(error?.domain ?? "unknown") code=\(error?.code ?? 0)")
             }
-        })
-        observers.append(notifications.addObserver(forName: AVCaptureSession.wasInterruptedNotification, object: session, queue: nil) { [weak self] _ in
-            self?.queue.async { [weak self] in self?.callback?(15, 1, 0); self?.diagnostic("session_interrupted") }
-        })
-        observers.append(notifications.addObserver(forName: AVCaptureSession.interruptionEndedNotification, object: session, queue: nil) { [weak self] _ in
-            self?.queue.async { [weak self] in self?.callback?(15, 0, 0); self?.diagnostic("session_interruption_ended") }
         })
         let center = NSWorkspace.shared.notificationCenter
         observers.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: nil) { [weak self] _ in
@@ -96,7 +90,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         if let device = selectedDevice {
             callback?(17, Double((device.isConnected ? 1 : 0) | (device.isSuspended ? 2 : 0)), 0)
         }
-        callback?(15, session.isInterrupted ? 1 : 0, 0)
+        callback?(15, -1, 0) // AVCaptureSession.isInterrupted ist unter macOS nicht verfügbar.
     }
     func setCallback(_ value: @escaping NativeCallback) { queue.async { self.callback = value } }
     private func report(_ status: Int32) { callback?(3, Double(status), 0) }
@@ -177,7 +171,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         session.startRunning()
         report(session.isRunning ? 9 : 6)
         reportCaptureState()
-        diagnostic("session running=\(session.isRunning) interrupted=\(session.isInterrupted)")
+        diagnostic("session running=\(session.isRunning); interruption_status=unsupported_on_macos")
     }
 
     func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {

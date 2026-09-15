@@ -367,3 +367,7 @@ Bit 2 suspended), native_dropped_total. Kein bestätigter Kamera- oder Hintergru
 
 Test frisch starten, Native Erkennung testen, 60 Sekunden Fenster offen lassen;
 CSV und tawel-native-camera-debug.txt senden.
+
+macOS-Korrektur: native_interrupted ist -1 (Session-Interruption-API nicht
+verfügbar). Gerätesuspendierung steht in native_device_flags. Laufzeitfehler
+verwenden NSNotification.Name.AVCaptureSessionRuntimeError.
