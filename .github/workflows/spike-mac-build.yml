@@ -41,6 +41,11 @@ jobs:
           node spike/diagnostics.test.js
           node spike/hint-overlay.test.js
 
+      - name: Test native health status
+        run: |
+          rustc --test src-tauri/src/native_health.rs -o /tmp/tawel-health-tests
+          /tmp/tawel-health-tests
+
       - name: Test native proximity logic
         run: |
           swiftc spike/native/ProximityGate.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests

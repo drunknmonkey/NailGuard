@@ -14,6 +14,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var sleeping = false
     private var snoozeUntil: Date?
     private var gate = ProximityGate()
+    private var analysisAfter = 0.0
+    private var announcedActive = false
     private var lastProcessed = -Double.infinity
     private var lastFrameAt = Date()
     private var lastRestart = Date.distantPast
@@ -44,12 +46,14 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         timer.schedule(deadline: .now() + 1, repeating: 1)
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
+            self.callback?(9, 0, 0) // Capture-Queue lebt, auch ohne Bilder.
             if let until = self.snoozeUntil, Date() >= until {
                 self.snoozeUntil = nil
                 if self.wanted && !self.sleeping { self.startSession() }
             }
             if self.wanted && !self.sleeping && self.snoozeUntil == nil && self.configured &&
                 Date().timeIntervalSince(self.lastFrameAt) > 12 && Date().timeIntervalSince(self.lastRestart) > 15 {
+                self.callback?(10, 0, 0)
                 self.lastRestart = Date(); self.stopSession(); self.startSession()
             }
         }
@@ -111,24 +115,36 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             } catch { wanted = false; report(5); return }
         }
         gate.reset(); lastProcessed = -Double.infinity; lastFrameAt = Date()
+        analysisAfter = ProcessInfo.processInfo.systemUptime + 5
+        announcedActive = false
+        callback?(12, 1, 0)
         if activity == nil {
             activity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep, reason: "Tawel native camera detection")
         }
         session.startRunning()
-        report(session.isRunning ? 2 : 6)
+        report(session.isRunning ? 9 : 6)
     }
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        callback?(5, 0, 0) // Vor Guards und Vision: echter Delegate-Eingang.
         guard wanted && !sleeping && snoozeUntil == nil else { return }
         let now = ProcessInfo.processInfo.systemUptime
         lastFrameAt = Date()
+        guard now >= analysisAfter else { return } // Zuerst nur Kamera messen.
         guard now - lastProcessed >= 1.0 / 15.0 else { return }
         lastProcessed = now
-        guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else { callback?(12, 6, 0); callback?(4, 0, 0); return }
         autoreleasepool {
             do {
                 let handler = VNImageRequestHandler(cvPixelBuffer: image, orientation: .up, options: [:])
-                try handler.perform([face, hands])
+                callback?(6, 0, 0)
+                callback?(12, 2, 0)
+                try handler.perform([face])
+                callback?(7, 0, 0)
+                callback?(12, 3, 0)
+                try handler.perform([hands])
+                callback?(8, 0, 0)
+                callback?(12, 4, 0)
                 var distance: Double?
                 if let face = face.results?.max(by: { $0.boundingBox.width < $1.boundingBox.width }),
                    let lips = face.landmarks?.outerLips, lips.pointCount > 0, face.boundingBox.width > 0 {
@@ -150,7 +166,9 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                         }
                     }
                 }
+                callback?(12, 5, 0)
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
+                if !announcedActive { announcedActive = true; report(2) }
                 if gate.update(distance: distance, now: now) { callback?(2, 0, 0) }
             } catch { gate.reset(); callback?(4, 0, 0) }
         }

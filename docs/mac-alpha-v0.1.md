@@ -323,3 +323,27 @@ je eine Minute ausgeblendet, minimiert und auf anderem macOS-Schreibtisch.
 Dann Pause/Fortsetzen, Snooze, Schlaf/Aufwachen und endgültiges Beenden prüfen.
 Native Frames/Fehler/Hinweise plus LED-Verhalten zurückmelden. Vorher keine
 Zusage über Erkennungsqualität oder dauerhaften Hintergrundbetrieb.
+
+
+## 2026-09-13 – Diagnose 0.1.6
+
+0.1.5 liefert auch beim direkten nativen Start ohne Web-Kamera über 52 Sekunden
+keine abgeschlossene Auswertung. Session.isRunning ist kein Funktionsbeleg.
+0.1.6 misst zunächst fünf Sekunden nur den Kameraeingang, danach getrennte
+Vision-Aufrufe für Gesicht und Hände. Das ist eine Diagnoseänderung, kein
+bestätigter Hintergrundfix. Keine Bilder oder Landmarks werden gespeichert.
+
+CSV ergänzt raw_frames, vision_started, face_finished, hands_finished,
+queue_ticks, restarts (jeweils native_*_total), native_stage und
+native_raw_frame_age_ms. Die Zähler sind pro App-Lauf kumulativ.
+Stufen: 0 noch nicht gestartet, 1 Kamera-Anlauf, 2 Gesichtsauswertung,
+3 Handauswertung, 4 Abstandsberechnung, 5 abgeschlossen, 6 Bildpuffer fehlt.
+Bei einem Fehler bleibt die Stufe zur Lokalisierung erhalten.
+Status 9 bedeutet Session gestartet, Auswertung noch ausstehend; Status 2
+wird erst nach einem erfolgreich analysierten Bild gesendet. Der Menüstext
+prüft zusätzlich das Alter von Kamerabildern und Auswertungen (3 Sekunden).
+Queue-Heartbeat liegt absichtlich auf derselben seriellen Queue: steht er
+zusammen mit Vision, während native CSV weiterläuft, blockiert diese Queue.
+
+Test: App frisch öffnen, direkt Native Erkennung testen, Fenster offen lassen,
+60 Sekunden warten, zwischendurch Hand zum Mund. CSV senden.
