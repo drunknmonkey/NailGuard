@@ -95,6 +95,9 @@
   var lastProgressAt = Date.now();
   var restartBlockedUntil = 0;
   var syncQueued = false;
+  var nativeRequestPending = false;
+  var nativeCameraLabel = null;
+  var nativeStatusLabel = null;
 
   function invoke(cmd, args) {
     var t = window.__TAURI__;
@@ -289,11 +292,7 @@
     queueSync();
   }
 
-  function leavePill() {
-    var pill = window.__tawelPill;
-    if (pill && typeof pill.exit === "function") return Promise.resolve(pill.exit());
-    return Promise.resolve();
-  }
+  function leavePill() { return Promise.resolve(); }
 
   function showStart() {
     if (!prestartSettings) return;
@@ -337,17 +336,21 @@
   function handleControl(action) {
     switch (action) {
       case "native_start":
+        if (nativeRequestPending) break;
         // Beide Kamerapfade dürfen nie gleichzeitig laufen.
-        if (startButton && startButton.disabled && !isRunning()) break;
+        if (startButton && startButton.disabled && !document.body.classList.contains("native-test-active") && !isRunning()) break;
         clearSnooze(false);
         if (isRunning() && !isPaused() && pauseButton) pauseButton.click();
         syncNativeState();
+        nativeRequestPending = true;
         invoke("native_start", { style: hintStyle, intensity: hintIntensity }).then(function () {
           document.body.classList.add("native-test-active");
           if (startButton) startButton.disabled = true;
           if (cameraSelect) cameraSelect.disabled = true;
           if (pauseButton) pauseButton.disabled = true;
-        }).catch(function () {});
+        }).catch(function (error) {
+          if (nativeStatusLabel) nativeStatusLabel.textContent = String(error);
+        }).finally(function () { nativeRequestPending = false; });
         break;
       case "native_stop":
         document.body.classList.remove("native-test-active");
@@ -400,9 +403,6 @@
       case "background":
         invoke("background_app").catch(function () {});
         break;
-      case "dock":
-        if (isRunning() && window.__tawelPill) window.__tawelPill.enter();
-        break;
       default:
         break;
     }
@@ -420,6 +420,7 @@
   }
 
   function watchdogTick() {
+    syncNativeCamera();
     if (window.__tawelDiagnostic) window.__tawelDiagnostic.watchdog();
     finishExpiredSnooze();
     syncNativeState();
@@ -445,6 +446,31 @@
     element.textContent = text;
     parent.appendChild(element);
     return element;
+  }
+
+  function syncNativeCamera() {
+    invoke("native_info").then(function (info) {
+      if (!Array.isArray(info)) return;
+      if (nativeCameraLabel) nativeCameraLabel.textContent = info[2];
+      if (nativeStatusLabel) nativeStatusLabel.textContent = info[0]
+        ? (info[1] === 11 ? "Bitte Kamera auswählen" : info[1] === 2 ? "Erkennung aktiv · " + info[2] : info[1] === 3 ? "Pausiert" : "Kamera startet oder wartet · " + info[2])
+        : "Bereit · Kamera auswählen und starten";
+      if (!info[0] && document.body.classList.contains("native-test-active")) handleControl("native_stop");
+    }).catch(function () {});
+  }
+
+  function buildCameraSettings() {
+    var group = settingsCuesTitle && settingsCuesTitle.parentElement;
+    if (!group || !group.insertAdjacentElement) return;
+    var section = document.createElement("section");
+    section.className = "settings-group";
+    appendText(section, "h3", "settings-group-title", "Kamera für die Hintergrund-Erkennung");
+    nativeCameraLabel = appendText(section, "p", "", "Noch keine Kamera gewählt");
+    appendText(section, "p", "", "Bei mehreren Kameras fragt Tawel vor dem Start nach. Ein Kamerawechsel startet die Erkennung neu.");
+    var choose = appendText(section, "button", "mini-action", "Kamera auswählen / wechseln");
+    choose.type = "button";
+    choose.addEventListener("click", function () { handleControl("native_start"); });
+    group.insertAdjacentElement("afterend", section);
   }
 
   function buildHintSettings() {
@@ -592,6 +618,7 @@
   }
 
   document.body.classList.add("tawel-alpha");
+  buildCameraSettings();
   buildHintSettings();
   buildPrestartBackButton();
   var nativeBanner = document.createElement("div");
@@ -600,6 +627,17 @@
     ? "Native test · Control via menu bar · Separate sensitivity"
     : "Nativer Test · Steuerung über Menüleiste · Eigene Empfindlichkeit";
   document.body.appendChild(nativeBanner);
+  nativeStatusLabel = nativeBanner;
+  // Route the ordinary Mac start button through the same native selection flow.
+  // Capturing prevents app.js from opening its independent browser camera.
+  if (startButton) startButton.addEventListener("click", function (event) {
+    if (typeof event.stopImmediatePropagation !== "function") return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    handleControl("native_start");
+  }, true);
+  var backgroundButton = appendText(document.body, "button", "alpha-background-btn", "Im Hintergrund weiterlaufen");
+  backgroundButton.type = "button";
+  backgroundButton.addEventListener("click", function () { handleControl("background"); });
   installControlListener(0);
 
   // Ein bewusster Klick während eines Snooze beendet dessen Auto-Fortsetzen.

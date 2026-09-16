@@ -11,6 +11,9 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var callback: NativeCallback?
     private var lastDeviceFlags: Int?
     private var selectedDevice: AVCaptureDevice?
+    private var selectionPending = false
+    private var generation = 0
+    private let cameraKey = "tawel.native.camera.v1"
     private var videoOutput: AVCaptureVideoDataOutput?
     private var configured = false
     private var wanted = false
@@ -101,8 +104,18 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     }
     func setCallback(_ value: @escaping NativeCallback) { queue.async { self.callback = value } }
     private func report(_ status: Int32) { callback?(3, Double(status), 0) }
-    func start() {
+    func start(chooseCamera: Bool = false) {
         queue.async {
+            guard !self.selectionPending else { return }
+            if chooseCamera || self.selectedDevice == nil {
+                self.chooseCamera()
+                return
+            }
+            self.authorizedStart()
+        }
+    }
+    // Runs on the capture queue; permission alone never chooses another camera.
+    private func authorizedStart() {
             self.wanted = true; self.snoozeUntil = nil
             self.report(1)
             self.diagnostic("start authorization=\(AVCaptureDevice.authorizationStatus(for: .video).rawValue)")
@@ -117,10 +130,64 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 }
             default: self.wanted = false; self.report(4)
             }
+    }
+    private func chooseCamera() {
+        selectionPending = true
+        generation += 1
+        let request = generation
+        wanted = false; snoozeUntil = nil; stopSession(); report(11)
+        // externalUnknown includes USB/UVC and other external video sources on macOS 14.
+        let devices = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .externalUnknown], mediaType: .video, position: .unspecified).devices.filter { $0.isConnected }
+        let saved = UserDefaults.standard.string(forKey: cameraKey)
+        DispatchQueue.main.async {
+            let available = devices.filter { !$0.isSuspended && $0.isConnected }
+            var chosen: AVCaptureDevice?
+            // A missing remembered camera requires confirmation even with one remaining device.
+            if let id = CameraChoice.automaticID(ids: devices.map { $0.uniqueID }, available: Set(available.map { $0.uniqueID }), remembered: saved) {
+                chosen = available.first { $0.uniqueID == id }
+            } else {
+                NSApp.activate(ignoringOtherApps: true)
+                let alert = NSAlert()
+                alert.messageText = "Welche Kamera möchtest du verwenden?"
+                alert.informativeText = available.isEmpty
+                    ? "Keine Kamera ist gerade verfügbar. Schließe eine Webcam an oder öffne das MacBook und versuche es erneut."
+                    : "Wähle deine Kamera für Tawel. Bei zugeklapptem MacBook bitte die externe Webcam auswählen. Die letzte Auswahl wird vorgemerkt."
+                let picker = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 380, height: 30), pullsDown: false)
+                picker.autoenablesItems = false
+                for (index, device) in devices.enumerated() {
+                    let suffix = device.isSuspended ? " · ruht / nicht verfügbar" : (device.deviceType == .builtInWideAngleCamera ? " · intern" : " · extern")
+                    picker.addItem(withTitle: device.localizedName + suffix)
+                    picker.lastItem?.tag = index
+                    picker.lastItem?.isEnabled = !device.isSuspended && device.isConnected
+                }
+                if let preferred = available.first(where: { $0.uniqueID == saved }) ?? available.first,
+                   let index = devices.firstIndex(where: { $0.uniqueID == preferred.uniqueID }) { picker.selectItem(at: index) }
+                alert.accessoryView = picker
+                alert.addButton(withTitle: "Kamera verwenden").isEnabled = !available.isEmpty
+                alert.addButton(withTitle: "Abbrechen")
+                if alert.runModal() == .alertFirstButtonReturn, let item = picker.selectedItem, item.isEnabled {
+                    chosen = devices[item.tag]
+                }
+            }
+            let confirmed = chosen
+            self.queue.async {
+                guard self.generation == request else { return }
+                self.selectionPending = false
+                guard let device = confirmed, device.isConnected, !device.isSuspended else { self.report(0); return }
+                self.session.beginConfiguration()
+                for input in self.session.inputs { self.session.removeInput(input) }
+                for output in self.session.outputs { self.session.removeOutput(output) }
+                self.session.commitConfiguration()
+                self.configured = false; self.videoOutput = nil; self.lastDeviceFlags = nil
+                self.selectedDevice = device
+                UserDefaults.standard.set(device.uniqueID, forKey: self.cameraKey)
+                self.authorizedStart()
+            }
         }
     }
-    func pause() { queue.async { self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(3) } }
-    func stop() { queue.sync { self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(0) } }
+    func cameraName() -> String { queue.sync { selectedDevice?.localizedName ?? "Noch keine Kamera gewählt" } }
+    func pause() { queue.async { self.generation += 1; self.selectionPending = false; self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(3) } }
+    func stop() { queue.sync { self.generation += 1; self.selectionPending = false; self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(0) } }
     func snooze(_ seconds: Double) {
         queue.async {
             self.wanted = true; self.snoozeUntil = Date().addingTimeInterval(seconds)
@@ -135,11 +202,11 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     }
     private func startSession() {
         guard wanted && !sleeping else { return }
+        guard let device = selectedDevice, device.isConnected, !device.isSuspended else {
+            report(5); reportCaptureState(); return
+        }
         if !configured {
-            let builtIn = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .unspecified).devices.first
-            guard let device = builtIn ?? AVCaptureDevice.default(for: .video) else { diagnostic("no_camera"); wanted = false; report(5); return }
-            selectedDevice = device
-            callback?(14, builtIn == nil ? 2 : 1, 0)
+            callback?(14, device.deviceType == .builtInWideAngleCamera ? 1 : 2, 0)
             diagnostic("selected name=\(device.localizedName) type=\(device.deviceType.rawValue) connected=\(device.isConnected) suspended=\(device.isSuspended) transport=\(device.transportType)")
             do {
                 let input = try AVCaptureDeviceInput(device: device)
@@ -239,6 +306,9 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
 @_cdecl("tawel_native_register")
 public func tawelNativeRegister(_ cb: @escaping @convention(c) (Int32, Double, Double) -> Void) { NativeEngine.shared.setCallback(cb) }
 @_cdecl("tawel_native_start") public func tawelNativeStart() { NativeEngine.shared.start() }
+@_cdecl("tawel_native_choose_camera") public func tawelNativeChooseCamera() { NativeEngine.shared.start(chooseCamera: true) }
+@_cdecl("tawel_native_camera_name") public func tawelNativeCameraName() -> UnsafeMutablePointer<CChar>? { strdup(NativeEngine.shared.cameraName()) }
+@_cdecl("tawel_native_free_string") public func tawelNativeFreeString(_ pointer: UnsafeMutablePointer<CChar>?) { free(pointer) }
 @_cdecl("tawel_native_pause") public func tawelNativePause() { NativeEngine.shared.pause() }
 @_cdecl("tawel_native_stop") public func tawelNativeStop() { NativeEngine.shared.stop() }
 @_cdecl("tawel_native_snooze") public func tawelNativeSnooze(_ seconds: Double) { NativeEngine.shared.snooze(seconds) }

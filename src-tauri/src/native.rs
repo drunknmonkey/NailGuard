@@ -7,6 +7,9 @@ static APP: OnceLock<AppHandle> = OnceLock::new();
 extern "C" {
     fn tawel_native_register(callback: extern "C" fn(i32, f64, f64));
     fn tawel_native_start();
+    fn tawel_native_choose_camera();
+    fn tawel_native_camera_name() -> *mut std::ffi::c_char;
+    fn tawel_native_free_string(pointer: *mut std::ffi::c_char);
     fn tawel_native_pause();
     fn tawel_native_stop();
     fn tawel_native_snooze(seconds: f64);
@@ -63,12 +66,29 @@ pub fn native_start(app: AppHandle, style: String, intensity: u8) -> Result<(), 
     if !cfg!(target_os = "macos") { return Err("Native Erkennung benötigt macOS".into()); }
     set_hint(&app, &style, intensity);
     app.state::<NativeState>().enabled.store(true, Ordering::Relaxed);
-    start_engine();
+    #[cfg(target_os = "macos")]
+    unsafe { tawel_native_choose_camera(); }
     Ok(())
+}
+
+#[tauri::command]
+pub fn native_info(app: AppHandle) -> (bool, i32, String) {
+    let state = app.state::<NativeState>();
+    let mut name = String::new();
+    #[cfg(target_os = "macos")]
+    unsafe {
+        let pointer = tawel_native_camera_name();
+        if !pointer.is_null() {
+            name = std::ffi::CStr::from_ptr(pointer).to_string_lossy().into_owned();
+            tawel_native_free_string(pointer);
+        }
+    }
+    (enabled(&app), state.status.load(Ordering::Relaxed), name)
 }
 
 fn stop(app: &AppHandle) {
     app.state::<NativeState>().enabled.store(false, Ordering::Relaxed);
+    app.state::<NativeState>().status.store(0, Ordering::Relaxed);
     #[cfg(target_os = "macos")] unsafe { tawel_native_stop(); }
     let _ = app.emit_to("main", "tawel:control", "native_stop");
     let ui = app.state::<AlphaUiState>();
@@ -99,6 +119,7 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
         3 => {
             let status = value as i32;
             state.status.store(status, Ordering::Relaxed);
+            if status == 0 { state.enabled.store(false, Ordering::Relaxed); }
             if status == 9 {
                 if let Ok(mut last) = state.last_frame.lock() { *last = None; }
                 if let Ok(mut last) = state.last_raw.lock() { *last = None; }
@@ -113,11 +134,12 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
                 8 => "Native Erkennung: Systemschlaf",
                 9 => "Native Erkennung: wartet auf Kamerabilder",
                 10 => "Native Erkennung: Kameraverbindung fehlt",
+                11 => "Kamera auswählen …",
                 _ => "Native Erkennung: beendet",
             };
             let ui_app = app.clone();
             let _ = app.run_on_main_thread(move || {
-                if !enabled(&ui_app) { return; }
+                if !enabled(&ui_app) && status != 0 { return; }
                 let ui = ui_app.state::<AlphaUiState>();
                 let _ = ui.status_item.set_text(label);
                 let _ = ui.pause_item.set_text(if status == 3 { "Fortsetzen" } else { "Pausieren" });

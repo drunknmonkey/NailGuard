@@ -289,64 +289,6 @@ fn cmd_err<E: std::fmt::Display>(err: E) -> String {
     err.to_string()
 }
 
-/// Pill-Modus: kompaktes, rahmenloses, immer sichtbares Mini-Fenster. Das WebView
-/// (Kamera + Timer-Erkennung) bleibt dasselbe – nur die Fenster-Eigenschaften ändern sich.
-#[tauri::command]
-fn enter_pill(window: tauri::WebviewWindow, x: Option<i32>, y: Option<i32>) -> Result<(), String> {
-    window.set_decorations(false).map_err(cmd_err)?;
-    window.set_always_on_top(true).map_err(cmd_err)?;
-    // Variante A „Reiner Ring": kleines, transparentes Fenster, nur der Ring.
-    // 130px gibt dem 80px Ring auf jeder Seite 25px Puffer für den Glow (max 22px).
-    window
-        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(130.0, 130.0)))
-        .map_err(cmd_err)?;
-    // Auf allen Spaces/Workspaces sichtbar (Desktop-only, Fehler nicht fatal).
-    let _ = window.set_visible_on_all_workspaces(true);
-    // Gespeicherte Position kann nach Monitorwechsel außerhalb liegen.
-    let monitors = window.available_monitors().map_err(cmd_err)?;
-    let valid = x.zip(y).filter(|(x, y)| monitors.iter().any(|m| {
-        let p = m.position();
-        let size = m.size();
-        let extent = (130.0 * m.scale_factor()).ceil() as i64;
-        i64::from(*x) >= i64::from(p.x) && i64::from(*y) >= i64::from(p.y)
-            && i64::from(*x) + extent <= i64::from(p.x) + i64::from(size.width)
-            && i64::from(*y) + extent <= i64::from(p.y) + i64::from(size.height)
-    }));
-    if let Some((x, y)) = valid {
-        window.set_position(tauri::PhysicalPosition::new(x, y)).map_err(cmd_err)?;
-    } else {
-        window.center().map_err(cmd_err)?;
-    }
-    window.unminimize().map_err(cmd_err)?;
-    window.show().map_err(cmd_err)?;
-    #[cfg(target_os = "macos")]
-    set_collection_behavior(&window, true);
-    Ok(())
-}
-
-/// Zurück in den Voll-Modus. Gibt die zuletzt genutzte Pill-Position zurück,
-/// damit das WebView sie in localStorage sichern kann.
-#[tauri::command]
-fn exit_pill(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
-    let pos = window.outer_position().map_err(cmd_err)?;
-    #[cfg(target_os = "macos")]
-    set_collection_behavior(&window, false);
-    let _ = window.set_visible_on_all_workspaces(false);
-    window.set_always_on_top(false).map_err(cmd_err)?;
-    window.set_decorations(true).map_err(cmd_err)?;
-    window
-        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(960.0, 720.0)))
-        .map_err(cmd_err)?;
-    let _ = window.center();
-    Ok((pos.x, pos.y))
-}
-
-/// Aktuelle Fensterposition (für die periodische Positions-Sicherung im Pill-Modus).
-#[tauri::command]
-fn pill_position(window: tauri::WebviewWindow) -> Result<(i32, i32), String> {
-    let p = window.outer_position().map_err(cmd_err)?;
-    Ok((p.x, p.y))
-}
 
 /// Explizites Beenden. Fenster-X und Pillen-X verstecken nur die Oberfläche.
 #[tauri::command]
@@ -382,7 +324,6 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let status = MenuItem::with_id(app, "status", "Status: bereit", false, None::<&str>)?;
     let open = MenuItem::with_id(app, "open", "Tawel öffnen", true, None::<&str>)?;
     let background = MenuItem::with_id(app, "background", "Im Hintergrund weiterlaufen", true, None::<&str>)?;
-    let pill = MenuItem::with_id(app, "pill", "Pille anzeigen (optional)", true, None::<&str>)?;
     let start = MenuItem::with_id(app, "start", "Start", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pausieren", false, None::<&str>)?;
     let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
@@ -396,7 +337,7 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let hint_wash_focus = MenuItem::with_id(app, "hint_wash_focus", "E · Farbhauch → Fokusverlust", true, None::<&str>)?;
     let hint_preview = MenuItem::with_id(app, "hint_preview", "Probe-Hinweis anzeigen", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
-    let native_test = MenuItem::with_id(app, "native_test", "Native Erkennung testen", true, None::<&str>)?;
+    let native_test = MenuItem::with_id(app, "native_test", "Kamera auswählen / Erkennung starten", true, None::<&str>)?;
     let native_less = MenuItem::with_id(app, "native_less", "Native Empfindlichkeit: später", true, None::<&str>)?;
     let native_medium = MenuItem::with_id(app, "native_medium", "Native Empfindlichkeit: mittel", true, None::<&str>)?;
     let native_more = MenuItem::with_id(app, "native_more", "Native Empfindlichkeit: früher", true, None::<&str>)?;
@@ -408,7 +349,6 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         .separator()
         .item(&open)
         .item(&background)
-        .item(&pill)
         .item(&start)
         .item(&pause)
         .separator()
@@ -457,7 +397,6 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
             "background" => {
                 if let Some(window) = app.get_webview_window("main") { let _ = window.hide(); }
             }
-            "pill" => emit_control(app, "dock", false),
             "start" => emit_control(app, "start", true),
             "pause" => emit_control(app, "toggle_pause", false),
             "snooze_15" => emit_control(app, "snooze_15", false),
@@ -481,34 +420,6 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
-/// macOS: NSWindow so konfigurieren, dass die Pille auf allen Spaces und als
-/// Auxiliary über Vollbild-Apps schweben kann. Caveat: über das Vollbild EINER
-/// ANDEREN App ist das nicht garantiert (siehe docs/pill-mode.md).
-#[cfg(target_os = "macos")]
-fn set_collection_behavior(window: &tauri::WebviewWindow, pill: bool) {
-    let ns_addr = match window.ns_window() {
-        Ok(p) => p as usize,
-        Err(_) => return,
-    };
-    let _ = window.run_on_main_thread(move || {
-        if ns_addr == 0 {
-            return;
-        }
-        unsafe {
-            use objc2::msg_send;
-            use objc2::runtime::AnyObject;
-            let ns = ns_addr as *mut AnyObject;
-            if pill {
-                let cur: usize = msg_send![&*ns, collectionBehavior];
-                // NSWindowCollectionBehaviorCanJoinAllSpaces (1<<0) | FullScreenAuxiliary (1<<8)
-                let beh = cur | (1usize << 0) | (1usize << 8);
-                let _: () = msg_send![&*ns, setCollectionBehavior: beh];
-            } else {
-                let _: () = msg_send![&*ns, setCollectionBehavior: 0usize];
-            }
-        }
-    });
-}
 
 /// macOS bittet, dieses Fenster nicht in Window-Capture/Sharing aufzunehmen.
 /// Der Mechanismus wurde bereits auf echter Hardware mit Bildschirmaufnahme
@@ -664,13 +575,11 @@ fn main() {
             spike_tick,
             alpha_diagnostic,
             native::native_start,
+            native::native_info,
             spike_state,
             spike_log_path,
             alpha_status,
             alpha_hint_style,
-            enter_pill,
-            exit_pill,
-            pill_position,
             show_visual_hint,
             hide_visual_hint,
             close_app,

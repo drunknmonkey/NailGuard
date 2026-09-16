@@ -21,11 +21,10 @@ done
 # ihren fensterunabhängigen Timer auch nach ungültigen Frames am Leben.
 patch --batch --forward -F 0 -d "$DIST" -p0 < "$ROOT/spike/alpha-app.patch"
 
-# Alpha-/Pill-Assets dazulegen ...
+# Mac-Alpha-Assets dazulegen ...
 cp "$ROOT/spike/diagnostics.js" "$DIST/diagnostics.js"
 cp "$ROOT/spike/alpha.js" "$DIST/alpha.js"
-cp "$ROOT/spike/pill.js" "$DIST/pill.js"
-cp "$ROOT/spike/pill.css" "$DIST/pill.css"
+cp "$ROOT/spike/alpha.css" "$DIST/alpha.css"
 cp "$ROOT/spike/hint-overlay.html" "$DIST/hint-overlay.html"
 cp "$ROOT/spike/hint-overlay.js" "$DIST/hint-overlay.js"
 cp "$ROOT/spike/hint-overlay.css" "$DIST/hint-overlay.css"
@@ -35,14 +34,14 @@ python3 - "$DIST/index.html" <<'PY'
 import sys
 path = sys.argv[1]
 html = open(path, encoding="utf-8").read()
-if "./pill.css" not in html:
-    html = html.replace("  </head>", '    <link rel="stylesheet" href="./pill.css" />\n  </head>', 1)
+if "./alpha.css" not in html:
+    html = html.replace("  </head>", '    <link rel="stylesheet" href="./alpha.css" />\n  </head>', 1)
 if "./alpha.js" not in html:
     html = html.replace(
         "  </body>",
         '    <script src="./diagnostics.js"></script>\n'
         '    <script src="./alpha.js"></script>\n'
-        '    <script src="./pill.js"></script>\n  </body>',
+        '  </body>',
         1,
     )
 open(path, "w", encoding="utf-8").write(html)

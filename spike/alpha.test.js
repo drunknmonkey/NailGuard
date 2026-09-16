@@ -402,6 +402,13 @@ async function main() {
   await flush();
   assert.equal(startButton.disabled, false);
   assert.equal(body.classList.contains("native-test-active"), false);
+  // The actual Mac click is captured before the Web app can acquire a camera.
+  let prevented = false, stopped = false;
+  startButton.dispatchEvent({ type: "click", preventDefault() { prevented = true; }, stopImmediatePropagation() { stopped = true; } });
+  await flush();
+  assert.equal(prevented && stopped, true);
+  assert.equal(body.classList.contains("native-test-active"), true);
+  assert.equal(fs.existsSync(`${__dirname}/../spike-dist/pill.js`), false, "Kein Pillenmodus im Bundle");
   console.log("alpha.test.js: ok");
 }
 

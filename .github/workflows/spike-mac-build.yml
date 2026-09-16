@@ -32,11 +32,9 @@ jobs:
         run: |
           bash spike/build-frontend.sh
           node --check spike/alpha.js
-          node --check spike/pill.js
           node --check spike/hint-overlay.js
           node spike/alpha.test.js
           node spike/alpha-frontend.test.js
-          node spike/pill.test.js
           node --check spike/diagnostics.js
           node spike/diagnostics.test.js
           node spike/hint-overlay.test.js
@@ -48,7 +46,7 @@ jobs:
 
       - name: Test native proximity logic
         run: |
-          swiftc spike/native/ProximityGate.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
+          swiftc spike/native/CameraChoice.swift spike/native/ProximityGate.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
           /tmp/tawel-native-tests
 
       - name: Cache cargo

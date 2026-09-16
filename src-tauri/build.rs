@@ -1,6 +1,7 @@
 fn main() {
     println!("cargo:rerun-if-changed=../spike/native/NativeEngine.swift");
     println!("cargo:rerun-if-changed=../spike/native/ProximityGate.swift");
+    println!("cargo:rerun-if-changed=../spike/native/CameraChoice.swift");
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
         use std::process::Command;
         let out = std::env::var("OUT_DIR").unwrap();
@@ -15,7 +16,7 @@ fn main() {
             "-parse-as-library", "-emit-library", "-static", "-O", "-module-name", "TawelNative",
             "-target", &format!("{arch}-apple-macosx14.0"),
             "-sdk", &sdk,
-            "../spike/native/ProximityGate.swift", "../spike/native/NativeEngine.swift",
+            "../spike/native/CameraChoice.swift", "../spike/native/ProximityGate.swift", "../spike/native/NativeEngine.swift",
             "-o", &format!("{out}/libTawelNative.a"),
         ]).status().unwrap();
         assert!(status.success(), "Native Swift engine failed to compile");
