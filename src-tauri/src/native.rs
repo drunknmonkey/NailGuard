@@ -83,7 +83,15 @@ pub fn native_info(app: AppHandle) -> (bool, i32, String) {
             tawel_native_free_string(pointer);
         }
     }
-    (enabled(&app), state.status.load(Ordering::Relaxed), name)
+    let mut status = state.status.load(Ordering::Relaxed);
+    if matches!(status, 2 | 9) {
+        let flags = state.device_flags.load(Ordering::Relaxed);
+        let fresh = |time: &Mutex<Option<Instant>>| time.lock().ok().and_then(|t| *t)
+            .map(|t| t.elapsed().as_millis() <= 3000).unwrap_or(false);
+        if flags & 1 == 0 || flags & 2 != 0 { status = 5; }
+        else if !fresh(&state.last_raw) || !fresh(&state.last_frame) { status = 9; }
+    }
+    (enabled(&app), status, name)
 }
 
 fn stop(app: &AppHandle) {

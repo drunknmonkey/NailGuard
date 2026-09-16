@@ -452,8 +452,11 @@
     invoke("native_info").then(function (info) {
       if (!Array.isArray(info)) return;
       if (nativeCameraLabel) nativeCameraLabel.textContent = info[2];
+      var labels = { 0: "Beendet", 1: "Kamera startet", 2: "Erkennung aktiv", 3: "Pausiert",
+        4: "Kamerafreigabe fehlt", 5: "Kamera nicht verfügbar – bitte auswählen", 6: "Kamerastart fehlgeschlagen",
+        8: "Systemschlaf", 9: "Wartet auf Kamerabilder / Auswertung", 10: "Kameraverbindung fehlt", 11: "Bitte Kamera auswählen" };
       if (nativeStatusLabel) nativeStatusLabel.textContent = info[0]
-        ? (info[1] === 11 ? "Bitte Kamera auswählen" : info[1] === 2 ? "Erkennung aktiv · " + info[2] : info[1] === 3 ? "Pausiert" : "Kamera startet oder wartet · " + info[2])
+        ? (labels[info[1]] || "Wartet") + " · " + info[2]
         : "Bereit · Kamera auswählen und starten";
       if (!info[0] && document.body.classList.contains("native-test-active")) handleControl("native_stop");
     }).catch(function () {});

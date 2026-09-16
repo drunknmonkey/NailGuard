@@ -1,3 +1,31 @@
+# Alpha 0.1.9 — Kameraauswahl ohne Pillenmodus (16.09.2026)
+
+Der normale Mac-Startknopf und das Menü „Kamera auswählen / Erkennung starten“
+öffnen jetzt den nativen AVFoundation-/Vision-Pfad. Bei mehreren verbundenen
+Kameras fragt eine native Auswahlbox vor dem Start nach. Ruhende Kameras sind
+nicht auswählbar. Eine einzelne verfügbare Kamera startet direkt, außer die
+zuletzt gewählte Kamera fehlt. Gespeicherte Auswahl ist bei mehreren Geräten
+nur eine Vorauswahl; kein stiller Wechsel auf eine andere Kamera.
+
+„Kamera auswählen / wechseln“ in den Einstellungen hält die bisherige native
+Session an, fragt erneut und startet mit dem gewählten Gerät. Abbrechen lässt
+die Erkennung beendet. Pause/Fortsetzen, Snooze und Wake behalten die Auswahl.
+Gerätekennung bleibt lokal in UserDefaults, nicht im Diagnose-Log. Bei Verlust
+der Webcam kein Fallback auf die interne Kamera; erneut auswählen.
+
+Pillen-JavaScript, CSS und native Mini-Fenster-Kommandos entfernt. Schließen und
+„Im Hintergrund weiterlaufen“ verstecken das Hauptfenster. Bestehende Hinweise
+und Intensitätsstufen bleiben. Browser-Kameraauswahl/-Vorschau wird im Mac-Build
+ausgeblendet; sie kann die native Kamera nicht steuern. Web-Kalibrierung und
+Statistik sind weiterhin nicht mit der nativen Erkennung integriert.
+
+Tests: Kamera-Auswahlregeln (mehrere, ruhend, fehlende gespeicherte Kamera),
+Mac-Start-Routing, Pause-/Hinweis-Regression; anschließend macOS-Bundle.
+Hardwareabnahme offen: USB-Webcam bei zugeklapptem MacBook auswählen, echte
+Hinweise prüfen, Pause/Fortsetzen, Kamerawechsel und Abziehen testen.
+
+Die nachfolgenden älteren Abschnitte dokumentieren die Entwicklungshistorie.
+
 # Tawel Mac-Alpha v0.1
 
 Technischer Stand der privaten Alpha auf Branch `agent/mac-alpha-v0-1`.
@@ -389,30 +417,3 @@ mit Gesicht bzw. Hand und den letzten relativen Mund-Finger-Abstand mal 1000
 (-1 nicht messbar). Keine Koordinaten/Bilder. Hinweisgrenzen bleiben unverändert.
 Native externe Kameraauswahl ist noch nicht implementiert; dieser Test verwendet
 weiterhin bevorzugt die interne Kamera und benötigt ein offenes MacBook.
-# Alpha 0.1.9 — Kameraauswahl ohne Pillenmodus (16.09.2026)
-
-Der normale Mac-Startknopf und das Menü „Kamera auswählen / Erkennung starten“
-öffnen jetzt den nativen AVFoundation-/Vision-Pfad. Bei mehreren verbundenen
-Kameras fragt eine native Auswahlbox vor dem Start nach. Ruhende Kameras sind
-nicht auswählbar. Eine einzelne verfügbare Kamera startet direkt, außer die
-zuletzt gewählte Kamera fehlt. Gespeicherte Auswahl ist bei mehreren Geräten
-nur eine Vorauswahl; kein stiller Wechsel auf eine andere Kamera.
-
-„Kamera auswählen / wechseln“ in den Einstellungen hält die bisherige native
-Session an, fragt erneut und startet mit dem gewählten Gerät. Abbrechen lässt
-die Erkennung beendet. Pause/Fortsetzen, Snooze und Wake behalten die Auswahl.
-Gerätekennung bleibt lokal in UserDefaults, nicht im Diagnose-Log. Bei Verlust
-der Webcam kein Fallback auf die interne Kamera; erneut auswählen.
-
-Pillen-JavaScript, CSS und native Mini-Fenster-Kommandos entfernt. Schließen und
-„Im Hintergrund weiterlaufen“ verstecken das Hauptfenster. Bestehende Hinweise
-und Intensitätsstufen bleiben. Browser-Kameraauswahl/-Vorschau wird im Mac-Build
-ausgeblendet; sie kann die native Kamera nicht steuern. Web-Kalibrierung und
-Statistik sind weiterhin nicht mit der nativen Erkennung integriert.
-
-Tests: Kamera-Auswahlregeln (mehrere, ruhend, fehlende gespeicherte Kamera),
-Mac-Start-Routing, Pause-/Hinweis-Regression; anschließend macOS-Bundle.
-Hardwareabnahme offen: USB-Webcam bei zugeklapptem MacBook auswählen, echte
-Hinweise prüfen, Pause/Fortsetzen, Kamerawechsel und Abziehen testen.
-
-Die nachfolgenden älteren Abschnitte dokumentieren die Entwicklungshistorie.
