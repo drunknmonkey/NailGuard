@@ -8,6 +8,6 @@
 <plist version="1.0">
 <dict>
     <key>NSCameraUsageDescription</key>
-    <string>NailGuard nutzt die Kamera lokal, um Hand-zu-Mund-Bewegungen zu erkennen. Es werden keine Bilder gespeichert oder gesendet.</string>
+    <string>Tawel nutzt die Kamera lokal, um Hand-zu-Mund-Bewegungen zu erkennen. Bilder und Videos werden weder gespeichert noch übertragen.</string>
 </dict>
 </plist>
