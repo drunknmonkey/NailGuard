@@ -31,7 +31,7 @@ const {chromium} = require(path.join(dest, 'node_modules/playwright'));
       const page = await browser.newPage({viewport:{width:620,height:760}, locale:'de-AT'});
       await page.goto(pathToFileURL(path.join(dest, view+'.html')).href, {waitUntil:'domcontentloaded',timeout:15000});
       await page.waitForFunction(() => document.documentElement.dataset.layout === 'pass', null, {timeout:10000});
-      await page.getByRole('button', {name:'Pausieren',exact:true}).waitFor({state:'attached',timeout:10000});
+      await page.getByRole('button', {name:'Pausieren',exact:true,includeHidden:true}).waitFor({state:'attached',timeout:10000});
       if (!(await page.content()).includes('Microsoft LifeCam HD-3000')) throw Error('Native state missing');
       await page.screenshot({path:path.join(dest,view+'.png'),fullPage:true});
       if (view === 'settings') {
