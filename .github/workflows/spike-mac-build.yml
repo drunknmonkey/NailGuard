@@ -15,7 +15,27 @@ on:
       - "app/**"
       - ".github/workflows/spike-mac-build.yml"
 
+concurrency:
+  group: tawel-alpha-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  interface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Render Mac interface
+        run: bash spike/check-mac-layout.sh
+      - name: Upload interface previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tawel-UI-Preview
+          path: ${{ runner.temp }}/tawel-ui-preview/*.png
+          if-no-files-found: error
   build:
     # macOS 14 (Sonoma) – nötig für backgroundThrottling-Support.
     runs-on: macos-14
@@ -41,16 +61,6 @@ jobs:
           node --check spike/diagnostics.js
           node spike/diagnostics.test.js
           node spike/hint-overlay.test.js
-
-      - name: Render Mac interface
-        run: bash spike/check-mac-layout.sh
-
-      - name: Upload interface previews
-        uses: actions/upload-artifact@v4
-        with:
-          name: Tawel-UI-Preview
-          path: ${{ runner.temp }}/tawel-ui-preview/*.png
-          if-no-files-found: error
 
       - name: Test native health status
         run: |
