@@ -307,13 +307,13 @@ async function main() {
 
   const nativeSource = fs.readFileSync(`${__dirname}/../src-tauri/src/main.rs`, "utf8");
   for (const action of [
-    "hint_lavender_vignette",
-    "hint_soft_focus",
-    "hint_desaturate",
-    "hint_ambient_glow",
-    "hint_wash_focus",
+    "lavender-vignette",
+    "soft-focus",
+    "desaturate",
+    "ambient-glow",
+    "wash-focus",
   ]) {
-    assert.ok(nativeSource.includes(`"${action}"`), `${action} ist auch nativ verdrahtet`);
+    assert.ok(nativeSource.includes(`"${action}"`), `${action} wird weiterhin vom nativen Overlay unterstützt`);
   }
   assert.ok(
     nativeSource.includes("fn show_visual_hint(style: String, intensity: u8"),
