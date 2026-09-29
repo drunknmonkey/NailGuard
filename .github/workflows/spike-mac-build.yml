@@ -31,6 +31,9 @@ jobs:
       - name: Test Mac alpha bridge
         run: |
           bash spike/build-frontend.sh
+          node spike/mac.test.js
+          node --check spike/mac.js
+          node --check spike/mac-i18n.js
           node --check spike/alpha.js
           node --check spike/hint-overlay.js
           node spike/alpha.test.js

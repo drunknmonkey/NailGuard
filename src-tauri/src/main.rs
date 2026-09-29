@@ -19,88 +19,6 @@ use tauri::menu::{MenuBuilder, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
-// --- macOS: getUserMedia im WKWebView erlauben ----------------------------------
-// WKWebView verweigert Kamera/Mikrofon auf Web-Ebene, solange der WKUIDelegate die
-// Methode `requestMediaCapturePermissionForOrigin:...` nicht beantwortet (WRY tut das
-// fuer Screen-Sharing, aber nicht fuer die Kamera – tauri-apps/wry#1195). Wir setzen
-// daher einen minimalen Delegate, der die Anfrage mit "grant" (=1) beantwortet. Das
-// ist Apples offizieller Mechanismus, kein Workaround.
-//
-// Bewusst mit Roh-Typen (*mut AnyObject / isize / block2::Block), damit wir nur von
-// objc2 + block2 abhaengen (Versionen wie wry) und nicht von den versionssensiblen
-// objc2-web-kit-Typen. WebKit prueft `respondsToSelector:`, ein Minimal-Delegate genuegt.
-#[cfg(target_os = "macos")]
-mod macos_camera {
-    use block2::Block;
-    use objc2::rc::Retained;
-    use objc2::runtime::{AnyObject, NSObject, NSObjectProtocol};
-    use objc2::{define_class, msg_send, AllocAnyThread};
-
-    define_class!(
-        #[unsafe(super(NSObject))]
-        #[name = "NailguardMediaUIDelegate"]
-        pub struct MediaUIDelegate;
-
-        unsafe impl NSObjectProtocol for MediaUIDelegate {}
-
-        impl MediaUIDelegate {
-            // - (void)webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:
-            // Signatur-Encoding: v@:@@@q@?  (void, self, _cmd, webview, origin, frame, NSInteger, block)
-            #[unsafe(method(webView:requestMediaCapturePermissionForOrigin:initiatedByFrame:type:decisionHandler:))]
-            fn grant_media(
-                &self,
-                _web_view: *mut AnyObject,
-                _origin: *mut AnyObject,
-                _frame: *mut AnyObject,
-                _capture_type: isize,
-                decision_handler: &Block<dyn Fn(isize)>,
-            ) {
-                // WKPermissionDecisionGrant == 1
-                decision_handler.call((1isize,));
-            }
-        }
-    );
-
-    impl MediaUIDelegate {
-        fn new() -> Retained<Self> {
-            unsafe { msg_send![Self::alloc(), init] }
-        }
-    }
-
-    /// Haengt den Delegate an den WKWebView (Pointer aus `PlatformWebview::inner()`).
-    pub unsafe fn install(webview_ptr: *mut std::ffi::c_void) {
-        // Runtime-Diagnose: bestaetigt, dass with_webview/install lief und welche
-        // ObjC-Klasse inner() liefert (sollte WKWebView sein). Liegt auf dem Desktop.
-        let dbg_path = format!(
-            "{}/Desktop/tawel-alpha-debug.txt",
-            std::env::var("HOME").unwrap_or_default()
-        );
-        let wk = webview_ptr.cast::<AnyObject>();
-        let class = if wk.is_null() {
-            "<null>".to_string()
-        } else {
-            format!("{:?}", (&*wk).class())
-        };
-        let _ = std::fs::write(
-            &dbg_path,
-            format!("install() aufgerufen; ptr_null={}; inner_class={}\n", wk.is_null(), class),
-        );
-        if wk.is_null() {
-            return;
-        }
-        let delegate = MediaUIDelegate::new();
-        let _: () = msg_send![&*wk, setUIDelegate: &*delegate];
-        // uiDelegate ist eine schwache Property -> Delegate fuer die App-Lebensdauer halten.
-        std::mem::forget(delegate);
-        let _ = std::fs::write(
-            &dbg_path,
-            format!("install() ok; inner_class={}; setUIDelegate gesetzt\n", class),
-        );
-    }
-}
-// --------------------------------------------------------------------------------
-
-
 /// Nur skalare Diagnosewerte; niemals Kamerabilder, Landmarks oder Fehlertexte.
 #[derive(Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -163,8 +81,7 @@ struct SpikeState {
 }
 
 /// Vom WebView gemeldeter Produktzustand und veränderbare Menüeinträge.
-/// Die Erkennung selbst bleibt im bestehenden WebView; Rust hält nur genug
-/// Zustand, um Schließen und Menüleisten-Bedienung verlässlich abzubilden.
+/// Die native Erkennung läuft unabhängig von den beiden WebViews.
 struct AlphaUiState {
     running: AtomicBool,
     paused: AtomicBool,
@@ -290,7 +207,7 @@ fn cmd_err<E: std::fmt::Display>(err: E) -> String {
 }
 
 
-/// Explizites Beenden. Fenster-X und Pillen-X verstecken nur die Oberfläche.
+/// Explizites Beenden. Fenster-X verstecken nur die Oberfläche.
 #[tauri::command]
 fn close_app(app: AppHandle) {
     app.exit(0);
@@ -320,57 +237,41 @@ fn emit_control(app: &AppHandle, action: &str, show_window: bool) {
 /// Ruhige Menüleistensteuerung für die private Alpha. Alle Aktionen werden als
 /// kleine Ereignisse an denselben WebView geschickt; Kamera/MediaPipe werden
 /// weder dupliziert noch in einen zweiten Prozess verschoben.
+fn tray_icon_pixels() -> Vec<u8> {
+    let mut pixels = vec![0u8; 36 * 36 * 4];
+    for y in 0..36 { for x in 0..36 {
+        let distance = (((x as f64 + 0.5) - 18.).powi(2) + ((y as f64 + 0.5) - 18.).powi(2)).sqrt();
+        let coverage = (1. - ((distance - 11.).abs() - 1.2).max(0.)).clamp(0., 1.);
+        pixels[(y * 36 + x) * 4 + 3] = (coverage * 255.) as u8;
+    }}
+    pixels
+}
+
 fn install_tray(app: &tauri::App) -> tauri::Result<()> {
     let status = MenuItem::with_id(app, "status", "Status: bereit", false, None::<&str>)?;
     let open = MenuItem::with_id(app, "open", "Tawel öffnen", true, None::<&str>)?;
-    let background = MenuItem::with_id(app, "background", "Im Hintergrund weiterlaufen", true, None::<&str>)?;
-    let start = MenuItem::with_id(app, "start", "Start", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, "pause", "Pausieren", false, None::<&str>)?;
     let snooze_15 = MenuItem::with_id(app, "snooze_15", "Snooze · 15 Minuten", false, None::<&str>)?;
     let snooze_30 = MenuItem::with_id(app, "snooze_30", "Snooze · 30 Minuten", false, None::<&str>)?;
     let snooze_60 = MenuItem::with_id(app, "snooze_60", "Snooze · 60 Minuten", false, None::<&str>)?;
     let hint_status = MenuItem::with_id(app, "hint_status", "Hinweis: Lavendel-Vignette · mittel", false, None::<&str>)?;
-    let hint_lavender_vignette = MenuItem::with_id(app, "hint_lavender_vignette", "A · Lavendel-Vignette", true, None::<&str>)?;
-    let hint_soft_focus = MenuItem::with_id(app, "hint_soft_focus", "B · Sanfter Fokusverlust", true, None::<&str>)?;
-    let hint_desaturate = MenuItem::with_id(app, "hint_desaturate", "C · Kurze Entsättigung", true, None::<&str>)?;
-    let hint_ambient_glow = MenuItem::with_id(app, "hint_ambient_glow", "D · Ambient Glow", true, None::<&str>)?;
-    let hint_wash_focus = MenuItem::with_id(app, "hint_wash_focus", "E · Farbhauch → Fokusverlust", true, None::<&str>)?;
     let hint_preview = MenuItem::with_id(app, "hint_preview", "Probe-Hinweis anzeigen", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Einstellungen öffnen", true, None::<&str>)?;
-    let native_test = MenuItem::with_id(app, "native_test", "Kamera auswählen / Erkennung starten", true, None::<&str>)?;
-    let native_less = MenuItem::with_id(app, "native_less", "Native Empfindlichkeit: später", true, None::<&str>)?;
-    let native_medium = MenuItem::with_id(app, "native_medium", "Native Empfindlichkeit: mittel", true, None::<&str>)?;
-    let native_more = MenuItem::with_id(app, "native_more", "Native Empfindlichkeit: früher", true, None::<&str>)?;
-    let native_stop = MenuItem::with_id(app, "native_stop", "Nativen Test beenden", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Tawel beenden", true, None::<&str>)?;
 
     let menu = MenuBuilder::new(app)
         .item(&status)
         .separator()
         .item(&open)
-        .item(&background)
-        .item(&start)
         .item(&pause)
         .separator()
         .item(&snooze_15)
         .item(&snooze_30)
         .item(&snooze_60)
         .separator()
-        .item(&hint_status)
-        .item(&hint_lavender_vignette)
-        .item(&hint_soft_focus)
-        .item(&hint_desaturate)
-        .item(&hint_ambient_glow)
-        .item(&hint_wash_focus)
         .item(&hint_preview)
         .separator()
         .item(&settings)
-        .separator()
-        .item(&native_test)
-        .item(&native_less)
-        .item(&native_medium)
-        .item(&native_more)
-        .item(&native_stop)
         .separator()
         .item(&quit)
         .build()?;
@@ -385,37 +286,24 @@ fn install_tray(app: &tauri::App) -> tauri::Result<()> {
         hint_status_item: hint_status,
     });
 
-    let mut tray = TrayIconBuilder::with_id("tawel-tray")
+    let tray = TrayIconBuilder::with_id("tawel-tray")
         .tooltip("Tawel")
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| {
             if native::handle_menu(app, event.id().as_ref()) { return; }
             match event.id().as_ref() {
-            "native_test" => emit_control(app, "native_start", true),
             "open" => emit_control(app, "open", true),
-            "background" => {
-                if let Some(window) = app.get_webview_window("main") { let _ = window.hide(); }
-            }
-            "start" => emit_control(app, "start", true),
-            "pause" => emit_control(app, "toggle_pause", false),
-            "snooze_15" => emit_control(app, "snooze_15", false),
-            "snooze_30" => emit_control(app, "snooze_30", false),
-            "snooze_60" => emit_control(app, "snooze_60", false),
-            "hint_lavender_vignette" => emit_control(app, "hint_lavender_vignette", false),
-            "hint_soft_focus" => emit_control(app, "hint_soft_focus", false),
-            "hint_desaturate" => emit_control(app, "hint_desaturate", false),
-            "hint_ambient_glow" => emit_control(app, "hint_ambient_glow", false),
-            "hint_wash_focus" => emit_control(app, "hint_wash_focus", false),
             "hint_preview" => emit_control(app, "hint_preview", false),
             "settings" => emit_control(app, "settings", true),
             "quit" => app.exit(0),
             _ => {}
             }
         });
-    if let Some(icon) = app.default_window_icon() {
-        tray = tray.icon(icon.clone()).icon_as_template(true);
-    }
+    // Separate alpha silhouette: the opaque app icon becomes a solid rectangle
+    // when macOS treats it as a template image.
+    let icon = tauri::image::Image::new_owned(tray_icon_pixels(), 36, 36);
+    let tray = tray.icon(icon).icon_as_template(true);
     tray.build(app)?;
     Ok(())
 }
@@ -446,7 +334,7 @@ fn set_capture_excluded(window: &tauri::WebviewWindow) {
 }
 
 /// Das visuelle Overlay liegt transparent über genau dem Display, auf dem sich
-/// das Tawel-Hauptfenster beziehungsweise die Pille befindet.
+/// das Tawel-Hauptfenster befindet.
 fn fit_hint_overlay_to_main(
     overlay: &tauri::WebviewWindow,
     main: &tauri::WebviewWindow,
@@ -516,6 +404,7 @@ fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
 struct VisualHintPayload {
     style: String,
     intensity: u8,
+    held: bool,
 }
 
 /// Zeigt eine der fünf ganzflächigen Testvarianten mit einer von drei groben
@@ -523,6 +412,14 @@ struct VisualHintPayload {
 /// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
 #[tauri::command]
 fn show_visual_hint(style: String, intensity: u8, app: AppHandle) -> Result<(), String> {
+    if native::hint_active(&app) { return Ok(()); }
+    display_visual_hint(style, intensity, false, app)
+}
+
+#[derive(Default)]
+struct HintWindowState { revision: AtomicU64 }
+
+fn display_visual_hint(style: String, intensity: u8, held: bool, app: AppHandle) -> Result<(), String> {
     let style = match style.as_str() {
         "lavender-vignette" => "lavender-vignette",
         "soft-focus" => "soft-focus",
@@ -538,32 +435,49 @@ fn show_visual_hint(style: String, intensity: u8, app: AppHandle) -> Result<(), 
     if let Some(main) = app.get_webview_window("main") {
         fit_hint_overlay_to_main(&overlay, &main);
     }
+    let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
     overlay.show().map_err(cmd_err)?;
+    if !held { schedule_hint_hide(&app, revision, 3400); }
     app.emit_to(
         "hint-overlay",
         "tawel:visual-hint",
         VisualHintPayload {
             style: style.to_string(),
             intensity,
+            held,
         },
     )
     .map_err(cmd_err)
 }
 
-/// Nach der kurzen CSS-Animation verschwindet das ganzflächige Fenster wieder
-/// vollständig. So kann es das dauerhaft sichtbare Erkennungs-WebView nicht als
-/// vermeintlich verdeckt markieren oder im Alltag Ressourcen binden.
+// Native Frist: funktioniert auch bei gedrosseltem Overlay-WebView.
+fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64) {
+    let app = app.clone();
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(millis));
+        let ui_app = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            if ui_app.state::<HintWindowState>().revision.load(Ordering::SeqCst) == revision {
+                if let Some(overlay) = ui_app.get_webview_window("hint-overlay") { let _ = overlay.hide(); }
+            }
+        });
+    });
+}
+fn release_visual_hint(app: &AppHandle) {
+    let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
+    let _ = app.emit_to("hint-overlay", "tawel:hint-clear", ());
+    schedule_hint_hide(app, revision, 500);
+}
 #[tauri::command]
 fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
-    if let Some(overlay) = app.get_webview_window("hint-overlay") {
-        overlay.hide().map_err(cmd_err)?;
-    }
+    if !native::hint_active(&app) { release_visual_hint(&app); }
     Ok(())
 }
 
 fn main() {
     tauri::Builder::default()
         .manage(Mutex::new(DiagnosticState::default()))
+        .manage(HintWindowState::default())
         .manage(SpikeState {
             count: AtomicU64::new(0),
             start: Instant::now(),
@@ -576,6 +490,8 @@ fn main() {
             alpha_diagnostic,
             native::native_start,
             native::native_info,
+            native::native_control,
+            native::native_snapshot,
             spike_state,
             spike_log_path,
             alpha_status,
@@ -595,7 +511,7 @@ fn main() {
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
                 let _ = writeln!(
                     f,
-                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms,native_raw_frames_total,native_vision_started_total,native_face_finished_total,native_hands_finished_total,native_queue_ticks_total,native_restarts_total,native_stage,native_raw_frame_age_ms,native_connection_flags,native_device_source,native_interrupted,native_runtime_error_code,native_device_flags,native_dropped_total,native_face_frames_total,native_hand_frames_total,native_distance_milli"
+                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms,native_raw_frames_total,native_vision_started_total,native_face_finished_total,native_hands_finished_total,native_queue_ticks_total,native_restarts_total,native_stage,native_raw_frame_age_ms,native_connection_flags,native_device_source,native_interrupted,native_runtime_error_code,native_device_flags,native_dropped_total,native_face_frames_total,native_hand_frames_total,native_distance_milli,native_hint_active"
                 );
             }
 
@@ -617,14 +533,8 @@ fn main() {
                     }
                 });
 
-                // macOS: Kamera-/Mikrofon-Anfragen im WKWebView erlauben.
                 #[cfg(target_os = "macos")]
-                {
-                    set_capture_excluded(&win);
-                    let _ = win.with_webview(|webview| unsafe {
-                        macos_camera::install(webview.inner().cast());
-                    });
-                }
+                set_capture_excluded(&win);
 
                 // Das unsichtbare Overlay darf beim Aufbau keinen Tastaturfokus
                 // behalten; die Bedienung bleibt im normalen Tawel-Fenster.
@@ -649,6 +559,7 @@ fn main() {
                     } else if was_stalled && active {
                         let _ = ui.status_item.set_text("Status: aktiv");
                     }
+                    native::check_hint_health(&handle);
                     let secs = state.start.elapsed().as_secs();
                     let vis = state
                         .visibility

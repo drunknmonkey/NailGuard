@@ -48,3 +48,9 @@ open(path, "w", encoding="utf-8").write(html)
 PY
 
 echo "Tawel-Alpha-Frontend gebaut: $DIST"
+
+# Native Mac shell: no Web camera, onboarding or parallel MediaPipe state.
+cp "$ROOT/spike/mac.html" "$DIST/index.html"
+cp "$ROOT/spike/mac.js" "$DIST/mac.js"
+cp "$ROOT/spike/mac-i18n.js" "$DIST/mac-i18n.js"
+cp "$ROOT/spike/mac.css" "$DIST/mac.css"

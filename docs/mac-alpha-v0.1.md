@@ -1,3 +1,37 @@
+# Mac Alpha 0.1.10 · Einheitliche Oberfläche und anhaltender Hinweis
+
+Stand 29.09.2026. Paul bestätigt die Erkennung mit Microsoft LifeCam HD-3000;
+Foto zeigt aktiven nativen Status über einem veralteten Web-Startbildschirm.
+
+- Eigene Mac-Oberfläche (`spike/mac.*`), Fokus und Einstellungen jederzeit zugänglich.
+  Beide zeigen denselben nativen Status. Keine zweite Web-Kamera/MediaPipe-Session.
+- Fokus: Start, Pause/Fortsetzen, Kamera wechseln, Snooze 15/30/60, Hintergrund.
+- Einstellungen: fünf bisherige Hinweise, Stärke 1–3, native Empfindlichkeit und
+  Kameraauswahl. Bestehende Hinweisauswahl/Stärke werden übernommen. DE/EN,
+  Systemschrift, Hell/Dunkel und reduzierte Bewegung werden unterstützt.
+- Menüleiste mit transparentem Ring-Template statt opakem App-Icon. Nur Status,
+  Öffnen, Pause/Fortsetzen, Snooze, Vorschau, Einstellungen, Beenden.
+- Nach 2 s Nähe bleibt der Hinweis aktiv, solange Nähe erkannt wird. Keine
+  automatischen 2,5-s-Impulse mehr. Entfernung muss 0,4 s bestätigt sein;
+  kurze Trackinglücken werden bis 1,2 s toleriert. Danach Freigabe, da ohne
+  Tracking keine zuverlässige Aussage über die Hand möglich ist.
+- Fade-out 450 ms. Pause, Snooze, Kamerawechsel, Fehler und Sleep heben auf.
+  Bei ausbleibender Auswertung löst zusätzlich der native Watchdog den Effekt.
+  Vorschau bleibt zeitlich begrenzt; alte Timer dürfen keinen neuen Hinweis schließen.
+- CSV ergänzt `native_hint_active`; Kamerabilder werden weiterhin nicht gespeichert.
+- `app/` unverändert. Keine erfundenen Statistiken oder Web-Kalibrierwerte in
+  der nativen Oberfläche. Rückblick/persönliche Kalibrierung bleiben spätere Arbeit.
+
+Validierung: Node-UI-Vertrag (native Zustände/Bedienung/Kamerawechsel/Persistenz),
+Overlay-Regressionsfälle und Swift-Gate für lange Nähe, Entfernung, Wiederannäherung,
+Trackingverlust und Pause. Mac-Bundle-Build und Hardwaretest separat nachweisen.
+
+Hardwaretest: 10 s Hand am Mund → entfernen → erneut annähern; während des
+Hinweises pausieren; Kamera abziehen; minimiert prüfen. Menüleistenring in
+heller/dunkler Leiste, alle fünf Vorschauen und Settings prüfen. Kein Merge.
+
+---
+
 # Alpha 0.1.9 — Kameraauswahl ohne Pillenmodus (16.09.2026)
 
 Der normale Mac-Startknopf und das Menü „Kamera auswählen / Erkennung starten“

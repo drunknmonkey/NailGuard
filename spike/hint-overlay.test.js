@@ -103,3 +103,18 @@ assert.ok(css.includes("backdrop-filter: saturate("), "Entsättigung filtert den
 assert.equal(css.includes("196, 106, 74"), false, "Das frühere Alarmrot ist aus dem Overlay entfernt");
 
 console.log("hint-overlay.test.js: ok");
+
+// A sustained detection must survive animation completion and create no expiry.
+const count = timeouts.length;
+tauriListeners.get("tawel:visual-hint")({ payload: {style:"soft-focus", intensity:2, held:true} });
+assert.equal(timeouts.length, count);
+assert.equal(overlay.classList.contains("is-held"), true);
+const before = invocations.length;
+listeners.get("animationend")({target:{classList:new ClassList(["hint-terminal"])}});
+assert.equal(invocations.length, before, "Animation end cannot dismiss a held cue");
+assert.equal(overlay.classList.contains("is-active"), true);
+tauriListeners.get("tawel:hint-clear")({});
+assert.equal(overlay.classList.contains("is-releasing"), true);
+tauriListeners.get("tawel:visual-hint")({payload:{style:"ambient-glow",intensity:1,held:false}});
+assert.equal(overlay.classList.contains("is-held"), false);
+assert.equal(overlay.classList.contains("is-releasing"), false);

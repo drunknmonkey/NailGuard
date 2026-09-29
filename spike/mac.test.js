@@ -1,0 +1,59 @@
+// Executable Mac shell contract: native state, controls, settings and camera choice.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+class Element {
+  constructor() { this.hidden=false; this.disabled=false; this.value=''; this.textContent=''; this.dataset={}; this.listeners={}; this.attributes={}; }
+  addEventListener(name, fn) { this.listeners[name]=fn; }
+  setAttribute(name,value) { this.attributes[name]=value; }
+  replaceChildren(...children) { this.children=children; }
+  focus() {}
+}
+const elements = new Map();
+const html = fs.readFileSync(__dirname+'/mac.html','utf8');
+for(const match of html.matchAll(/id="([^"]+)"/g)) elements.set(match[1],new Element());
+let snapshot = {enabled:false,status:0,camera:'',hintActive:false,snoozeUntil:null};
+let fail=false;
+const calls=[], intervals=[], listeners={};
+const storage=new Map([['tawel.alpha.hint-style.v1','soft-focus'],['tawel.alpha.hint-intensity.v1','3']]);
+const context = {
+  document:{ getElementById:id=>{assert(elements.has(id),id);return elements.get(id)}, querySelectorAll:()=>[], createElement:()=>new Element(), documentElement:{}, body:{dataset:{}}, addEventListener(){},visibilityState:'visible',hasFocus:()=>true },
+  localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},
+  setInterval:fn=>intervals.push(fn), console,
+  window:{addEventListener(){},__TAURI__:{ core:{invoke:async(command,args)=>{
+    calls.push({command,args});
+    if(fail) throw new Error('simulated IPC failure');
+    if(command==='native_snapshot') return {...snapshot};
+  }},event:{listen:async(name,fn)=>{listeners[name]=fn}}}},
+};
+const flush=async()=>{for(let i=0;i<20;i++) await Promise.resolve();};
+const click=async(id,event='click')=>{elements.get(id).listeners[event]({});await flush();};
+(async()=>{
+ for(const file of ['mac-i18n.js','mac.js']) vm.runInNewContext(fs.readFileSync(__dirname+'/'+file,'utf8'),context);
+ await flush();
+ assert.equal(elements.get('primaryAction').textContent,'Kamera starten');
+ assert.equal(elements.get('hintStyle').value,'soft-focus');
+ assert.equal(elements.get('hintIntensity').value,3);
+ await click('settingsTab'); assert.equal(elements.get('settingsView').hidden,false,'Settings accessible before starting');
+ await click('primaryAction'); assert.equal(calls.some(c=>c.command==='native_start'),true);
+ snapshot={...snapshot,enabled:true,status:2,camera:'Microsoft LifeCam HD-3000'};
+ await intervals[0]();await flush();
+ assert.equal(elements.get('primaryAction').textContent,'Pausieren');
+ assert.equal(elements.get('cameraName').textContent,snapshot.camera);
+ await click('primaryAction');assert.equal(calls.at(-2).args.action,'pause');
+ snapshot.status=3; await intervals[0]();await flush();
+ assert.equal(elements.get('primaryAction').textContent,'Fortsetzen');
+ snapshot.status=11; await intervals[0]();await flush();
+ assert.equal(elements.get('primaryAction').disabled,true,'Cannot double start a camera dialog');
+ snapshot={...snapshot,enabled:false,status:0};await intervals[0]();await flush();
+ assert.equal(elements.get('primaryAction').disabled,false,'Cancel allows next choice');
+ elements.get('hintStyle').value='ambient-glow';await click('hintStyle','change');
+ assert.equal(storage.get('tawel.alpha.hint-style.v1'),'ambient-glow');
+ assert.equal(calls.some(c=>c.command==='show_visual_hint'&&c.args.style==='ambient-glow'),true);
+ snapshot.status=5;await intervals[0]();await flush();
+ assert.equal(elements.get('focusTitle').textContent,'Kamera nicht verfügbar.');
+ await click('settingsChooseCamera');assert.equal(calls.filter(c=>c.command==='native_start').length,2);
+ fail=true; await click('background'); assert.equal(elements.get('error').hidden,false);
+ assert(!html.includes('app.js'),'Public Web app does not run in native shell');
+ console.log('mac.test.js: ok');
+})().catch(e=>{console.error(e);process.exitCode=1});

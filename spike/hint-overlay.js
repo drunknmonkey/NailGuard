@@ -8,6 +8,7 @@
 
   var overlay = document.getElementById("hintOverlay");
   var hideTimer = null;
+  var held = false;
   var styles = [
     "lavender-vignette",
     "soft-focus",
@@ -43,7 +44,11 @@
   }
 
   function show(value, intensity) {
+    held = Boolean(value && value.held);
     var config = normalizeConfig(value, intensity);
+    overlay.classList.remove("is-releasing");
+    if (held) overlay.classList.add("is-held");
+    else overlay.classList.remove("is-held");
     overlay.dataset.style = config.style;
     overlay.dataset.intensity = String(config.intensity);
     overlay.classList.remove("is-active");
@@ -52,11 +57,11 @@
     overlay.classList.add("is-active");
     if (hideTimer) clearTimeout(hideTimer);
     // Fallback, falls WebKit bei einem Displaywechsel kein animationend meldet.
-    hideTimer = setTimeout(hideWindow, 3400);
+    hideTimer = held ? null : setTimeout(hideWindow, 3400);
   }
 
   overlay.addEventListener("animationend", function (event) {
-    if (event.target.classList.contains("hint-terminal")) {
+    if (!held && event.target.classList.contains("hint-terminal")) {
       hideWindow();
     }
   });
@@ -64,6 +69,12 @@
   function install(attempt) {
     var api = eventApi();
     if (api && typeof api.listen === "function") {
+      api.listen("tawel:hint-clear", function () {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = null;
+        // Keep the held class during fade-out; native code hides the window.
+        overlay.classList.add("is-releasing");
+      });
       api.listen("tawel:visual-hint", function (event) {
         show(event.payload);
       });

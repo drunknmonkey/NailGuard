@@ -18,6 +18,8 @@ extern "C" {
 
 pub struct NativeState {
     enabled: AtomicBool,
+    hint_active: AtomicBool,
+    snooze_until: Mutex<Option<i64>>,
     status: AtomicI32,
     raw_frames: AtomicU64,
     vision_started: AtomicU64,
@@ -39,6 +41,7 @@ pub struct NativeState {
 
 pub fn install(app: &AppHandle) {
     app.manage(NativeState {
+        hint_active: AtomicBool::new(false), snooze_until: Mutex::new(None),
         enabled: AtomicBool::new(false), status: AtomicI32::new(0),
         raw_frames: AtomicU64::new(0), vision_started: AtomicU64::new(0),
         face_finished: AtomicU64::new(0), hands_finished: AtomicU64::new(0),
@@ -58,12 +61,56 @@ pub fn install(app: &AppHandle) {
 pub fn enabled(app: &AppHandle) -> bool { app.state::<NativeState>().enabled.load(Ordering::Relaxed) }
 pub fn set_hint(app: &AppHandle, style: &str, intensity: u8) {
     if let Ok(mut hint) = app.state::<NativeState>().hint.lock() { *hint = (style.to_string(), intensity.clamp(1, 3)); }
+    if hint_active(app) {
+        let ui_app = app.clone(); let style = style.to_string();
+        let _ = app.run_on_main_thread(move || {
+            if hint_active(&ui_app) { let _ = display_visual_hint(style, intensity, true, ui_app); }
+        });
+    }
+}
+pub fn hint_active(app: &AppHandle) -> bool { app.state::<NativeState>().hint_active.load(Ordering::SeqCst) }
+fn update_hint(app: &AppHandle, active: bool) {
+    if app.state::<NativeState>().hint_active.swap(active, Ordering::SeqCst) == active { return; }
+    let ui_app = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        // Ignore an obsolete queued transition after pause/camera loss.
+        if hint_active(&ui_app) != active { return; }
+        if active {
+            let hint = ui_app.state::<NativeState>().hint.lock().ok().map(|h| h.clone());
+            if let Some((style, intensity)) = hint { let _ = display_visual_hint(style, intensity, true, ui_app); }
+        } else { release_visual_hint(&ui_app); }
+    });
+}
+pub fn check_hint_health(app: &AppHandle) {
+    let stale = app.state::<NativeState>().last_frame.lock().ok().and_then(|t| *t)
+        .map(|t| t.elapsed() > Duration::from_secs(2)).unwrap_or(true);
+    if stale { update_hint(app, false); }
+}
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeSnapshot {
+    enabled: bool, status: i32, camera: String, hint_active: bool, snooze_until: Option<i64>,
+}
+#[tauri::command]
+pub fn native_snapshot(app: AppHandle) -> NativeSnapshot {
+    let (enabled, status, camera) = native_info(app.clone());
+    let until = app.state::<NativeState>().snooze_until.lock().ok().and_then(|u| *u);
+    NativeSnapshot { enabled, status, camera, hint_active: hint_active(&app), snooze_until: until }
+}
+#[tauri::command]
+pub fn native_control(app: AppHandle, action: String) -> Result<(), String> {
+    if !matches!(action.as_str(), "start" | "pause" | "snooze_15" | "snooze_30" | "snooze_60" | "native_stop" | "native_less" | "native_medium" | "native_more") {
+        return Err("Unbekannte Aktion".into());
+    }
+    if handle_menu(&app, &action) { Ok(()) } else { Err("Bitte zuerst eine Kamera starten".into()) }
 }
 fn start_engine() { #[cfg(target_os = "macos")] unsafe { tawel_native_start(); } }
 
 #[tauri::command]
 pub fn native_start(app: AppHandle, style: String, intensity: u8) -> Result<(), String> {
     if !cfg!(target_os = "macos") { return Err("Native Erkennung benötigt macOS".into()); }
+    update_hint(&app, false);
+    if let Ok(mut until) = app.state::<NativeState>().snooze_until.lock() { *until = None; }
     set_hint(&app, &style, intensity);
     app.state::<NativeState>().enabled.store(true, Ordering::Relaxed);
     #[cfg(target_os = "macos")]
@@ -95,6 +142,8 @@ pub fn native_info(app: AppHandle) -> (bool, i32, String) {
 }
 
 fn stop(app: &AppHandle) {
+    update_hint(app, false);
+    if let Ok(mut until) = app.state::<NativeState>().snooze_until.lock() { *until = None; }
     app.state::<NativeState>().enabled.store(false, Ordering::Relaxed);
     app.state::<NativeState>().status.store(0, Ordering::Relaxed);
     #[cfg(target_os = "macos")] unsafe { tawel_native_stop(); }
@@ -114,18 +163,12 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
             state.distance_milli.store(if value.is_finite() && value >= 0. { (value * 1000.).round() as i32 } else { -1 }, Ordering::Relaxed);
             if let Ok(mut last) = state.last_frame.lock() { *last = Some(Instant::now()); }
         }
-        2 => {
-            state.hints.fetch_add(1, Ordering::Relaxed);
-            if let Ok(hint) = state.hint.lock() {
-                let (style, intensity) = hint.clone();
-                let ui_app = app.clone();
-                let _ = app.run_on_main_thread(move || {
-                    if enabled(&ui_app) { let _ = show_visual_hint(style, intensity, ui_app); }
-                });
-            }
-        }
+        2 => { state.hints.fetch_add(1, Ordering::Relaxed); }
+        20 => { update_hint(app, value > 0.); }
         3 => {
             let status = value as i32;
+            if status != 2 { update_hint(app, false); }
+            if status != 3 { if let Ok(mut until) = state.snooze_until.lock() { *until = None; } }
             state.status.store(status, Ordering::Relaxed);
             if status == 0 { state.enabled.store(false, Ordering::Relaxed); }
             if status == 9 {
@@ -133,17 +176,17 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
                 if let Ok(mut last) = state.last_raw.lock() { *last = None; }
             }
             let label = match status {
-                1 => "Native Erkennung: startet",
-                2 => "Native Erkennung: aktiv",
-                3 => "Native Erkennung: pausiert / Snooze",
-                4 => "Native Erkennung: Kamerafreigabe fehlt",
-                5 => "Native Erkennung: Kamera nicht verfügbar",
-                6 => "Native Erkennung: Kamerastart fehlgeschlagen",
-                8 => "Native Erkennung: Systemschlaf",
-                9 => "Native Erkennung: wartet auf Kamerabilder",
-                10 => "Native Erkennung: Kameraverbindung fehlt",
+                1 => "Erkennung: startet",
+                2 => "Erkennung: aktiv",
+                3 => "Erkennung: pausiert / Snooze",
+                4 => "Erkennung: Kamerafreigabe fehlt",
+                5 => "Erkennung: Kamera nicht verfügbar",
+                6 => "Erkennung: Kamerastart fehlgeschlagen",
+                8 => "Erkennung: Systemschlaf",
+                9 => "Erkennung: wartet auf Kamerabilder",
+                10 => "Erkennung: Kameraverbindung fehlt",
                 11 => "Kamera auswählen …",
-                _ => "Native Erkennung: beendet",
+                _ => "Erkennung: beendet",
             };
             let ui_app = app.clone();
             let _ = app.run_on_main_thread(move || {
@@ -189,13 +232,20 @@ pub fn handle_menu(app: &AppHandle, action: &str) -> bool {
     if action == "native_stop" { stop(app); return true; }
     if !enabled(app) { return false; }
     match action {
-        "start" => start_engine(),
+        "start" => {
+            if let Ok(mut until) = app.state::<NativeState>().snooze_until.lock() { *until = None; }
+            start_engine();
+        },
         "pause" => {
+            update_hint(app, false);
+            if let Ok(mut until) = app.state::<NativeState>().snooze_until.lock() { *until = None; }
             if app.state::<NativeState>().status.load(Ordering::Relaxed) == 3 { start_engine(); }
             else { #[cfg(target_os = "macos")] unsafe { tawel_native_pause(); } }
         }
         "snooze_15" | "snooze_30" | "snooze_60" => {
             let minutes = match action { "snooze_15" => 15., "snooze_30" => 30., _ => 60. };
+            update_hint(app, false);
+            if let Ok(mut until) = app.state::<NativeState>().snooze_until.lock() { *until = Some(chrono::Utc::now().timestamp_millis() + (minutes * 60_000.) as i64); }
             #[cfg(target_os = "macos")] unsafe { tawel_native_snooze(minutes * 60.); }
         }
         _ => return false,
@@ -227,5 +277,6 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
         state.device_flags.load(Ordering::Relaxed).to_string(),
         state.dropped.load(Ordering::Relaxed).to_string(),
         state.faces.load(Ordering::Relaxed).to_string(), state.hands.load(Ordering::Relaxed).to_string(),
-        state.distance_milli.load(Ordering::Relaxed).to_string()]
+        state.distance_milli.load(Ordering::Relaxed).to_string(),
+        hint_active(app).to_string()]
 }

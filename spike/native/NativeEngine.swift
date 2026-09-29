@@ -61,6 +61,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             self.callback?(9, 0, 0) // Capture-Queue lebt, auch ohne Bilder.
+            if Date().timeIntervalSince(self.lastFrameAt) > 2 { self.gate.reset(); self.callback?(20, 0, 0) }
             if self.wanted { self.reportCaptureState() }
             if let until = self.snoozeUntil, Date() >= until {
                 self.snoozeUntil = nil
@@ -194,10 +195,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             self.stopSession(); self.report(3)
         }
     }
-    func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset() } }
+    func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset(); self.callback?(20, 0, 0) } }
     private func stopSession() {
         if session.isRunning { session.stopRunning() }
-        gate.reset()
+        gate.reset(); callback?(20, 0, 0)
         if let activity = activity { ProcessInfo.processInfo.endActivity(activity); self.activity = nil }
     }
     private func startSession() {
@@ -298,7 +299,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
                 if !announcedActive { announcedActive = true; report(2) }
                 if gate.update(distance: distance, now: now) { callback?(2, 0, 0) }
-            } catch { gate.reset(); callback?(4, 0, 0) }
+                callback?(20, gate.active ? 1 : 0, 0)
+            } catch { gate.reset(); callback?(20, 0, 0); callback?(4, 0, 0) }
         }
     }
 }
