@@ -20,6 +20,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var sleeping = false
     private var snoozeUntil: Date?
     private var gate = ProximityGate()
+    private let review = ReviewStore()
+    private var soundPreferences = UserDefaults.standard.data(forKey: "tawel.native.sound.v1").flatMap { try? JSONDecoder().decode(SoundPreferences.self, from: $0) } ?? SoundPreferences()
     private var analysisAfter = 0.0
     private var announcedActive = false
     private var lastProcessed = -Double.infinity
@@ -61,7 +63,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             self.callback?(9, 0, 0) // Capture-Queue lebt, auch ohne Bilder.
-            if Date().timeIntervalSince(self.lastFrameAt) > 2 { self.gate.reset(); self.callback?(20, 0, 0) }
+            if Date().timeIntervalSince(self.lastFrameAt) > 8 {
+                _ = self.gate.update(distance: nil, now: ProcessInfo.processInfo.systemUptime)
+                self.callback?(20, 0, 0); self.callback?(21, 1, 0); self.review.interrupt()
+            }
             if self.wanted { self.reportCaptureState() }
             if let until = self.snoozeUntil, Date() >= until {
                 self.snoozeUntil = nil
@@ -186,6 +191,18 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             }
         }
     }
+    func reviewJSON() -> String { queue.sync { review.json() } }
+    func soundJSON() -> String { queue.sync {
+        String(data: (try? JSONEncoder().encode(soundPreferences)) ?? Data(), encoding: .utf8) ?? "{}"
+    } }
+    func configureSound(enabled: Bool, preset: Int, volume: Double, preview: Bool) {
+        queue.async {
+            if preview { NativeAudio.shared.play(preset: preset, volume: volume); return }
+            self.soundPreferences = SoundPreferences(enabled: enabled, preset: max(0,min(4,preset)), volume: max(0,min(1,volume)))
+            if let data = try? JSONEncoder().encode(self.soundPreferences) { UserDefaults.standard.set(data, forKey: "tawel.native.sound.v1") }
+        }
+    }
+    func flush() { queue.sync { review.interrupt() } }
     func cameraName() -> String { queue.sync { selectedDevice?.localizedName ?? "Noch keine Kamera gewählt" } }
     func pause() { queue.async { self.generation += 1; self.selectionPending = false; self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(3) } }
     func stop() { queue.sync { self.generation += 1; self.selectionPending = false; self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(0) } }
@@ -198,7 +215,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset(); self.callback?(20, 0, 0) } }
     private func stopSession() {
         if session.isRunning { session.stopRunning() }
-        gate.reset(); callback?(20, 0, 0)
+        gate.reset(); callback?(20, 0, 0); callback?(21, 0, 0); review.interrupt()
         if let activity = activity { ProcessInfo.processInfo.endActivity(activity); self.activity = nil }
     }
     private func startSession() {
@@ -283,7 +300,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     center.y = face.boundingBox.minY + center.y / CGFloat(lips.pointCount) * face.boundingBox.height
                     let aspect = Double(CVPixelBufferGetHeight(image)) / Double(CVPixelBufferGetWidth(image))
                     for hand in hands.results ?? [] {
-                        let tips: [VNHumanHandPoseObservation.JointName] = [.thumbTip, .indexTip, .middleTip, .ringTip, .littleTip]
+                        // Once a moment is active, visible adjacent joints preserve evidence
+                        // when the fingertip itself is covered by the mouth.
+                        var tips: [VNHumanHandPoseObservation.JointName] = [.thumbTip, .indexTip, .middleTip, .ringTip, .littleTip]
+                        if gate.episode { tips += [.thumbIP, .indexDIP, .middleDIP, .ringDIP, .littleDIP] }
                         for tip in tips {
                             let point = try hand.recognizedPoint(tip)
                             guard point.confidence >= 0.3 else { continue }
@@ -298,9 +318,21 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 callback?(12, 5, 0)
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
                 if !announcedActive { announcedActive = true; report(2) }
-                if gate.update(distance: distance, now: now) { callback?(2, 0, 0) }
+                let moment = gate.update(distance: distance, now: now)
+                if moment {
+                    callback?(2, 0, 0)
+                    if soundPreferences.enabled { NativeAudio.shared.play(preset: soundPreferences.preset, volume: soundPreferences.volume) }
+                }
+                let faceVisible = !(face.results?.isEmpty ?? true)
+                review.sample(now: now, date: Date(), valid: faceVisible && !gate.uncertain,
+                    quiet: !gate.active && (distance == nil || distance! > gate.radius * 1.35), moment: moment)
                 callback?(20, gate.active ? 1 : 0, 0)
-            } catch { gate.reset(); callback?(20, 0, 0); callback?(4, 0, 0) }
+                callback?(21, (gate.uncertain || !faceVisible) ? 1 : 0, 0)
+            } catch {
+                _ = gate.update(distance: nil, now: now)
+                callback?(20, gate.active ? 1 : 0, 0); callback?(21, 1, 0)
+                review.interrupt(); callback?(4, 0, 0)
+            }
         }
     }
 }
@@ -315,3 +347,18 @@ public func tawelNativeRegister(_ cb: @escaping @convention(c) (Int32, Double, D
 @_cdecl("tawel_native_stop") public func tawelNativeStop() { NativeEngine.shared.stop() }
 @_cdecl("tawel_native_snooze") public func tawelNativeSnooze(_ seconds: Double) { NativeEngine.shared.snooze(seconds) }
 @_cdecl("tawel_native_sensitivity") public func tawelNativeSensitivity(_ radius: Double) { NativeEngine.shared.sensitivity(radius) }
+
+@_cdecl("tawel_native_review") public func tawelNativeReview() -> UnsafeMutablePointer<CChar>? { strdup(NativeEngine.shared.reviewJSON()) }
+@_cdecl("tawel_native_sound_settings") public func tawelNativeSoundSettings() -> UnsafeMutablePointer<CChar>? { strdup(NativeEngine.shared.soundJSON()) }
+@_cdecl("tawel_native_sound") public func tawelNativeSound(_ enabled: Int32, _ preset: Int32, _ volume: Double, _ preview: Int32) { NativeEngine.shared.configureSound(enabled: enabled != 0, preset: Int(preset), volume: volume, preview: preview != 0) }
+@_cdecl("tawel_native_flush") public func tawelNativeFlush() { NativeEngine.shared.flush() }
+@_cdecl("tawel_background_notice") public func tawelBackgroundNotice() {
+    DispatchQueue.main.async {
+        let key = "tawel.background.explained.v1"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        let alert = NSAlert(); alert.messageText = "Tawel bleibt geöffnet."
+        alert.informativeText = "Das Fenster wird ausgeblendet. Eine laufende Erkennung bleibt aktiv. Über den Ring in der Menüleiste öffnest du Tawel wieder. Mit ‚Tawel beenden‘ oder ⌘Q beendest du die App vollständig."
+        alert.addButton(withTitle: "Verstanden"); alert.runModal()
+    }
+}

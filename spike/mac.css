@@ -13,8 +13,8 @@ header, footer, footer div { display: flex; align-items: center; justify-content
 .brand-mark { width: 18px; height: 18px; border: 2px solid currentColor; border-radius: 50%; }
 .status-chip { font-size: 11px; font-weight: 550; padding: 5px 9px; border-radius: 20px; background: var(--soft); color: var(--muted); }
 body[data-status="active"] .status-chip { color: var(--accent); }
-.tabs { display: flex; width: 250px; margin: 24px auto 0; padding: 3px; border-radius: 10px; background: var(--soft); }
-.tabs button { width: 50%; padding: 6px 10px; background: transparent; border-radius: 7px; font-size: 12px; font-weight: 550; color: var(--muted); }
+.tabs { display: flex; width: 330px; max-width: 100%; margin: 24px auto 0; padding: 3px; border-radius: 10px; background: var(--soft); }
+.tabs button { flex: 1; padding: 6px 10px; background: transparent; border-radius: 7px; font-size: 12px; font-weight: 550; color: var(--muted); }
 .tabs button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px #00000012; }
 .hero { text-align: center; padding: 27px 0 25px; }
 .breath-ring { width: 112px; height: 112px; border: 1px solid #a8c7b459; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 21px; background: radial-gradient(circle, #a8c7b41c, transparent 70%); }
@@ -58,3 +58,17 @@ input[type="range"] { width: 100%; margin: 5px 0 0; grid-column: 1/-1; accent-co
 @media(prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media(prefers-color-scheme: dark) { :root { --bg: #202522; --card: #2b312d; --ink: #e4ebe5; --muted: #a3afa6; --line: #3b433d; --accent: #94baa5; --soft: #343e37; } .primary { background: #739580; color: #101e16; } }
 @media(max-width: 500px) { .app { padding: 20px; } .focus-bottom { align-items: stretch; flex-direction: column; } .setting-row { gap: 8px; } select { max-width: 220px; } footer { flex-wrap: wrap; } }
+
+input[role="switch"] { accent-color: var(--accent); width: 18px; height: 18px; }
+.review-date { display:flex; gap:12px; align-items:center; color:var(--muted); font-size:12px; margin-top:16px; }
+.review-summary, .review-chart { padding:18px; margin-bottom:16px; }
+.review-summary h2, .review-chart h2 { font-size:13px; margin:0 0 12px; }
+.review-summary p { font-size:13px; color:var(--muted); margin:0; }
+.review-metrics { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+.review-metrics .group { padding:18px; }
+.review-metrics span { display:block; color:var(--muted); font-size:12px; }
+.review-metrics strong { display:block; font-size:24px; font-weight:550; margin-top:8px; }
+.hour-bars { height:120px; display:flex; align-items:end; gap:4px; }
+.hour-bar { flex:1; height:max(2px,var(--bar)); background:var(--accent); border-radius:3px 3px 0 0; }
+.hour-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:8px; }
+#reviewView .footnote { margin:16px 0; }

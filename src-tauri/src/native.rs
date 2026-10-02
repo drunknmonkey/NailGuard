@@ -5,6 +5,11 @@ use std::sync::{OnceLock, atomic::AtomicI32};
 static APP: OnceLock<AppHandle> = OnceLock::new();
 #[cfg(target_os = "macos")]
 extern "C" {
+    fn tawel_native_review() -> *mut std::ffi::c_char;
+    fn tawel_native_sound_settings() -> *mut std::ffi::c_char;
+    fn tawel_native_sound(enabled: i32, preset: i32, volume: f64, preview: i32);
+    fn tawel_native_flush();
+    fn tawel_background_notice();
     fn tawel_native_register(callback: extern "C" fn(i32, f64, f64));
     fn tawel_native_start();
     fn tawel_native_choose_camera();
@@ -19,6 +24,7 @@ extern "C" {
 pub struct NativeState {
     enabled: AtomicBool,
     hint_active: AtomicBool,
+    tracking_uncertain: AtomicBool,
     snooze_until: Mutex<Option<i64>>,
     status: AtomicI32,
     raw_frames: AtomicU64,
@@ -41,7 +47,7 @@ pub struct NativeState {
 
 pub fn install(app: &AppHandle) {
     app.manage(NativeState {
-        hint_active: AtomicBool::new(false), snooze_until: Mutex::new(None),
+        tracking_uncertain: AtomicBool::new(false), hint_active: AtomicBool::new(false), snooze_until: Mutex::new(None),
         enabled: AtomicBool::new(false), status: AtomicI32::new(0),
         raw_frames: AtomicU64::new(0), vision_started: AtomicU64::new(0),
         face_finished: AtomicU64::new(0), hands_finished: AtomicU64::new(0),
@@ -83,8 +89,8 @@ fn update_hint(app: &AppHandle, active: bool) {
 }
 pub fn check_hint_health(app: &AppHandle) {
     let stale = app.state::<NativeState>().last_frame.lock().ok().and_then(|t| *t)
-        .map(|t| t.elapsed() > Duration::from_secs(2)).unwrap_or(true);
-    if stale { update_hint(app, false); }
+        .map(|t| t.elapsed() > Duration::from_secs(8)).unwrap_or(true);
+    if stale { update_hint(app, false); app.state::<NativeState>().tracking_uncertain.store(true, Ordering::Relaxed); }
 }
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -95,6 +101,7 @@ pub struct NativeSnapshot {
 pub fn native_snapshot(app: AppHandle) -> NativeSnapshot {
     let (enabled, status, camera) = native_info(app.clone());
     let until = app.state::<NativeState>().snooze_until.lock().ok().and_then(|u| *u);
+    let status = if status == 2 && app.state::<NativeState>().tracking_uncertain.load(Ordering::Relaxed) && !hint_active(&app) { 12 } else { status };
     NativeSnapshot { enabled, status, camera, hint_active: hint_active(&app), snooze_until: until }
 }
 #[tauri::command]
@@ -165,9 +172,10 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
         }
         2 => { state.hints.fetch_add(1, Ordering::Relaxed); }
         20 => { update_hint(app, value > 0.); }
+        21 => { state.tracking_uncertain.store(value > 0., Ordering::Relaxed); }
         3 => {
             let status = value as i32;
-            if status != 2 { update_hint(app, false); }
+            if status != 2 { update_hint(app, false); state.tracking_uncertain.store(false, Ordering::Relaxed); }
             if status != 3 { if let Ok(mut until) = state.snooze_until.lock() { *until = None; } }
             state.status.store(status, Ordering::Relaxed);
             if status == 0 { state.enabled.store(false, Ordering::Relaxed); }
@@ -258,7 +266,10 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
     let age = state.last_frame.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
     let raw_age = state.last_raw.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
     if enabled(app) && matches!(state.status.load(Ordering::Relaxed), 2 | 9) {
-        let _ = app.state::<AlphaUiState>().status_item.set_text(native_health::device_label(state.device_flags.load(Ordering::Relaxed), raw_age, age));
+        let label = if state.tracking_uncertain.load(Ordering::Relaxed) && !hint_active(app) && age >= 0 && age <= 3000 {
+            "Erkennung: Tracking unterbrochen"
+        } else { native_health::device_label(state.device_flags.load(Ordering::Relaxed), raw_age, age) };
+        let _ = app.state::<AlphaUiState>().status_item.set_text(label);
     }
     vec![enabled(app).to_string(), state.status.load(Ordering::Relaxed).to_string(),
         state.frames.load(Ordering::Relaxed).to_string(), state.errors.load(Ordering::Relaxed).to_string(),
@@ -278,5 +289,30 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
         state.dropped.load(Ordering::Relaxed).to_string(),
         state.faces.load(Ordering::Relaxed).to_string(), state.hands.load(Ordering::Relaxed).to_string(),
         state.distance_milli.load(Ordering::Relaxed).to_string(),
-        hint_active(app).to_string()]
+        hint_active(app).to_string(), state.tracking_uncertain.load(Ordering::Relaxed).to_string()]
+}
+
+pub fn flush() { #[cfg(target_os = "macos")] unsafe { tawel_native_flush(); } }
+pub fn background_notice() { #[cfg(target_os = "macos")] unsafe { tawel_background_notice(); } }
+#[cfg(target_os = "macos")]
+unsafe fn take_string(pointer: *mut std::ffi::c_char) -> String {
+    if pointer.is_null() { return "{}".into(); }
+    let value = std::ffi::CStr::from_ptr(pointer).to_string_lossy().into_owned();
+    tawel_native_free_string(pointer); value
+}
+#[tauri::command]
+pub fn native_review() -> String {
+    #[cfg(target_os = "macos")] unsafe { return take_string(tawel_native_review()); }
+    #[cfg(not(target_os = "macos"))] { "{}".into() }
+}
+#[tauri::command]
+pub fn native_sound_settings() -> String {
+    #[cfg(target_os = "macos")] unsafe { return take_string(tawel_native_sound_settings()); }
+    #[cfg(not(target_os = "macos"))] { "{}".into() }
+}
+#[tauri::command]
+pub fn native_sound(enabled: bool, preset: i32, volume: f64, preview: bool) -> Result<(), String> {
+    if !(0..=4).contains(&preset) || !volume.is_finite() || !(0.0..=1.0).contains(&volume) { return Err("Ungültige Klangeinstellung".into()); }
+    #[cfg(target_os = "macos")] unsafe { tawel_native_sound(enabled as i32, preset, volume, preview as i32); }
+    Ok(())
 }

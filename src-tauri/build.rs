@@ -1,4 +1,6 @@
 fn main() {
+    println!("cargo:rerun-if-changed=../spike/native/ReviewStore.swift");
+    println!("cargo:rerun-if-changed=../spike/native/NativeAudio.swift");
     println!("cargo:rerun-if-changed=../spike/native/NativeEngine.swift");
     println!("cargo:rerun-if-changed=../spike/native/ProximityGate.swift");
     println!("cargo:rerun-if-changed=../spike/native/CameraChoice.swift");
@@ -16,7 +18,7 @@ fn main() {
             "-parse-as-library", "-emit-library", "-static", "-O", "-module-name", "TawelNative",
             "-target", &format!("{arch}-apple-macosx14.0"),
             "-sdk", &sdk,
-            "../spike/native/CameraChoice.swift", "../spike/native/ProximityGate.swift", "../spike/native/NativeEngine.swift",
+            "../spike/native/CameraChoice.swift", "../spike/native/ProximityGate.swift", "../spike/native/NativeEngine.swift", "../spike/native/ReviewStore.swift", "../spike/native/NativeAudio.swift",
             "-o", &format!("{out}/libTawelNative.a"),
         ]).status().unwrap();
         assert!(status.success(), "Native Swift engine failed to compile");

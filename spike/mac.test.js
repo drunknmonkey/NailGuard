@@ -24,6 +24,8 @@ const context = {
     calls.push({command,args});
     if(fail) throw new Error('simulated IPC failure');
     if(command==='native_snapshot') return {...snapshot};
+    if(command==='native_sound_settings') return JSON.stringify({enabled:true,preset:2,volume:0.4});
+    if(command==='native_review') return JSON.stringify({today:'2026-10-02',yesterday:'2026-10-01',days:{'2026-10-02':{moments:2,observedSeconds:1200,longestQuietSeconds:500,hourly:Array(24).fill(0)}}});
   }},event:{listen:async(name,fn)=>{listeners[name]=fn}}}},
 };
 const flush=async()=>{for(let i=0;i<20;i++) await Promise.resolve();};
@@ -53,7 +55,15 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  snapshot.status=5;await intervals[0]();await flush();
  assert.equal(elements.get('focusTitle').textContent,'Kamera nicht verfügbar.');
  await click('settingsChooseCamera');assert.equal(calls.filter(c=>c.command==='native_start').length,2);
- fail=true; await click('background'); assert.equal(elements.get('error').hidden,false);
+ await click('reviewTab'); assert.equal(elements.get('reviewView').hidden,false);
+ assert.equal(elements.get('reviewSummary').textContent.includes('2 Erkannte Momente'),true);
+ assert.equal(elements.get('soundToggle').checked,true);
+ assert.equal(elements.get('soundPreset').value,'2');
+ elements.get('soundVolume').value='0.6';await click('soundVolume','change');
+ assert(calls.some(c=>c.command==='native_sound'&&c.args.volume===0.6&&!c.args.preview));
+ await click('testSound');assert(calls.some(c=>c.command==='native_sound'&&c.args.preview));
+ assert(!html.includes('id="background"'));
+ fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');
  console.log('mac.test.js: ok');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -15,7 +15,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use tauri::menu::{MenuBuilder, MenuItem};
+use tauri::menu::{MenuBuilder, MenuItem, SubmenuBuilder};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
@@ -476,6 +476,17 @@ fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
+        .menu(|app| {
+            let quit = MenuItem::with_id(app, "app_quit", "Tawel beenden", true, Some("CmdOrCtrl+Q"))?;
+            let settings = MenuItem::with_id(app, "app_settings", "Einstellungen …", true, Some("CmdOrCtrl+,"))?;
+            let submenu = SubmenuBuilder::new(app, "Tawel").item(&settings).separator().item(&quit).build()?;
+            MenuBuilder::new(app).item(&submenu).build()
+        })
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "app_quit" => app.exit(0),
+            "app_settings" => emit_control(app, "settings", true),
+            _ => {}
+        })
         .manage(Mutex::new(DiagnosticState::default()))
         .manage(HintWindowState::default())
         .manage(SpikeState {
@@ -492,6 +503,9 @@ fn main() {
             native::native_info,
             native::native_control,
             native::native_snapshot,
+            native::native_review,
+            native::native_sound_settings,
+            native::native_sound,
             spike_state,
             spike_log_path,
             alpha_status,
@@ -511,7 +525,7 @@ fn main() {
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
                 let _ = writeln!(
                     f,
-                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms,native_raw_frames_total,native_vision_started_total,native_face_finished_total,native_hands_finished_total,native_queue_ticks_total,native_restarts_total,native_stage,native_raw_frame_age_ms,native_connection_flags,native_device_source,native_interrupted,native_runtime_error_code,native_device_flags,native_dropped_total,native_face_frames_total,native_hand_frames_total,native_distance_milli,native_hint_active"
+                    "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms,native_raw_frames_total,native_vision_started_total,native_face_finished_total,native_hands_finished_total,native_queue_ticks_total,native_restarts_total,native_stage,native_raw_frame_age_ms,native_connection_flags,native_device_source,native_interrupted,native_runtime_error_code,native_device_flags,native_dropped_total,native_face_frames_total,native_hand_frames_total,native_distance_milli,native_hint_active,native_tracking_uncertain"
                 );
             }
 
@@ -528,6 +542,7 @@ fn main() {
                         WindowEvent::CloseRequested { api, .. } => {
                             api.prevent_close();
                             let _ = event_window.hide();
+                            native::background_notice();
                         }
                         _ => {}
                     }
@@ -601,6 +616,14 @@ fn main() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("Fehler beim Starten der Tauri-Anwendung");
+        .build(tauri::generate_context!())
+        .expect("Fehler beim Starten der Tauri-Anwendung")
+        .run(|app, event| match event {
+            // Closing the last window must not end the native camera process.
+            tauri::RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => show_main_window(app),
+            tauri::RunEvent::Exit => native::flush(),
+            _ => {}
+        });
 }

@@ -1,3 +1,40 @@
+# Mac Alpha 0.1.11 · Hintergrund, Ton und Rückblick
+
+Stand 02.10.2026. Pauls 0.1.10-Hardwaretest meldete weiterhin vorzeitig
+verschwindende Hinweise und ausbleibenden Hintergrundbetrieb beim Schließen.
+Diese Symptome sind nicht durch den grünen Browser-/Bundle-Test widerlegt.
+
+- Schließen versteckt das Fenster; implizite Prozessbeendigung wird zusätzlich
+  im Tauri-RunEvent verhindert. Menü „Tawel beenden“ und ⌘Q beenden explizit.
+  Dock-Reopen zeigt das Fenster wieder. Einmalige Erklärung beim Schließen.
+  Der redundante Hintergrund-Button entfällt.
+- Keine Freigabe mehr allein durch einen Frameabstand von 0,5 Sekunden.
+  Entfernung benötigt 0,65 Sekunden bestätigte Distanz außerhalb der Hysterese.
+  Bei bereits aktiver Annäherung dienen auch benachbarte Fingergelenke als
+  Evidenz, wenn Spitzen verdeckt sind. Bis acht Sekunden Unsicherheit bleibt
+  der Hinweis bestehen; danach Freigabe mit unterbrochenem Trackingstatus.
+  Wiedererkennung ohne bestätigte Entfernung bleibt derselbe Moment.
+- Fünf Klänge der Webversion als native NSSound-Wiedergabe (dieselben Noten,
+  Wellenformen und Hüllkurven, einschließlich Boing-Frequenzverlauf). Ein Ton
+  pro Moment, Auswahl/Lautstärke/Test und native lokale Persistenz.
+- Rückblick mit Tagesauswahl, Momenten/Stundenverlauf, Erkennungszeit, längster
+  ruhiger Phase und qualifizierter Tagesfolge (mindestens 10 Minuten Erkennung,
+  weniger als 5 Momente). Ausschließlich neue native Messwerte; keine erfundene
+  Migration alter Web-/CSV-Statistiken. Pause, Trackingverlust, fehlendes Gesicht
+  und Frameabstände über eine Sekunde zählen nicht als ruhige Zeit.
+- Aggregate werden auf der Capture-Queue gesammelt und lokal alle fünf Sekunden,
+  bei Momenten sowie Pause/Beenden gespeichert. Keine Bilder, Audioaufnahmen oder
+  Handkoordinaten. Kein WebView nötig für Ton oder Statistik.
+- CSV ergänzt native_tracking_uncertain für den erneuten Hardwaretest.
+
+Tests: Gate-Verdeckung/langsame Frames/Wiedererkennung ohne Doppelzählung,
+Speicherung und Ruhezeiten ohne Pause/Ausfälle; UI-Tonbefehle/Rückblick und
+Fokus/Settings/Review-Screenshots. Swift/Rust-Build muss auf macOS grün sein.
+Hardware-Gate bleibt: Webcam, 10 Sekunden Hand am Mund, Wegnehmen, Pause,
+roter Schließknopf und Dock-Reopen; Ton und Rückblick bei geschlossenem Fenster.
+
+---
+
 # Mac Alpha 0.1.10 · Einheitliche Oberfläche und anhaltender Hinweis
 
 Stand 29.09.2026. Paul bestätigt die Erkennung mit Microsoft LifeCam HD-3000;
