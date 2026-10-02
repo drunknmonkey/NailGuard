@@ -319,7 +319,7 @@ pub fn native_sound(enabled: bool, preset: i32, volume: f64, preview: bool) -> R
 }
 
 #[tauri::command]
-pub fn native_preview(window: WebviewWindow, enabled: bool) -> String {
+pub fn native_preview(window: tauri::WebviewWindow, enabled: bool) -> String {
     let visible = enabled && window.label() == "main" && window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(true);
     #[cfg(target_os = "macos")] unsafe { return take_string(tawel_native_preview(visible as i32)); }
     #[cfg(not(target_os = "macos"))] { let _ = visible; "{}".into() }
