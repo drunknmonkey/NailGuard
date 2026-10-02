@@ -14,7 +14,7 @@ const elements = new Map();
 const html = fs.readFileSync(__dirname+'/mac.html','utf8');
 for(const match of html.matchAll(/id="([^"]+)"/g)) elements.set(match[1],new Element());
 let snapshot = {enabled:false,status:0,camera:'',hintActive:false,snoozeUntil:null};
-let fail=false;
+let fail=false, pendingPreview=null;
 const calls=[], intervals=[], listeners={};
 const storage=new Map([['tawel.alpha.hint-style.v1','soft-focus'],['tawel.alpha.hint-intensity.v1','3']]);
 const context = {
@@ -24,7 +24,7 @@ const context = {
   window:{addEventListener(){},__TAURI__:{ core:{invoke:async(command,args)=>{
     calls.push({command,args});
     if(fail) throw new Error('simulated IPC failure');
-    if(command==='native_preview') return '{}';
+    if(command==='native_preview') { if(args.enabled && pendingPreview) return new Promise(resolve=>pendingPreview.resolve=resolve); return '{}'; }
     if(command==='native_snapshot') return {...snapshot};
     if(command==='native_sound_settings') return JSON.stringify({enabled:true,preset:2,volume:0.4});
     if(command==='native_review') return JSON.stringify({today:'2026-10-02',yesterday:'2026-10-01',days:{'2026-10-02':{moments:2,observedSeconds:1200,longestQuietSeconds:500,hourly:Array(24).fill(0)}}});
@@ -73,6 +73,11 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  await click('focusTab'); const before=calls.filter(c=>c.command==='native_preview'&&c.args.enabled).length;
  await intervals[1](); await flush(); assert.equal(calls.filter(c=>c.command==='native_preview'&&c.args.enabled).length,before);
  assert(calls.some(c=>c.command==='native_preview'&&!c.args.enabled));
+ await click('settingsTab'); pendingPreview={};
+ const pendingPoll=intervals[1](); await flush();
+ await click('focusTab'); pendingPreview.resolve(JSON.stringify({image:'late frame'})); await pendingPoll; await flush();
+ assert.equal(elements.get('cameraFrame').hidden,true,'Late frames cannot reappear after leaving settings');
+ pendingPreview=null;
  fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');
  console.log('mac.test.js: ok');

@@ -109,3 +109,12 @@ footer { margin-top:18px; }
 @media(max-height:710px) { .app { padding-top:16px; padding-bottom:12px; } .tabs { margin-top:16px; } .section-heading { margin:16px 0 12px; } .section-heading h1 { font-size:20px; } .breath-ring { width:170px; height:170px; margin-bottom:28px; } .hero { padding-top:22px; } .camera-preview { height:220px; } .hour-bars { height:80px; } .review-summary,.review-chart,.review-metrics .group { padding:14px; } .review-metrics strong { font-size:20px; } #reviewView .footnote { margin:10px 0; } }
 
 #settingsView .section-heading p { display:none; }
+
+@property --ring-color { syntax:"<color>"; inherits:true; initial-value:#a8c7b4; }
+.breath-ring { transition:--ring-color 1.2s ease; }
+.review-summary, .review-chart { padding:14px; margin-bottom:12px; }
+.review-metrics { gap:12px; margin-bottom:12px; }
+.review-metrics .group { padding:14px; }
+.review-metrics strong { font-size:22px; }
+.hour-bars { height:70px; }
+#reviewView .footnote { margin:10px 0; }

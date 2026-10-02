@@ -26,6 +26,7 @@ const dest = process.argv[2];
 const {chromium} = require(path.join(dest, 'node_modules/playwright'));
 (async () => {
   const browser = await chromium.launch({headless:true, timeout:30000});
+  const errors=[];
   try {
     for (const view of ['focus','settings','review','hints','camera']) {
       const page = await browser.newPage({viewport:{width:680,height:800}, locale:'de-AT'});
@@ -36,7 +37,7 @@ const {chromium} = require(path.join(dest, 'node_modules/playwright'));
       for (const size of [{width:680,height:800},{width:520,height:760}]) {
         await page.setViewportSize(size);
         const overflow = await page.evaluate(() => ({x:document.documentElement.scrollWidth-innerWidth,y:document.documentElement.scrollHeight-innerHeight}));
-        if (overflow.x > 1 || overflow.y > 1) throw Error(view+' overflow at '+JSON.stringify(size)+': '+JSON.stringify(overflow));
+        if (overflow.x > 1 || overflow.y > 1) errors.push(view+' overflow at '+JSON.stringify(size)+': '+JSON.stringify(overflow));
       }
       await page.setViewportSize({width:680,height:800});
       await page.screenshot({path:path.join(dest,view+'.png'),fullPage:true});
@@ -46,6 +47,7 @@ const {chromium} = require(path.join(dest, 'node_modules/playwright'));
       }
       await page.close();
     }
+    if(errors.length) throw Error(errors.join('\n'));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode=1; });
 JS
