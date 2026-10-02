@@ -120,3 +120,6 @@ footer { margin-top:18px; }
 #reviewView .footnote { margin:10px 0; }
 
 @media(max-height:780px) { #hintsPanel .setting-row { padding-top:8px; padding-bottom:8px; } }
+
+.camera-preview { display:flex; align-items:center; justify-content:center; }
+#cameraFrame { flex:none; min-height:0; }

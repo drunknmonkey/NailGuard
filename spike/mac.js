@@ -62,7 +62,10 @@
       img.onload = () => {
         if (generation !== previewGeneration) return;
         $('cameraImage').src = img.src;
-        $('cameraFrame').style.aspectRatio = frame.width+'/'+frame.height;
+        const box = $('cameraFrame').parentElement;
+        const scale = Math.min(box.clientWidth/frame.width, box.clientHeight/frame.height);
+        $('cameraFrame').style.width = Math.floor(frame.width*scale)+'px';
+        $('cameraFrame').style.height = Math.floor(frame.height*scale)+'px';
         const svg = $('cameraLandmarks'); svg.replaceChildren();
         const point = p => [p[0]*1000,(1-p[1])*1000];
         const add = (tag, attrs) => { const el = document.createElementNS('http://www.w3.org/2000/svg',tag); for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,String(v)); svg.appendChild(el); };

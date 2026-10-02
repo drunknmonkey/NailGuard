@@ -44,6 +44,11 @@ const {chromium} = require(path.join(dest, 'node_modules/playwright'));
       if (view === 'camera') {
         await page.getByRole('switch').check();
         await page.locator('#cameraFrame').waitFor({state:'visible',timeout:10000});
+        const fits = await page.locator('#cameraFrame').evaluate(el => {
+          const a=el.getBoundingClientRect(), b=el.parentElement.getBoundingClientRect();
+          return a.top>=b.top && a.bottom<=b.bottom && a.left>=b.left && a.right<=b.right && Math.abs(a.width/a.height-4/3)<.01;
+        });
+        if(!fits) throw Error('Preview is cropped or distorted');
         if(await page.locator('#cameraLandmarks circle').count() !== 5) throw Error('Missing preview landmarks');
         await page.screenshot({path:path.join(dest,'camera-preview.png'),fullPage:true});
         await page.locator('#focusTab').click();
