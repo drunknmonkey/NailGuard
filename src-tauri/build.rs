@@ -29,7 +29,7 @@ fn main() {
         println!("cargo:rustc-link-search=native=/usr/lib/swift");
         println!("cargo:rustc-link-lib=static=TawelNative");
         println!("cargo:rustc-link-lib=dylib=swiftCore");
-        for framework in ["Foundation", "AppKit", "AVFoundation", "Vision", "CoreMedia", "CoreVideo"] {
+        for framework in ["Foundation", "AppKit", "AVFoundation", "Vision", "CoreMedia", "CoreVideo", "CoreImage"] {
             println!("cargo:rustc-link-lib=framework={framework}");
         }
         println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");

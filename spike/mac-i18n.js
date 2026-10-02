@@ -35,3 +35,17 @@ Object.assign(window.TAWEL_MAC_COPY.en, {
  backgroundNote:'Closing or minimizing keeps an active session running. Reopen from the menu bar ring or Dock. Quit with ⌘Q.',
  heldNote:'Stays visible near your mouth. Brief occlusions are tolerated; prolonged tracking loss releases the screen.'
 });
+
+Object.assign(window.TAWEL_MAC_COPY.de, {
+ imageSound:'Bild & Ton', settingsIntro:'Erkennung, Hinweise und Kamera. Alles an seinem Platz.', intensity:'Hinweisstärke',
+ detectionTitle:'Wann möchtest du erinnert werden?', detectionExplanation:'Die Empfindlichkeit bestimmt den Abstand zwischen Hand und Mund. Wie deutlich der Hinweis aussieht oder klingt, stellst du unter „Bild & Ton“ ein.',
+ cameraPreview:'Kamerabild mit Erkennung zeigen', previewOff:'Die Vorschau ist ausgeblendet.', previewWaiting:'Starte die Kamera oder setze die Erkennung fort. Das Livebild erscheint nach dem Anlaufen.',
+ previewNote:'Gespiegeltes Livebild · Punkte und Linien aus der laufenden Erkennung. Nur hier sichtbar, keine Bilder gespeichert.',
+ privacy:'Lokal auf deinem Mac · Keine Bilder gespeichert'
+});
+Object.assign(window.TAWEL_MAC_COPY.en, {
+ imageSound:'Visuals & sound', settingsIntro:'Detection, cues and camera. Each in its place.', intensity:'Cue strength',
+ detectionTitle:'When would you like a reminder?', detectionExplanation:'Sensitivity controls the distance between your hand and mouth. Adjust how the cue looks or sounds under “Visuals & sound”.',
+ cameraPreview:'Show camera with detection', previewOff:'The preview is hidden.', previewWaiting:'Start your camera or resume detection. The live view appears after startup.',
+ previewNote:'Mirrored live view · Points and lines from active detection. Visible only here; no images saved.', privacy:'On your Mac · No images saved'
+});

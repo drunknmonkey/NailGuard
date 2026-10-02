@@ -7,6 +7,7 @@ class Element {
   addEventListener(name, fn) { this.listeners[name]=fn; }
   setAttribute(name,value) { this.attributes[name]=value; }
   replaceChildren(...children) { this.children=children; }
+  removeAttribute(name) { delete this.attributes[name]; }
   focus() {}
 }
 const elements = new Map();
@@ -23,6 +24,7 @@ const context = {
   window:{addEventListener(){},__TAURI__:{ core:{invoke:async(command,args)=>{
     calls.push({command,args});
     if(fail) throw new Error('simulated IPC failure');
+    if(command==='native_preview') return '{}';
     if(command==='native_snapshot') return {...snapshot};
     if(command==='native_sound_settings') return JSON.stringify({enabled:true,preset:2,volume:0.4});
     if(command==='native_review') return JSON.stringify({today:'2026-10-02',yesterday:'2026-10-01',days:{'2026-10-02':{moments:2,observedSeconds:1200,longestQuietSeconds:500,hourly:Array(24).fill(0)}}});
@@ -41,7 +43,7 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  snapshot={...snapshot,enabled:true,status:2,camera:'Microsoft LifeCam HD-3000'};
  await intervals[0]();await flush();
  assert.equal(elements.get('primaryAction').textContent,'Pausieren');
- assert.equal(elements.get('cameraName').textContent,snapshot.camera);
+ assert.equal(elements.get('settingsCamera').textContent,snapshot.camera);
  await click('primaryAction');assert.equal(calls.at(-2).args.action,'pause');
  snapshot.status=3; await intervals[0]();await flush();
  assert.equal(elements.get('primaryAction').textContent,'Fortsetzen');
@@ -63,6 +65,14 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert(calls.some(c=>c.command==='native_sound'&&c.args.volume===0.6&&!c.args.preview));
  await click('testSound');assert(calls.some(c=>c.command==='native_sound'&&c.args.preview));
  assert(!html.includes('id="background"'));
+ assert(!html.includes('id="chooseCamera"') && !html.includes('id="hintSettings"'));
+ await click('settingsTab'); await click('cameraSection');
+ assert.equal(elements.get('cameraPanel').hidden,false);
+ elements.get('cameraPreviewToggle').checked=true; await click('cameraPreviewToggle','change');
+ await intervals[1](); await flush(); assert(calls.some(c=>c.command==='native_preview'&&c.args.enabled));
+ await click('focusTab'); const before=calls.filter(c=>c.command==='native_preview'&&c.args.enabled).length;
+ await intervals[1](); await flush(); assert.equal(calls.filter(c=>c.command==='native_preview'&&c.args.enabled).length,before);
+ assert(calls.some(c=>c.command==='native_preview'&&!c.args.enabled));
  fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');
  console.log('mac.test.js: ok');

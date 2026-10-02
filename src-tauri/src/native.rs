@@ -5,6 +5,7 @@ use std::sync::{OnceLock, atomic::AtomicI32};
 static APP: OnceLock<AppHandle> = OnceLock::new();
 #[cfg(target_os = "macos")]
 extern "C" {
+    fn tawel_native_preview(enabled: i32) -> *mut std::ffi::c_char;
     fn tawel_native_review() -> *mut std::ffi::c_char;
     fn tawel_native_sound_settings() -> *mut std::ffi::c_char;
     fn tawel_native_sound(enabled: i32, preset: i32, volume: f64, preview: i32);
@@ -315,4 +316,11 @@ pub fn native_sound(enabled: bool, preset: i32, volume: f64, preview: bool) -> R
     if !(0..=4).contains(&preset) || !volume.is_finite() || !(0.0..=1.0).contains(&volume) { return Err("Ungültige Klangeinstellung".into()); }
     #[cfg(target_os = "macos")] unsafe { tawel_native_sound(enabled as i32, preset, volume, preview as i32); }
     Ok(())
+}
+
+#[tauri::command]
+pub fn native_preview(window: WebviewWindow, enabled: bool) -> String {
+    let visible = enabled && window.label() == "main" && window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(true);
+    #[cfg(target_os = "macos")] unsafe { return take_string(tawel_native_preview(visible as i32)); }
+    #[cfg(not(target_os = "macos"))] { let _ = visible; "{}".into() }
 }

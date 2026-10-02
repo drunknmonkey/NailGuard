@@ -2,6 +2,7 @@ import AppKit
 import AVFoundation
 import Vision
 import CoreMedia
+import CoreImage
 
 private typealias NativeCallback = @convention(c) (Int32, Double, Double) -> Void
 private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -30,6 +31,58 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var activity: NSObjectProtocol?
     private var observers: [NSObjectProtocol] = []
     private var watchdog: DispatchSourceTimer?
+    // A single in-memory preview; the UI renews a short lease only while visible.
+    private let previewContext = CIContext(options: [.cacheIntermediates: false])
+    private var previewUntil = 0.0
+    private var previewAt = 0.0
+    private var previewFrame = "{}"
+    func previewJSON(enabled: Bool) -> String { queue.sync {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard enabled && wanted && !sleeping && snoozeUntil == nil else {
+            previewUntil = 0; previewFrame = "{}"; return "{}"
+        }
+        previewUntil = now + 1
+        return now - previewAt < 0.75 ? previewFrame : "{}"
+    } }
+    private func makePreview(_ image: CVPixelBuffer, now: Double) {
+        guard now < previewUntil else { previewFrame = "{}"; return }
+        guard now - previewAt >= 0.2 else { return }
+        let source = CIImage(cvPixelBuffer: image)
+        let scale = min(1, 640 / source.extent.width)
+        let small = source.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        guard let cg = previewContext.createCGImage(small, from: small.extent),
+              let jpeg = NSBitmapImageRep(cgImage: cg).representation(using: .jpeg, properties: [.compressionFactor: 0.65]) else { return }
+        var mouth: [[Double]] = [], center = [0.0, 0.0]
+        if let observation = face.results?.max(by: { $0.boundingBox.width < $1.boundingBox.width }),
+           let lips = observation.landmarks?.outerLips, lips.pointCount > 0 {
+            let box = observation.boundingBox
+            mouth = lips.normalizedPoints.map { [Double(box.minX + CGFloat($0.x) * box.width), Double(box.minY + CGFloat($0.y) * box.height)] }
+            center = [mouth.map { $0[0] }.reduce(0,+) / Double(mouth.count), mouth.map { $0[1] }.reduce(0,+) / Double(mouth.count)]
+        }
+        let fingers: [[VNHumanHandPoseObservation.JointName]] = [
+            [.wrist,.thumbCMC,.thumbMP,.thumbIP,.thumbTip], [.wrist,.indexMCP,.indexPIP,.indexDIP,.indexTip],
+            [.wrist,.middleMCP,.middlePIP,.middleDIP,.middleTip], [.wrist,.ringMCP,.ringPIP,.ringDIP,.ringTip], [.wrist,.littleMCP,.littlePIP,.littleDIP,.littleTip]]
+        var chains: [[[Double]]] = [], tips: [[Double]] = []
+        for hand in hands.results ?? [] {
+            for finger in fingers {
+                var chain: [[Double]] = []
+                for (index, joint) in finger.enumerated() {
+                    guard let point = try? hand.recognizedPoint(joint), point.confidence >= 0.3 else {
+                        if !chain.isEmpty { chains.append(chain); chain = [] }; continue
+                    }
+                    let xy = [Double(point.location.x), Double(point.location.y)]
+                    chain.append(xy)
+                    if index == 4 || (gate.episode && index == 3) { tips.append(xy) }
+                }
+                if !chain.isEmpty { chains.append(chain) }
+            }
+        }
+        let value: [String: Any] = ["image":jpeg.base64EncodedString(), "width":cg.width, "height":cg.height,
+            "mouth":mouth, "center":center, "chains":chains, "tips":tips]
+        if let data = try? JSONSerialization.data(withJSONObject: value), let json = String(data:data, encoding:.utf8) {
+            previewFrame = json; previewAt = now
+        }
+    }
     private let face = VNDetectFaceLandmarksRequest()
     private let hands = VNDetectHumanHandPoseRequest()
 
@@ -62,6 +115,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         timer.schedule(deadline: .now() + 1, repeating: 1)
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
+            if ProcessInfo.processInfo.systemUptime >= self.previewUntil { self.previewFrame = "{}" }
             self.callback?(9, 0, 0) // Capture-Queue lebt, auch ohne Bilder.
             if Date().timeIntervalSince(self.lastFrameAt) > 8 {
                 _ = self.gate.update(distance: nil, now: ProcessInfo.processInfo.systemUptime)
@@ -214,6 +268,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     }
     func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset(); self.callback?(20, 0, 0) } }
     private func stopSession() {
+        previewUntil = 0; previewFrame = "{}"; previewAt = 0
         if session.isRunning { session.stopRunning() }
         gate.reset(); callback?(20, 0, 0); callback?(21, 0, 0); review.interrupt()
         if let activity = activity { ProcessInfo.processInfo.endActivity(activity); self.activity = nil }
@@ -314,6 +369,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                         }
                     }
                 }
+                makePreview(image, now: now)
                 callback?(19, Double(face.results?.count ?? 0), Double(hands.results?.count ?? 0))
                 callback?(12, 5, 0)
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
@@ -362,3 +418,5 @@ public func tawelNativeRegister(_ cb: @escaping @convention(c) (Int32, Double, D
         alert.addButton(withTitle: "Verstanden"); alert.runModal()
     }
 }
+
+@_cdecl("tawel_native_preview") public func tawelNativePreview(_ enabled: Int32) -> UnsafeMutablePointer<CChar>? { strdup(NativeEngine.shared.previewJSON(enabled: enabled != 0)) }

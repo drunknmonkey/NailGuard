@@ -15,6 +15,7 @@
   if (!['native_less','native_medium','native_more'].includes(sensitivity)) sensitivity = 'native_medium';
   let state = {enabled:false, status:0, camera:'', hintActive:false, snoozeUntil:null};
   let busy = false, polling = false, failures = 0;
+  let settingsPanel = 'detection';
   let activeTab = 'focus', reviewData = null, selectedDay = '', lastReview = 0;
   let sound = {enabled:false,preset:0,volume:0.35};
   function invoke(command, args) {
@@ -24,11 +25,61 @@
   function showError(key) { $('error').textContent = copy[key]; $('error').hidden = false; }
   function tab(name) {
     activeTab = name;
+    clearCameraPreview();
     for (const view of ['focus','review','settings']) $(view+'View').hidden = name !== view;
     $('reviewTab').setAttribute('aria-pressed', String(name === 'review'));
     if (name === 'review') refreshReview();
     $('focusTab').setAttribute('aria-pressed', String(name === 'focus'));
     $('settingsTab').setAttribute('aria-pressed', String(name === 'settings'));
+  }
+  let previewGeneration = 0, previewPolling = false;
+  function clearCameraPreview() {
+    previewGeneration++;
+    $('cameraFrame').hidden = true; $('cameraImage').removeAttribute('src');
+    $('cameraLandmarks').replaceChildren();
+    $('cameraPreviewMessage').hidden = false;
+    $('cameraPreviewMessage').textContent = copy[$('cameraPreviewToggle').checked ? 'previewWaiting' : 'previewOff'];
+    invoke('native_preview', {enabled:false}).catch(() => {});
+  }
+  for (const name of ['detection','hints','camera']) $(name+'Section').addEventListener('click', () => {
+    settingsPanel = name;
+    for (const panel of ['detection','hints','camera']) {
+      $(panel+'Panel').hidden = panel !== name;
+      $(panel+'Section').setAttribute('aria-pressed', String(panel === name));
+    }
+    clearCameraPreview();
+  });
+  $('cameraPreviewToggle').addEventListener('change', clearCameraPreview);
+  async function refreshCameraPreview() {
+    if (previewPolling || activeTab !== 'settings' || settingsPanel !== 'camera' || !$('cameraPreviewToggle').checked || document.visibilityState !== 'visible') return;
+    previewPolling = true;
+    const generation = ++previewGeneration;
+    try {
+      const frame = JSON.parse(await invoke('native_preview', {enabled:true}));
+      if (generation !== previewGeneration) return;
+      if (!frame.image) { $('cameraFrame').hidden=true; $('cameraImage').removeAttribute('src'); $('cameraLandmarks').replaceChildren(); $('cameraPreviewMessage').hidden=false; return; }
+      const img = new Image();
+      img.onload = () => {
+        if (generation !== previewGeneration) return;
+        $('cameraImage').src = img.src;
+        $('cameraFrame').style.aspectRatio = frame.width+'/'+frame.height;
+        const svg = $('cameraLandmarks'); svg.replaceChildren();
+        const point = p => [p[0]*1000,(1-p[1])*1000];
+        const add = (tag, attrs) => { const el = document.createElementNS('http://www.w3.org/2000/svg',tag); for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,String(v)); svg.appendChild(el); };
+        for (const chain of frame.chains || []) {
+          add('polyline',{points:chain.map(p=>point(p).join(',')).join(' ')});
+          for (const p of chain) { const [cx,cy]=point(p); add('circle',{cx,cy,r:5}); }
+        }
+        if (frame.mouth?.length) {
+          add('polyline',{points:[...frame.mouth,frame.mouth[0]].map(p=>point(p).join(',')).join(' ')});
+          const [cx,cy]=point(frame.center); add('circle',{cx,cy,r:7});
+          for (const p of frame.tips || []) { const [x1,y1]=point(p); add('line',{x1,y1,x2:cx,y2:cy,class:'distance'}); }
+        }
+        $('cameraFrame').hidden=false; $('cameraPreviewMessage').hidden=true;
+      };
+      img.src = 'data:image/jpeg;base64,'+frame.image;
+    } catch (_) { if (generation === previewGeneration) clearCameraPreview(); }
+    finally { previewPolling=false; }
   }
   function render() {
     let title = 'readyTitle', description = 'readyText', chip = 'ready', action = 'start';
@@ -49,11 +100,10 @@
     $('statusChip').textContent = copy[chip];
     $('primaryAction').textContent = copy[action];
     $('primaryAction').disabled = busy || [1,9,11,8].includes(status);
-    for (const id of ['chooseCamera','settingsChooseCamera']) $(id).disabled = busy || [1,11].includes(status);
+    for (const id of ['settingsChooseCamera']) $(id).disabled = busy || [1,11].includes(status);
     $('snoozeSelect').disabled = busy || ![2,9,12].includes(status);
     const camera = !state.camera || state.camera === 'Noch keine Kamera gewählt' ? copy.noCamera : state.camera;
-    $('cameraName').textContent = camera; $('settingsCamera').textContent = camera;
-    $('currentHint').textContent = copy.styles[style] + ' · ' + copy[['light','medium','strong'][intensity-1]];
+    $('settingsCamera').textContent = camera;
     $('intensityValue').textContent = copy[['light','medium','strong'][intensity-1]];
   }
   function translate() {
@@ -67,6 +117,7 @@
       const option = document.createElement('option'); option.value = String(value); option.textContent = text; return option;
     }));
     renderSound();
+    $('cameraPreviewMessage').textContent = copy[$('cameraPreviewToggle').checked ? 'previewWaiting' : 'previewOff'];
     $('language').textContent = locale === 'de' ? 'EN' : 'DE'; render(); renderReview();
   }
   async function refresh() {
@@ -138,12 +189,11 @@
   $('focusTab').addEventListener('click', () => tab('focus'));
   $('reviewTab').addEventListener('click', () => tab('review'));
   $('settingsTab').addEventListener('click', () => tab('settings'));
-  $('hintSettings').addEventListener('click', () => { tab('settings'); $('hintStyle').focus(); });
   $('primaryAction').addEventListener('click', () => {
     if ([2,3,12].includes(state.status)) perform(() => invoke('native_control', {action:'pause'}));
     else chooseCamera();
   });
-  for (const id of ['chooseCamera','settingsChooseCamera']) $(id).addEventListener('click', chooseCamera);
+  for (const id of ['settingsChooseCamera']) $(id).addEventListener('click', chooseCamera);
   $('snoozeSelect').addEventListener('change', () => {
     const minutes = $('snoozeSelect').value; $('snoozeSelect').value = '';
     if (['15','30','60'].includes(minutes)) perform(() => invoke('native_control', {action:'snooze_' + minutes}));
@@ -161,8 +211,8 @@
     if (event.metaKey && event.key === ',') { event.preventDefault(); tab('settings'); }
   });
   const reportVisibility = () => invoke('spike_state', {visibility:document.visibilityState, hasFocus:document.hasFocus()}).catch(() => {});
-  document.addEventListener('visibilitychange', () => { reportVisibility(); refresh(); });
-  window.addEventListener('focus', () => { reportVisibility(); refresh(); });
+  document.addEventListener('visibilitychange', () => { clearCameraPreview(); reportVisibility(); refresh(); });
+  window.addEventListener('focus', () => { clearCameraPreview(); reportVisibility(); refresh(); });
   window.addEventListener('blur', reportVisibility);
   translate();
   (async () => {
@@ -180,4 +230,5 @@
     } catch (_) { showError('connectionError'); }
   })();
   setInterval(refresh, 600);
+  setInterval(refreshCameraPreview, 250);
 })();

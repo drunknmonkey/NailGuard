@@ -504,6 +504,7 @@ fn main() {
             native::native_control,
             native::native_snapshot,
             native::native_review,
+            native::native_preview,
             native::native_sound_settings,
             native::native_sound,
             spike_state,

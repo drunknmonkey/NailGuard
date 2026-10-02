@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Render the shipped shell on macOS. Only these temporary copies contain a mock camera.
+# Render the shipped shell in Chromium. Only these temporary copies contain a mock camera.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${RUNNER_TEMP:-/tmp}/tawel-ui-preview"
@@ -11,8 +11,8 @@ from pathlib import Path
 import sys
 folder=Path(sys.argv[1]); html=(folder/'mac.html').read_text()
 mock='''<script>window.__TAURI__={core:{invoke:async function(command){if(command==='native_sound_settings')return JSON.stringify({enabled:true,preset:2,volume:0.35});if(command==='native_review')return JSON.stringify({today:'2026-10-02',yesterday:'2026-10-01',days:{'2026-10-02':{moments:3,observedSeconds:3600,longestQuietSeconds:1250,hourly:Array.from({length:24},(_,i)=>i===10?2:i===14?1:0)}}});if(command==='native_snapshot')return {enabled:true,status:2,camera:'Microsoft LifeCam HD-3000',hintActive:false,snoozeUntil:null};return null;}},event:{listen:async function(){}}};</script>'''
-for name in ['focus','settings','review']:
-    check='''<script>window.addEventListener('load',()=>{TAB;setTimeout(()=>{document.documentElement.dataset.layout= document.documentElement.scrollWidth<=innerWidth ? 'pass' : 'overflow';},100);});</script>'''.replace('TAB',"document.getElementById('"+name+"Tab').click()" if name!='focus' else '')
+for name in ['focus','settings','review','hints','camera']:
+    check='''<script>window.addEventListener('load',()=>{TAB;setTimeout(()=>{document.documentElement.dataset.layout= document.documentElement.scrollWidth<=innerWidth ? 'pass' : 'overflow';},100);});</script>'''.replace('TAB',"document.getElementById('settingsTab').click();document.getElementById('"+name+"Section').click()" if name in ['hints','camera'] else "document.getElementById('"+name+"Tab').click()" if name!='focus' else '')
     (folder/(name+'.html')).write_text(html.replace('<script src="./diagnostics.js">',mock+'<script src="./diagnostics.js">').replace('</body>',check+'</body>'))
 PY
 # Bounded browser session. Chromium CLI can wait indefinitely on macOS runners.
@@ -27,12 +27,18 @@ const {chromium} = require(path.join(dest, 'node_modules/playwright'));
 (async () => {
   const browser = await chromium.launch({headless:true, timeout:30000});
   try {
-    for (const view of ['focus','settings','review']) {
-      const page = await browser.newPage({viewport:{width:620,height:760}, locale:'de-AT'});
+    for (const view of ['focus','settings','review','hints','camera']) {
+      const page = await browser.newPage({viewport:{width:680,height:800}, locale:'de-AT'});
       await page.goto(pathToFileURL(path.join(dest, view+'.html')).href, {waitUntil:'domcontentloaded',timeout:15000});
       await page.waitForFunction(() => document.documentElement.dataset.layout === 'pass', null, {timeout:10000});
       await page.getByRole('button', {name:'Pausieren',exact:true,includeHidden:true}).waitFor({state:'attached',timeout:10000});
       if (!(await page.content()).includes('Microsoft LifeCam HD-3000')) throw Error('Native state missing');
+      for (const size of [{width:680,height:800},{width:520,height:760}]) {
+        await page.setViewportSize(size);
+        const overflow = await page.evaluate(() => ({x:document.documentElement.scrollWidth-innerWidth,y:document.documentElement.scrollHeight-innerHeight}));
+        if (overflow.x > 1 || overflow.y > 1) throw Error(view+' overflow at '+JSON.stringify(size)+': '+JSON.stringify(overflow));
+      }
+      await page.setViewportSize({width:680,height:800});
       await page.screenshot({path:path.join(dest,view+'.png'),fullPage:true});
       if (view === 'settings') {
         await page.emulateMedia({colorScheme:'dark'});
