@@ -18,7 +18,7 @@ window.TAWEL_MAC_COPY = {
 Object.assign(window.TAWEL_MAC_COPY.de, {
  review:'Rückblick', day:'Tag', daySummary:'Dein Tag in Kürze', observed:'Erkennungszeit', quietTime:'Längste ruhige Phase', dayCourse:'Momente im Tagesverlauf',
  reviewNote:'Nur Zeit mit verlässlicher Erkennung zählt. Pausen, fehlendes Gesicht und Trackingausfälle zählen nicht als ruhige Zeit. Daten bleiben auf diesem Mac.',
- noReview:'Für diesen Tag gibt es noch keine Erkennungszeit.', momentsText:'Erkannte Momente', streakText:'aufeinanderfolgende Tage mit mindestens 10 Minuten Erkennung und weniger als 5 Momenten.',
+ noReview:'Für diesen Tag gibt es noch keine Erkennungszeit.', momentsText:'erkannte Momente', streakOne:'Tag mit mindestens 10 Minuten Erkennung und weniger als 5 Momenten.', streakText:'aufeinanderfolgende Tage mit mindestens 10 Minuten Erkennung und weniger als 5 Momenten.',
  sound:'Ton', soundEnabled:'Klang beim Hinweis', soundChoice:'Klang', volume:'Lautstärke', testSound:'Klang testen', soundNote:'Einmal pro Annäherung, auch bei geschlossenem Fenster.',
  sounds:['Bubble Pop','Doppel-Klopfen','Atem-Glocke','Mini-Roboter','Boing'],
  trackingTitle:'Erkennung unterbrochen.', trackingText:'Hand oder Gesicht sind gerade nicht sicher erkennbar. Richte die Kamera aus; Tawel versucht es weiter.',
@@ -28,7 +28,7 @@ Object.assign(window.TAWEL_MAC_COPY.de, {
 Object.assign(window.TAWEL_MAC_COPY.en, {
  review:'Review', day:'Day', daySummary:'Your day at a glance', observed:'Detection time', quietTime:'Longest quiet stretch', dayCourse:'Moments throughout the day',
  reviewNote:'Only reliable detection time counts. Pauses, missing faces and tracking failures do not count as quiet time. Data stays on this Mac.',
- noReview:'No detection time for this day yet.', momentsText:'Detected moments', streakText:'consecutive days with at least 10 minutes of detection and fewer than 5 moments.',
+ noReview:'No detection time for this day yet.', momentsText:'detected moments', streakOne:'day with at least 10 minutes of detection and fewer than 5 moments.', streakText:'consecutive days with at least 10 minutes of detection and fewer than 5 moments.',
  sound:'Sound', soundEnabled:'Play a sound with cues', soundChoice:'Sound', volume:'Volume', testSound:'Test sound', soundNote:'Once per approach, even with the window closed.',
  sounds:['Bubble Pop','Double Tap','Breath Bell','Tiny Robot','Boing'],
  trackingTitle:'Detection interrupted.', trackingText:'Your hand or face cannot be tracked reliably. Adjust your camera; Tawel keeps trying.',

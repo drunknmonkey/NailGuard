@@ -107,7 +107,7 @@
     try { reviewData = JSON.parse(await invoke('native_review')); renderReview(); }
     catch (_) { showError('connectionError'); }
   }
-  const duration = seconds => Math.floor(seconds/3600) > 0 ? Math.floor(seconds/3600)+' h '+Math.floor(seconds%3600/60)+' min' : Math.floor(seconds/60)+' min';
+  const duration = seconds => Math.floor(seconds/3600) > 0 ? Math.floor(seconds/3600)+' h'+(Math.floor(seconds%3600/60) ? ' '+Math.floor(seconds%3600/60)+' min' : '') : Math.floor(seconds/60)+' min';
   function renderReview() {
     if (!reviewData?.days || !reviewData.today) return;
     const keys = [...new Set([reviewData.today,...Object.keys(reviewData.days)])].sort().reverse();
@@ -118,7 +118,7 @@
     }));
     $('reviewDate').value = selectedDay;
     const day = reviewData.days[selectedDay] || {moments:0,observedSeconds:0,longestQuietSeconds:0,hourly:Array(24).fill(0)};
-    $('reviewSummary').textContent = day.observedSeconds > 0 || day.moments > 0 ? day.moments+' '+copy.momentsText+' · '+duration(day.observedSeconds)+' '+copy.observed.toLowerCase() : copy.noReview;
+    $('reviewSummary').textContent = day.observedSeconds > 0 || day.moments > 0 ? day.moments+' '+copy.momentsText+' · '+duration(day.observedSeconds)+' '+copy.observed : copy.noReview;
     $('observedTime').textContent = duration(day.observedSeconds); $('quietTime').textContent = duration(day.longestQuietSeconds);
     const maximum = Math.max(1,...day.hourly);
     $('hourBars').replaceChildren(...day.hourly.map((count,hour) => {
@@ -132,7 +132,7 @@
       streak++; const date = new Date(cursor+'T12:00:00'); date.setDate(date.getDate()-1);
       cursor = date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
     }
-    $('reviewStreak').textContent = streak+' '+copy.streakText;
+    $('reviewStreak').textContent = streak+' '+(streak === 1 ? copy.streakOne : copy.streakText);
   }
   $('reviewDate').addEventListener('change', () => { selectedDay = $('reviewDate').value; renderReview(); });
   $('focusTab').addEventListener('click', () => tab('focus'));

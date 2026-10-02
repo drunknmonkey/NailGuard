@@ -56,7 +56,7 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert.equal(elements.get('focusTitle').textContent,'Kamera nicht verfügbar.');
  await click('settingsChooseCamera');assert.equal(calls.filter(c=>c.command==='native_start').length,2);
  await click('reviewTab'); assert.equal(elements.get('reviewView').hidden,false);
- assert.equal(elements.get('reviewSummary').textContent.includes('2 Erkannte Momente'),true);
+ assert.equal(elements.get('reviewSummary').textContent.includes('2 erkannte Momente'),true);
  assert.equal(elements.get('soundToggle').checked,true);
  assert.equal(elements.get('soundPreset').value,'2');
  elements.get('soundVolume').value='0.6';await click('soundVolume','change');
