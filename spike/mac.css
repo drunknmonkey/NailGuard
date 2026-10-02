@@ -106,7 +106,7 @@ footer { margin-top:18px; }
 #cameraLandmarks polyline, #cameraLandmarks line { fill:none; stroke:#b4dfcb; stroke-width:2; vector-effect:non-scaling-stroke; }
 #cameraLandmarks .distance { stroke:#d0bcec; stroke-width:1; opacity:.8; }
 #cameraLandmarks circle { fill:#d0bcec; stroke:#243b34; stroke-width:1; vector-effect:non-scaling-stroke; }
-@media(max-height:710px) { .app { padding-top:16px; padding-bottom:12px; } .tabs { margin-top:16px; } .section-heading { margin:16px 0 12px; } .section-heading h1 { font-size:20px; } .breath-ring { width:170px; height:170px; margin-bottom:28px; } .hero { padding-top:22px; } .camera-preview { height:220px; } .hour-bars { height:80px; } .review-summary,.review-chart,.review-metrics .group { padding:14px; } .review-metrics strong { font-size:20px; } #reviewView .footnote { margin:10px 0; } }
+@media(max-height:780px) { .app { padding-top:16px; padding-bottom:12px; } .tabs { margin-top:16px; } .section-heading { margin:16px 0 12px; } .section-heading h1 { font-size:20px; } .breath-ring { width:170px; height:170px; margin-bottom:28px; } .hero { padding-top:22px; } .camera-preview { height:220px; } .hour-bars { height:80px; } .review-summary,.review-chart,.review-metrics .group { padding:14px; } .review-metrics strong { font-size:20px; } #reviewView .footnote { margin:10px 0; } }
 
 #settingsView .section-heading p { display:none; }
 
@@ -118,3 +118,5 @@ footer { margin-top:18px; }
 .review-metrics strong { font-size:22px; }
 .hour-bars { height:70px; }
 #reviewView .footnote { margin:10px 0; }
+
+@media(max-height:780px) { #hintsPanel .setting-row { padding-top:8px; padding-bottom:8px; } }
