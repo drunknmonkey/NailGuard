@@ -1,0 +1,53 @@
+/* Mac-only copy; the public Web app and its translations stay untouched. */
+window.TAWEL_MAC_COPY = {
+ de: {
+  animation:'Animation', blurAnimation:'Unschärfe abstimmen', blurAmount:'Unschärfe', fadeIn:'Einblenden', fadeOut:'Ausblenden', resetAnimation:'Zurücksetzen', animationNote:'Für Fokusverlust und Farbhauch → Fokusverlust. Die Vorschau hält den Hinweis kurz und blendet ihn dann aus. Im Alltag bleibt er, bis die Hand weg ist. Bei „Bewegung reduzieren“ werden die Übergänge verkürzt.',
+  focus: 'Fokus', settings: 'Einstellungen', camera: 'Kamera', change: 'Ändern', cue: 'Visueller Hinweis', break: 'Pause für', selectBreak: 'Dauer wählen', background: 'Im Hintergrund weiterlaufen', backgroundNote: 'Fenster schließen? Tawel bleibt aktiv. Über den Ring in der Menüleiste kommst du jederzeit zurück.',
+  makeItYours: 'So, wie es für dich passt.', settingsIntro: 'Ein ruhiger Hinweis. In deiner Stärke.', style: 'Darstellung', intensity: 'Stärke', light: 'Leicht', medium: 'Mittel', strong: 'Deutlich', preview: 'Vorschau', heldNote: 'Bleibt sichtbar, solange die Hand am Mund erkannt wird. Die Vorschau dauert nur kurz.', detection: 'Erkennung', sensitivity: 'Empfindlichkeit', later: 'Später', balanced: 'Ausgewogen', earlier: 'Früher', sensitivityNote: '„Früher“ reagiert schon bei etwas größerem Abstand zum Mund.', cameraNote: 'Bei mehreren Kameras entscheidest du. Kein stiller Wechsel auf eine andere Kamera.', privacy: 'Lokal auf deinem Mac · Keine Bildaufnahme',
+  ready: 'Bereit', active: 'Aktiv', paused: 'Pausiert', waiting: 'Startet …', attention: 'Kamera prüfen', choose: 'Kamera wählen …',
+  readyTitle: 'Ein ruhiger Begleiter.', readyText: 'Wähle deine Kamera. Tawel hilft dir, Hand-zum-Mund-Bewegungen früher zu bemerken.', activeTitle: 'Du kannst einfach weitermachen.', activeText: 'Tawel ist aufmerksam – auch bei geschlossenem Fenster.', cueTitle: 'Ein Moment für dich.', cueText: 'Der Hinweis klingt ab, sobald du die Hand vom Mund nimmst.', pausedTitle: 'Zeit für eine Pause.', pausedText: 'Die Kamera ist aus. Mach weiter, wenn du bereit bist.', snoozeText: 'Die Erkennung startet wieder um', waitingTitle: 'Einen Augenblick.', waitingText: 'Die Kamera startet. Die Erkennung braucht einige Sekunden.', chooseText: 'Wähle im Kamerafenster die Kamera, die du verwenden möchtest.', deniedTitle: 'Kamerazugriff erlauben.', deniedText: 'Erlaube Tawel den Kamerazugriff in Systemeinstellungen → Datenschutz & Sicherheit → Kamera.', unavailableTitle: 'Kamera nicht verfügbar.', unavailableText: 'Prüfe die Verbindung oder wähle eine andere Kamera.', errorTitle: 'Die Kamera konnte nicht starten.', errorText: 'Prüfe die Kamera und versuche es erneut.', sleepTitle: 'Tawel ruht.', sleepText: 'Nach dem Aufwachen setzt Tawel die Erkennung fort.', start: 'Kamera starten', pause: 'Pausieren', resume: 'Fortsetzen', retry: 'Kamera auswählen', noCamera: 'Noch keine Kamera gewählt', connectionError: 'Die Verbindung zu Tawel ist unterbrochen. Bitte öffne die App erneut.', actionError: 'Das hat nicht geklappt. Bitte versuche es erneut.',
+  styles: {'lavender-vignette':'Lavendel-Vignette','soft-focus':'Sanfter Fokusverlust',desaturate:'Entsättigung','ambient-glow':'Ambient Glow','wash-focus':'Farbhauch & Fokusverlust'}
+ },
+ en: {
+  animation:'Animation', blurAnimation:'Tune the blur', blurAmount:'Blur', fadeIn:'Fade in', fadeOut:'Fade out', resetAnimation:'Reset', animationNote:'For Soft focus and Colour wash → focus. The preview holds briefly, then fades out. During detection it stays until your hand moves away. Reduce Motion shortens the transitions.',
+  focus: 'Focus', settings: 'Settings', camera: 'Camera', change: 'Change', cue: 'Visual cue', break: 'Pause for', selectBreak: 'Choose duration', background: 'Keep running in background', backgroundNote: 'Closing the window keeps Tawel running. Return anytime using the ring in your menu bar.',
+  makeItYours: 'Make yourself comfortable.', settingsIntro: 'A quiet cue. At your own strength.', style: 'Appearance', intensity: 'Strength', light: 'Light', medium: 'Medium', strong: 'Noticeable', preview: 'Preview', heldNote: 'Stays visible while a hand is detected near your mouth. The preview is brief.', detection: 'Detection', sensitivity: 'Sensitivity', later: 'Later', balanced: 'Balanced', earlier: 'Earlier', sensitivityNote: '“Earlier” responds at a slightly greater distance from your mouth.', cameraNote: 'With multiple cameras, you choose. Tawel never silently switches to another camera.', privacy: 'On your Mac · No images recorded',
+  ready: 'Ready', active: 'Active', paused: 'Paused', waiting: 'Starting …', attention: 'Check camera', choose: 'Choose camera …', readyTitle: 'A quiet companion.', readyText: 'Choose your camera. Tawel helps you notice hand-to-mouth movements sooner.', activeTitle: 'Carry on with your day.', activeText: 'Tawel stays attentive, even with this window closed.', cueTitle: 'A moment for yourself.', cueText: 'The cue fades when you move your hand away from your mouth.', pausedTitle: 'Time for a break.', pausedText: 'The camera is off. Continue when you are ready.', snoozeText: 'Detection resumes at', waitingTitle: 'Just a moment.', waitingText: 'Your camera is starting. Detection takes a few seconds.', chooseText: 'Select the camera you want to use in the camera dialog.', deniedTitle: 'Allow camera access.', deniedText: 'Allow Tawel to access your camera in System Settings → Privacy & Security → Camera.', unavailableTitle: 'Camera unavailable.', unavailableText: 'Check the connection or choose another camera.', errorTitle: 'The camera could not start.', errorText: 'Check your camera and try again.', sleepTitle: 'Tawel is resting.', sleepText: 'Detection will resume after your Mac wakes up.', start: 'Start camera', pause: 'Pause', resume: 'Resume', retry: 'Choose camera', noCamera: 'No camera selected yet', connectionError: 'The connection to Tawel was interrupted. Please reopen the app.', actionError: 'That did not work. Please try again.',
+  styles: {'lavender-vignette':'Lavender vignette','soft-focus':'Gentle focus shift',desaturate:'Desaturation','ambient-glow':'Ambient glow','wash-focus':'Color wash & focus shift'}
+ }
+};
+
+Object.assign(window.TAWEL_MAC_COPY.de, {
+ review:'Rückblick', day:'Tag', daySummary:'Dein Tag in Kürze', observed:'Erkennungszeit', quietTime:'Längste ruhige Phase', dayCourse:'Momente im Tagesverlauf',
+ reviewNote:'Nur Zeit mit verlässlicher Erkennung zählt. Pausen, fehlendes Gesicht und Trackingausfälle zählen nicht als ruhige Zeit. Daten bleiben auf diesem Mac.',
+ noReview:'Für diesen Tag gibt es noch keine Erkennungszeit.', momentsText:'erkannte Momente', streakOne:'Tag mit mindestens 10 Minuten Erkennung und weniger als 5 Momenten.', streakText:'aufeinanderfolgende Tage mit mindestens 10 Minuten Erkennung und weniger als 5 Momenten.',
+ sound:'Ton', soundEnabled:'Klang beim Hinweis', soundChoice:'Klang', volume:'Lautstärke', testSound:'Klang testen', soundNote:'Einmal pro Annäherung, auch bei geschlossenem Fenster.',
+ sounds:['Bubble Pop','Doppel-Klopfen','Atem-Glocke','Mini-Roboter','Boing'],
+ trackingTitle:'Erkennung unterbrochen.', trackingText:'Hand oder Gesicht sind gerade nicht sicher erkennbar. Richte die Kamera aus; Tawel versucht es weiter.',
+ backgroundNote:'Fenster schließen oder minimieren: Eine laufende Erkennung bleibt aktiv. Öffnen über den Menüleistenring oder das Dock. Beenden mit ⌘Q.',
+ heldNote:'Bleibt bei Handnähe sichtbar. Kurze Verdeckungen werden überbrückt; bei längerem Trackingverlust wird der Bildschirm freigegeben.'
+});
+Object.assign(window.TAWEL_MAC_COPY.en, {
+ review:'Review', day:'Day', daySummary:'Your day at a glance', observed:'Detection time', quietTime:'Longest quiet stretch', dayCourse:'Moments throughout the day',
+ reviewNote:'Only reliable detection time counts. Pauses, missing faces and tracking failures do not count as quiet time. Data stays on this Mac.',
+ noReview:'No detection time for this day yet.', momentsText:'detected moments', streakOne:'day with at least 10 minutes of detection and fewer than 5 moments.', streakText:'consecutive days with at least 10 minutes of detection and fewer than 5 moments.',
+ sound:'Sound', soundEnabled:'Play a sound with cues', soundChoice:'Sound', volume:'Volume', testSound:'Test sound', soundNote:'Once per approach, even with the window closed.',
+ sounds:['Bubble Pop','Double Tap','Breath Bell','Tiny Robot','Boing'],
+ trackingTitle:'Detection interrupted.', trackingText:'Your hand or face cannot be tracked reliably. Adjust your camera; Tawel keeps trying.',
+ backgroundNote:'Closing or minimizing keeps an active session running. Reopen from the menu bar ring or Dock. Quit with ⌘Q.',
+ heldNote:'Stays visible near your mouth. Brief occlusions are tolerated; prolonged tracking loss releases the screen.'
+});
+
+Object.assign(window.TAWEL_MAC_COPY.de, {
+ imageSound:'Bild & Ton', settingsIntro:'Erkennung, Hinweise und Kamera. Alles an seinem Platz.', intensity:'Hinweisstärke',
+ detectionTitle:'Wann möchtest du erinnert werden?', detectionExplanation:'Die Empfindlichkeit bestimmt den Abstand zwischen Hand und Mund. Wie deutlich der Hinweis aussieht oder klingt, stellst du unter „Bild & Ton“ ein.',
+ cameraPreview:'Kamerabild mit Erkennung zeigen', previewOff:'Die Vorschau ist ausgeblendet.', previewWaiting:'Starte die Kamera oder setze die Erkennung fort. Das Livebild erscheint nach dem Anlaufen.',
+ previewNote:'Gespiegeltes Livebild · Punkte und Linien aus der laufenden Erkennung. Nur hier sichtbar, keine Bilder gespeichert.',
+ privacy:'Lokal auf deinem Mac · Keine Bilder gespeichert'
+});
+Object.assign(window.TAWEL_MAC_COPY.en, {
+ imageSound:'Visuals & sound', settingsIntro:'Detection, cues and camera. Each in its place.', intensity:'Cue strength',
+ detectionTitle:'When would you like a reminder?', detectionExplanation:'Sensitivity controls the distance between your hand and mouth. Adjust how the cue looks or sounds under “Visuals & sound”.',
+ cameraPreview:'Show camera with detection', previewOff:'The preview is hidden.', previewWaiting:'Start your camera or resume detection. The live view appears after startup.',
+ previewNote:'Mirrored live view · Points and lines from active detection. Visible only here; no images saved.', privacy:'On your Mac · No images saved'
+});

@@ -1,6 +1,7 @@
-# Tauri-Spike: generierte / lokale Build-Artefakte
+# Tauri: lokale Build-Artefakte
 /target
-Cargo.lock
+
+# Cargo.lock wird für reproduzierbare Mac-Alpha-Builds eingecheckt.
 
 # Von `tauri icon` generiert (siehe .github/workflows + docs/tauri-spike.md)
 /icons

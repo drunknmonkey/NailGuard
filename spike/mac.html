@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tawel</title><link rel="stylesheet" href="mac.css"></head>
+<body>
+<div class="app">
+  <header><div class="brand"><span class="brand-mark" aria-hidden="true"></span>Tawel</div><span class="status-chip" id="statusChip" role="status"></span></header>
+  <nav class="tabs" aria-label="Navigation"><button id="focusTab" data-copy="focus" aria-pressed="true"></button><button id="reviewTab" data-copy="review" aria-pressed="false"></button><button id="settingsTab" data-copy="settings" aria-pressed="false"></button></nav>
+  <main>
+    <section id="focusView" aria-labelledby="focusTitle">
+      <div class="hero"><div class="breath-ring" aria-hidden="true"><i class="halo"></i><i class="ring"></i><i class="ring inner"></i></div><h1 id="focusTitle"></h1><p id="focusDescription"></p><button id="primaryAction" class="primary"></button></div>
+      <div class="focus-bottom"><label class="snooze"><span data-copy="break"></span><select id="snoozeSelect" aria-label="Snooze"><option value="" data-copy="selectBreak"></option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select></label></div>
+      <p class="footnote" data-copy="backgroundNote"></p>
+    </section>
+    <section id="reviewView" hidden aria-labelledby="reviewTitle">
+      <div class="section-heading"><h1 id="reviewTitle" data-copy="review"></h1><label class="review-date"><span data-copy="day"></span><select id="reviewDate"></select></label></div>
+      <div class="group review-summary"><h2 data-copy="daySummary"></h2><p id="reviewSummary"></p></div>
+      <div class="review-metrics"><div class="group"><span data-copy="observed"></span><strong id="observedTime">—</strong></div><div class="group"><span data-copy="quietTime"></span><strong id="quietTime">—</strong></div></div>
+      <div class="group review-chart"><h2 data-copy="dayCourse"></h2><div id="hourBars" class="hour-bars" role="img"></div><div class="hour-labels"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div></div>
+      <p id="reviewStreak" class="footnote"></p><p class="footnote" data-copy="reviewNote"></p>
+    </section>
+    <section id="settingsView" hidden aria-labelledby="settingsTitle">
+      <div class="section-heading"><h1 id="settingsTitle" data-copy="makeItYours"></h1><p data-copy="settingsIntro"></p></div>
+      <nav class="settings-nav" aria-label="Einstellungsbereiche"><button id="detectionSection" data-copy="detection" aria-pressed="true"></button><button id="hintsSection" data-copy="imageSound" aria-pressed="false"></button><button id="animationSection" data-copy="animation" aria-pressed="false"></button><button id="cameraSection" data-copy="camera" aria-pressed="false"></button></nav>
+      <div id="detectionPanel" class="settings-panel">
+      <h2 class="group-title" data-copy="detection"></h2>
+      <div class="group settings-group"><label class="setting-row"><span data-copy="sensitivity"></span><select id="sensitivity"><option value="native_less" data-copy="later"></option><option value="native_medium" data-copy="balanced"></option><option value="native_more" data-copy="earlier"></option></select></label><p class="setting-explanation" data-copy="sensitivityNote"></p></div>
+        <div class="explanation-card"><span class="mini-rings" aria-hidden="true">◎</span><h2 data-copy="detectionTitle"></h2><p data-copy="detectionExplanation"></p></div>
+      </div>
+      <div id="hintsPanel" class="settings-panel" hidden>
+      <h2 class="group-title" data-copy="cue"></h2>
+      <div class="group settings-group">
+        <label class="setting-row"><span data-copy="style"></span><select id="hintStyle"></select></label>
+        <label class="setting-row intensity-row"><span data-copy="intensity"></span><output id="intensityValue" for="hintIntensity"></output><input id="hintIntensity" type="range" min="1" max="3" step="1" value="2"><span class="range-labels"><span data-copy="light"></span><span data-copy="medium"></span><span data-copy="strong"></span></span></label>
+        <div class="setting-row"><p class="setting-note" data-copy="heldNote"></p><button id="preview" class="secondary" data-copy="preview"></button></div>
+      </div>
+      <h2 class="group-title" data-copy="sound"></h2>
+      <div class="group settings-group">
+        <label class="setting-row"><span data-copy="soundEnabled"></span><input id="soundToggle" type="checkbox" role="switch"></label>
+        <label class="setting-row"><span data-copy="soundChoice"></span><select id="soundPreset"></select></label>
+        <label class="setting-row intensity-row"><span data-copy="volume"></span><output id="soundVolumeValue" for="soundVolume"></output><input id="soundVolume" type="range" min="0" max="1" step="0.05" value="0.35"></label>
+        <div class="setting-row"><p class="setting-note" data-copy="soundNote"></p><button id="testSound" class="secondary" data-copy="testSound"></button></div>
+      </div>
+      </div>
+      <div id="animationPanel" class="settings-panel" hidden>
+        <h2 class="group-title" data-copy="blurAnimation"></h2>
+        <div class="group settings-group">
+          <label class="setting-row intensity-row"><span data-copy="blurAmount"></span><output id="blurValue" for="blur"></output><input id="blur" type="range" min="0.5" max="10" step="0.1"></label>
+          <label class="setting-row intensity-row"><span data-copy="fadeIn"></span><output id="fadeInValue" for="fadeIn"></output><input id="fadeIn" type="range" min="150" max="3000" step="50"></label>
+          <label class="setting-row intensity-row"><span data-copy="fadeOut"></span><output id="fadeOutValue" for="fadeOut"></output><input id="fadeOut" type="range" min="150" max="3000" step="50"></label>
+          <div class="setting-row"><button id="animationReset" class="text-button" data-copy="resetAnimation"></button><button id="animationPreview" class="secondary" data-copy="preview"></button></div>
+        </div>
+        <p class="footnote" data-copy="animationNote"></p>
+      </div>
+      <div id="cameraPanel" class="settings-panel" hidden>
+      <h2 class="group-title" data-copy="camera"></h2>
+      <div class="group"><div class="row"><div class="row-text"><strong id="settingsCamera"></strong><span data-copy="cameraNote"></span></div><button class="text-button" id="settingsChooseCamera" data-copy="change"></button></div></div>
+        <label class="preview-toggle"><span data-copy="cameraPreview"></span><input id="cameraPreviewToggle" type="checkbox" role="switch"></label>
+        <div class="camera-preview"><div id="cameraFrame" hidden><img id="cameraImage" alt=""><svg id="cameraLandmarks" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"></svg></div><p id="cameraPreviewMessage" role="status"></p></div>
+        <p class="footnote" data-copy="previewNote"></p>
+      </div>
+    </section>
+  </main>
+  <p id="error" role="alert" hidden></p>
+  <footer><span data-copy="privacy"></span><div><button id="language" class="text-button" aria-label="Sprache / Language">EN</button><span>0.1.14 · Alpha</span></div></footer>
+</div>
+<script src="./diagnostics.js"></script><script src="mac-i18n.js"></script><script src="mac.js"></script>
+</body></html>

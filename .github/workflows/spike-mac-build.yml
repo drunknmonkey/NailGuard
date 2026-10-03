@@ -1,20 +1,42 @@
-# Wegwerf-Spike: baut die unsignierte macOS-.app/.dmg der Tauri-Hülle.
-# So entsteht ein doppelklickbares Bundle, ohne lokalen Mac. Das Artefakt
-# liegt nach dem Lauf unter "Actions -> dieser Run -> Artifacts".
-name: Spike macOS Build
+# Baut die unsignierte macOS-.app/.dmg der bestehenden Tauri-Hülle für
+# Spike- und Alpha-Branches. Das Artefakt liegt nach dem Lauf unter
+# "Actions -> dieser Run -> Artifacts".
+name: Tawel macOS Alpha Build
 
 on:
   workflow_dispatch:
   push:
     branches:
       - claude/spike-tauri-nailguard-tqlfm1
+      - "agent/mac-alpha-*"
     paths:
       - "src-tauri/**"
       - "spike/**"
       - "app/**"
       - ".github/workflows/spike-mac-build.yml"
 
+concurrency:
+  group: tawel-alpha-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  interface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Render Mac interface
+        run: bash spike/check-mac-layout.sh
+      - name: Upload interface previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tawel-UI-Preview
+          path: ${{ runner.temp }}/tawel-ui-preview/*.png
+          if-no-files-found: error
   build:
     # macOS 14 (Sonoma) – nötig für backgroundThrottling-Support.
     runs-on: macos-14
@@ -27,6 +49,32 @@ jobs:
         with:
           node-version: 20
 
+      - name: Test Mac alpha bridge
+        run: |
+          bash spike/build-frontend.sh
+          node spike/mac.test.js
+          node --check spike/mac.js
+          node --check spike/mac-i18n.js
+          node --check spike/alpha.js
+          node --check spike/hint-overlay.js
+          node spike/alpha.test.js
+          node spike/alpha-frontend.test.js
+          node --check spike/diagnostics.js
+          node spike/diagnostics.test.js
+          node spike/hint-overlay.test.js
+
+      - name: Test native health status
+        run: |
+          rustc --test src-tauri/src/native_health.rs -o /tmp/tawel-health-tests
+          /tmp/tawel-health-tests
+
+      - name: Test native proximity logic
+        run: |
+          swiftc spike/native/CameraChoice.swift spike/native/ProximityGate.swift spike/native/ReviewStore.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
+          /tmp/tawel-native-tests
+          swiftc spike/native/PreviewMailbox.swift spike/native/PreviewMailboxTests.swift -o /tmp/tawel-preview-tests
+          /tmp/tawel-preview-tests
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -37,7 +85,10 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.toml') }}
 
       - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli@^2
+        run: npm install -g @tauri-apps/cli@2.11.4
+
+      - name: Resolve Rust dependencies
+        run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
 
       - name: Generate app icons
         run: tauri icon app/icons/icon-512.png
@@ -47,6 +98,7 @@ jobs:
         env:
           # Unsigniert: keine Apple-Signatur/Notarisierung.
           APPLE_SIGNING_IDENTITY: "-"
+          TAWEL_BUILD_SHA: ${{ github.sha }}
 
       - name: Inspect bundle (Kamera-Diagnose)
         run: |
@@ -61,8 +113,9 @@ jobs:
       - name: Upload bundle
         uses: actions/upload-artifact@v4
         with:
-          name: NailGuard-Spike-macOS
+          name: Tawel-macOS-Alpha
           if-no-files-found: error
           path: |
+            src-tauri/Cargo.lock
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/macos/*.app
