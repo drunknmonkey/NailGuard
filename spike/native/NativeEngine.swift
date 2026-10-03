@@ -12,6 +12,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var callback: NativeCallback?
     private var lastDeviceFlags: Int?
     private var selectedDevice: AVCaptureDevice?
+    private let cameraNameLock = NSLock()
+    private var selectedName = "Noch keine Kamera gewählt"
     private var selectionPending = false
     private var generation = 0
     private let cameraKey = "tawel.native.camera.v1"
@@ -31,27 +33,15 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var activity: NSObjectProtocol?
     private var observers: [NSObjectProtocol] = []
     private var watchdog: DispatchSourceTimer?
-    // A single in-memory preview; the UI renews a short lease only while visible.
-    private let previewContext = CIContext(options: [.cacheIntermediates: false])
-    private var previewUntil = 0.0
-    private var previewAt = 0.0
-    private var previewFrame = "{}"
-    func previewJSON(enabled: Bool) -> String { queue.sync {
-        let now = ProcessInfo.processInfo.systemUptime
-        guard enabled && wanted && !sleeping && snoozeUntil == nil else {
-            previewUntil = 0; previewFrame = "{}"; return "{}"
-        }
-        previewUntil = now + 1
-        return now - previewAt < 0.75 ? previewFrame : "{}"
-    } }
+    // JPEG work is isolated from the serial camera/Vision queue.
+    private let previewQueue = DispatchQueue(label: "app.tawel.preview", qos: .utility)
+    private let preview = PreviewMailbox()
+    private let previewContext = CIContext(options: [.cacheIntermediates: false, .useSoftwareRenderer: true])
+    func previewJSON(enabled: Bool) -> String {
+        preview.read(enabled: enabled, now: ProcessInfo.processInfo.systemUptime)
+    }
     private func makePreview(_ image: CVPixelBuffer, now: Double) {
-        guard now < previewUntil else { previewFrame = "{}"; return }
-        guard now - previewAt >= 0.2 else { return }
-        let source = CIImage(cvPixelBuffer: image)
-        let scale = min(1, 640 / source.extent.width)
-        let small = source.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        guard let cg = previewContext.createCGImage(small, from: small.extent),
-              let jpeg = NSBitmapImageRep(cgImage: cg).representation(using: .jpeg, properties: [.compressionFactor: 0.65]) else { return }
+        guard let ticket = preview.reserve(now: now) else { return }
         var mouth: [[Double]] = [], center = [0.0, 0.0]
         if let observation = face.results?.max(by: { $0.boundingBox.width < $1.boundingBox.width }),
            let lips = observation.landmarks?.outerLips, lips.pointCount > 0 {
@@ -77,10 +67,26 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 if !chain.isEmpty { chains.append(chain) }
             }
         }
-        let value: [String: Any] = ["image":jpeg.base64EncodedString(), "width":cg.width, "height":cg.height,
-            "mouth":mouth, "center":center, "chains":chains, "tips":tips]
-        if let data = try? JSONSerialization.data(withJSONObject: value), let json = String(data:data, encoding:.utf8) {
-            previewFrame = json; previewAt = now
+        // Snapshot the landmarks before Vision reuses its results. Holding one
+        // pixel buffer is bounded; when encoding is slow, new preview work drops.
+        let landmarks: [String: Any] = ["mouth":mouth, "center":center, "chains":chains, "tips":tips, "timestamp":now]
+        previewQueue.async { [self] in
+            autoreleasepool {
+                let started = ProcessInfo.processInfo.systemUptime
+                var json: String?
+                let source = CIImage(cvPixelBuffer: image)
+                let scale = min(1, 480 / source.extent.width)
+                let small = source.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+                if let cg = previewContext.createCGImage(small, from: small.extent),
+                   let jpeg = NSBitmapImageRep(cgImage: cg).representation(using: .jpeg, properties: [.compressionFactor: 0.6]) {
+                    var value = landmarks
+                    value["image"] = jpeg.base64EncodedString(); value["width"] = cg.width; value["height"] = cg.height
+                    if let data = try? JSONSerialization.data(withJSONObject: value) { json = String(data:data, encoding:.utf8) }
+                }
+                let finished = ProcessInfo.processInfo.systemUptime
+                preview.complete(ticket: ticket, frame: json, sourceTime: now, now: finished)
+                queue.async { [self] in callback?(23, (finished - started) * 1000, 0) }
+            }
         }
     }
     private let face = VNDetectFaceLandmarksRequest()
@@ -115,7 +121,6 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         timer.schedule(deadline: .now() + 1, repeating: 1)
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
-            if ProcessInfo.processInfo.systemUptime >= self.previewUntil { self.previewFrame = "{}" }
             self.callback?(9, 0, 0) // Capture-Queue lebt, auch ohne Bilder.
             if Date().timeIntervalSince(self.lastFrameAt) > 8 {
                 _ = self.gate.update(distance: nil, now: ProcessInfo.processInfo.systemUptime)
@@ -240,6 +245,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 self.session.commitConfiguration()
                 self.configured = false; self.videoOutput = nil; self.lastDeviceFlags = nil
                 self.selectedDevice = device
+                self.cameraNameLock.lock(); self.selectedName = device.localizedName; self.cameraNameLock.unlock()
                 UserDefaults.standard.set(device.uniqueID, forKey: self.cameraKey)
                 self.authorizedStart()
             }
@@ -257,7 +263,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         }
     }
     func flush() { queue.sync { review.interrupt() } }
-    func cameraName() -> String { queue.sync { selectedDevice?.localizedName ?? "Noch keine Kamera gewählt" } }
+    func cameraName() -> String {
+        cameraNameLock.lock(); defer { cameraNameLock.unlock() }
+        return selectedName
+    }
     func pause() { queue.async { self.generation += 1; self.selectionPending = false; self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(3) } }
     func stop() { queue.sync { self.generation += 1; self.selectionPending = false; self.wanted = false; self.snoozeUntil = nil; self.stopSession(); self.report(0) } }
     func snooze(_ seconds: Double) {
@@ -268,7 +277,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     }
     func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset(); self.callback?(20, 0, 0) } }
     private func stopSession() {
-        previewUntil = 0; previewFrame = "{}"; previewAt = 0
+        _ = preview.read(enabled: false, now: ProcessInfo.processInfo.systemUptime)
         if session.isRunning { session.stopRunning() }
         gate.reset(); callback?(20, 0, 0); callback?(21, 0, 0); review.interrupt()
         if let activity = activity { ProcessInfo.processInfo.endActivity(activity); self.activity = nil }
@@ -369,7 +378,6 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                         }
                     }
                 }
-                makePreview(image, now: now)
                 callback?(19, Double(face.results?.count ?? 0), Double(hands.results?.count ?? 0))
                 callback?(12, 5, 0)
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
@@ -384,10 +392,13 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     quiet: !gate.active && (distance == nil || distance! > gate.radius * 1.35), moment: moment)
                 callback?(20, gate.active ? 1 : 0, 0)
                 callback?(21, (gate.uncertain || !faceVisible) ? 1 : 0, 0)
+                callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
+                makePreview(image, now: now)
             } catch {
                 _ = gate.update(distance: nil, now: now)
                 callback?(20, gate.active ? 1 : 0, 0); callback?(21, 1, 0)
                 review.interrupt(); callback?(4, 0, 0)
+                callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
             }
         }
     }

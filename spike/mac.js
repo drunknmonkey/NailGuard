@@ -32,9 +32,10 @@
     $('focusTab').setAttribute('aria-pressed', String(name === 'focus'));
     $('settingsTab').setAttribute('aria-pressed', String(name === 'settings'));
   }
-  let previewGeneration = 0, previewPolling = false;
+  let previewGeneration = 0, previewPolling = false, lastPreviewTimestamp = null;
   function clearCameraPreview() {
     previewGeneration++;
+    lastPreviewTimestamp = null;
     $('cameraFrame').hidden = true; $('cameraImage').removeAttribute('src');
     $('cameraLandmarks').replaceChildren();
     $('cameraPreviewMessage').hidden = false;
@@ -53,14 +54,20 @@
   async function refreshCameraPreview() {
     if (previewPolling || activeTab !== 'settings' || settingsPanel !== 'camera' || !$('cameraPreviewToggle').checked || document.visibilityState !== 'visible') return;
     previewPolling = true;
-    const generation = ++previewGeneration;
+    const generation = previewGeneration;
     try {
       const frame = JSON.parse(await invoke('native_preview', {enabled:true}));
       if (generation !== previewGeneration) return;
       if (!frame.image) { $('cameraFrame').hidden=true; $('cameraImage').removeAttribute('src'); $('cameraLandmarks').replaceChildren(); $('cameraPreviewMessage').hidden=false; return; }
+      if (frame.timestamp != null && frame.timestamp === lastPreviewTimestamp) return;
       const img = new Image();
+      await new Promise(resolve => {
+      const timeout = setTimeout(() => { img.onload = null; img.onerror = null; resolve(); }, 750);
+      const finish = () => { clearTimeout(timeout); resolve(); };
+      img.onerror = finish;
       img.onload = () => {
-        if (generation !== previewGeneration) return;
+        if (generation !== previewGeneration) { finish(); return; }
+        lastPreviewTimestamp = frame.timestamp;
         $('cameraImage').src = img.src;
         const box = $('cameraFrame').parentElement;
         const scale = Math.min(box.clientWidth/frame.width, box.clientHeight/frame.height);
@@ -79,8 +86,10 @@
           for (const p of frame.tips || []) { const [x1,y1]=point(p); add('line',{x1,y1,x2:cx,y2:cy,class:'distance'}); }
         }
         $('cameraFrame').hidden=false; $('cameraPreviewMessage').hidden=true;
+        finish();
       };
       img.src = 'data:image/jpeg;base64,'+frame.image;
+      });
     } catch (_) { if (generation === previewGeneration) clearCameraPreview(); }
     finally { previewPolling=false; }
   }
@@ -233,5 +242,5 @@
     } catch (_) { showError('connectionError'); }
   })();
   setInterval(refresh, 600);
-  setInterval(refreshCameraPreview, 250);
+  setInterval(refreshCameraPreview, 125);
 })();

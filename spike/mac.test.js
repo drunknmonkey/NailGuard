@@ -16,11 +16,14 @@ for(const match of html.matchAll(/id="([^"]+)"/g)) elements.set(match[1],new Ele
 let snapshot = {enabled:false,status:0,camera:'',hintActive:false,snoozeUntil:null};
 let fail=false, pendingPreview=null;
 const calls=[], intervals=[], listeners={};
+const images=[];
 const storage=new Map([['tawel.alpha.hint-style.v1','soft-focus'],['tawel.alpha.hint-intensity.v1','3']]);
 const context = {
   document:{ getElementById:id=>{assert(elements.has(id),id);return elements.get(id)}, querySelectorAll:()=>[], createElement:()=>new Element(), documentElement:{}, body:{dataset:{}}, addEventListener(){},visibilityState:'visible',hasFocus:()=>true },
   localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},
   setInterval:fn=>intervals.push(fn), console,
+  setTimeout, clearTimeout,
+  Image: class { constructor() { images.push(this); } },
   window:{addEventListener(){},__TAURI__:{ core:{invoke:async(command,args)=>{
     calls.push({command,args});
     if(fail) throw new Error('simulated IPC failure');
@@ -77,6 +80,17 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  const pendingPoll=intervals[1](); await flush();
  await click('focusTab'); pendingPreview.resolve(JSON.stringify({image:'late frame'})); await pendingPoll; await flush();
  assert.equal(elements.get('cameraFrame').hidden,true,'Late frames cannot reappear after leaving settings');
+ pendingPreview=null;
+ await click('settingsTab'); pendingPreview={};
+ const decodingPoll=intervals[1](); await flush();
+ pendingPreview.resolve(JSON.stringify({image:'decoding frame',timestamp:1})); await flush();
+ const previewRequests=calls.filter(c=>c.command==='native_preview'&&c.args.enabled).length;
+ await intervals[1](); await flush();
+ assert.equal(calls.filter(c=>c.command==='native_preview'&&c.args.enabled).length,previewRequests,'Only one image decode in flight');
+ const controls=calls.filter(c=>c.command==='native_control'||c.command==='native_start').length;
+ await click('focusTab'); images.at(-1).onload(); await decodingPoll; await flush();
+ assert.equal(elements.get('cameraFrame').hidden,true,'Decoded image from camera page cannot appear in focus');
+ assert.equal(calls.filter(c=>c.command==='native_control'||c.command==='native_start').length,controls,'Returning to focus never pauses or restarts camera');
  pendingPreview=null;
  fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');

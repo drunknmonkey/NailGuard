@@ -40,6 +40,8 @@ pub struct NativeState {
     last_raw: Mutex<Option<Instant>>,
     faces: AtomicU64, hands: AtomicU64, distance_milli: AtomicI32,
     frames: AtomicU64,
+    inference_ms: AtomicU64, inference_max_ms: AtomicU64,
+    preview_ms: AtomicU64, preview_max_ms: AtomicU64,
     errors: AtomicU64,
     hints: AtomicU64,
     last_frame: Mutex<Option<Instant>>,
@@ -59,6 +61,8 @@ pub fn install(app: &AppHandle) {
         stage: AtomicI32::new(0), last_raw: Mutex::new(None),
         faces: AtomicU64::new(0), hands: AtomicU64::new(0), distance_milli: AtomicI32::new(-1),
         frames: AtomicU64::new(0), errors: AtomicU64::new(0), hints: AtomicU64::new(0),
+        inference_ms: AtomicU64::new(0), inference_max_ms: AtomicU64::new(0),
+        preview_ms: AtomicU64::new(0), preview_max_ms: AtomicU64::new(0),
         last_frame: Mutex::new(None), hint: Mutex::new(("lavender-vignette".into(), 2)),
     });
     let _ = APP.set(app.clone());
@@ -174,6 +178,13 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
         2 => { state.hints.fetch_add(1, Ordering::Relaxed); }
         20 => { update_hint(app, value > 0.); }
         21 => { state.tracking_uncertain.store(value > 0., Ordering::Relaxed); }
+        22 | 23 => {
+            if value.is_finite() && value >= 0. {
+                let millis = value.round() as u64;
+                let (latest, maximum) = if event == 22 { (&state.inference_ms, &state.inference_max_ms) } else { (&state.preview_ms, &state.preview_max_ms) };
+                latest.store(millis, Ordering::Relaxed); maximum.fetch_max(millis, Ordering::Relaxed);
+            }
+        }
         3 => {
             let status = value as i32;
             if status != 2 { update_hint(app, false); state.tracking_uncertain.store(false, Ordering::Relaxed); }
@@ -290,7 +301,9 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
         state.dropped.load(Ordering::Relaxed).to_string(),
         state.faces.load(Ordering::Relaxed).to_string(), state.hands.load(Ordering::Relaxed).to_string(),
         state.distance_milli.load(Ordering::Relaxed).to_string(),
-        hint_active(app).to_string(), state.tracking_uncertain.load(Ordering::Relaxed).to_string()]
+        hint_active(app).to_string(), state.tracking_uncertain.load(Ordering::Relaxed).to_string(),
+        state.inference_ms.load(Ordering::Relaxed).to_string(), state.inference_max_ms.load(Ordering::Relaxed).to_string(),
+        state.preview_ms.load(Ordering::Relaxed).to_string(), state.preview_max_ms.load(Ordering::Relaxed).to_string()]
 }
 
 pub fn flush() { #[cfg(target_os = "macos")] unsafe { tawel_native_flush(); } }
@@ -319,8 +332,10 @@ pub fn native_sound(enabled: bool, preset: i32, volume: f64, preview: bool) -> R
 }
 
 #[tauri::command]
-pub fn native_preview(window: tauri::WebviewWindow, enabled: bool) -> String {
-    let visible = enabled && window.label() == "main" && window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(true);
+pub fn native_preview(window: tauri::WebviewWindow, app: AppHandle, enabled: bool) -> String {
+    let state = app.state::<NativeState>();
+    let running = state.enabled.load(Ordering::Relaxed) && matches!(state.status.load(Ordering::Relaxed), 2 | 9);
+    let visible = enabled && running && window.label() == "main" && window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(true);
     #[cfg(target_os = "macos")] unsafe { return take_string(tawel_native_preview(visible as i32)); }
     #[cfg(not(target_os = "macos"))] { let _ = visible; "{}".into() }
 }
