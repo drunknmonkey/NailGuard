@@ -92,6 +92,16 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert.equal(elements.get('cameraFrame').hidden,true,'Decoded image from camera page cannot appear in focus');
  assert.equal(calls.filter(c=>c.command==='native_control'||c.command==='native_start').length,controls,'Returning to focus never pauses or restarts camera');
  pendingPreview=null;
+ await click('settingsTab'); await click('animationSection');
+ assert.equal(elements.get('animationPanel').hidden,false);
+ elements.get('blur').value='6'; await click('blur','input'); await click('blur','change');
+ elements.get('fadeIn').value='2000'; await click('fadeIn','input'); await click('fadeIn','change');
+ assert.equal(JSON.parse(storage.get('tawel.alpha.blur-animation.v1')).blur,6);
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.animation.fadeIn,2000);
+ assert.equal(calls.filter(c=>c.command==='alpha_hint_style').at(-1).args.animation.blur,6);
+ await click('animationReset');
+ assert.equal(JSON.parse(storage.get('tawel.alpha.blur-animation.v1')).fadeIn,650);
+ assert.equal(elements.get('blur').value,2.7);
  fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');
  console.log('mac.test.js: ok');

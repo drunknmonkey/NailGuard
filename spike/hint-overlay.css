@@ -231,9 +231,20 @@ body {
 }
 #hintOverlay.is-held.is-active .hint-combo-focus { animation-delay: 650ms; }
 @keyframes tawel-held-in { from { opacity: 0; } to { opacity: 1; } }
+#hintOverlay.is-tunable { transition-duration: var(--blur-out); }
+#hintOverlay.is-tunable.is-active .hint-layer,
+#hintOverlay.is-tunable.is-active .hint-combo-color,
+#hintOverlay.is-tunable.is-active .hint-combo-focus {
+  animation: tawel-held-in var(--blur-in) ease both;
+  transform: none;
+}
+#hintOverlay.is-tunable.is-active .hint-combo-focus { animation-delay: var(--blur-in); }
 @media (prefers-reduced-motion: reduce) {
-  #hintOverlay { transition-duration: 150ms; }
+  #hintOverlay, #hintOverlay.is-tunable { transition-duration: 150ms; }
   #hintOverlay.is-held.is-active .hint-layer,
   #hintOverlay.is-held.is-active .hint-combo-color,
-  #hintOverlay.is-held.is-active .hint-combo-focus { animation-duration: 150ms; animation-delay: 0ms; }
+  #hintOverlay.is-held.is-active .hint-combo-focus,
+  #hintOverlay.is-tunable.is-active .hint-layer,
+  #hintOverlay.is-tunable.is-active .hint-combo-color,
+  #hintOverlay.is-tunable.is-active .hint-combo-focus { animation-duration: 150ms; animation-delay: 0ms; }
 }

@@ -180,9 +180,11 @@ fn alpha_status(
 fn alpha_hint_style(
     style: String,
     intensity: u8,
+    animation: Option<BlurAnimation>,
     state: tauri::State<AlphaUiState>,
     app: AppHandle,
 ) -> Result<(), String> {
+    store_blur_animation(&app, animation)?;
     native::set_hint(&app, &style, intensity);
     let label = match style.as_str() {
         "soft-focus" => "Fokusverlust",
@@ -405,19 +407,38 @@ struct VisualHintPayload {
     style: String,
     intensity: u8,
     held: bool,
+    animation: BlurAnimation,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BlurAnimation { blur: f64, fade_in: u64, fade_out: u64 }
+impl Default for BlurAnimation {
+    fn default() -> Self { Self { blur: 2.7, fade_in: 650, fade_out: 450 } }
+}
+fn store_blur_animation(app: &AppHandle, value: Option<BlurAnimation>) -> Result<(), String> {
+    if let Some(mut value) = value {
+        if !value.blur.is_finite() { return Err("Ungültige Unschärfe".into()); }
+        value.blur = value.blur.clamp(0.5, 10.0);
+        value.fade_in = value.fade_in.clamp(150, 3000);
+        value.fade_out = value.fade_out.clamp(150, 3000);
+        *app.state::<HintWindowState>().animation.lock().map_err(cmd_err)? = value;
+    }
+    Ok(())
 }
 
 /// Zeigt eine der fünf ganzflächigen Testvarianten mit einer von drei groben
 /// Intensitäten. Das Overlay nimmt keine Bildschirmbilder auf; WebKit filtert
 /// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
 #[tauri::command]
-fn show_visual_hint(style: String, intensity: u8, app: AppHandle) -> Result<(), String> {
+fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimation>, app: AppHandle) -> Result<(), String> {
+    store_blur_animation(&app, animation)?;
     if native::hint_active(&app) { return Ok(()); }
     display_visual_hint(style, intensity, false, app)
 }
 
 #[derive(Default)]
-struct HintWindowState { revision: AtomicU64 }
+struct HintWindowState { revision: AtomicU64, animation: Mutex<BlurAnimation> }
 
 fn display_visual_hint(style: String, intensity: u8, held: bool, app: AppHandle) -> Result<(), String> {
     let style = match style.as_str() {
@@ -437,7 +458,11 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, app: AppHandle)
     }
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
     overlay.show().map_err(cmd_err)?;
-    if !held { schedule_hint_hide(&app, revision, 3400); }
+    let animation = app.state::<HintWindowState>().animation.lock().map_err(cmd_err)?.clone();
+    if !held {
+        let duration = if style == "soft-focus" || style == "wash-focus" { animation.fade_in * if style == "wash-focus" { 2 } else { 1 } + 1200 + animation.fade_out + 150 } else { 3400 };
+        schedule_hint_hide(&app, revision, duration);
+    }
     app.emit_to(
         "hint-overlay",
         "tawel:visual-hint",
@@ -445,6 +470,7 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, app: AppHandle)
             style: style.to_string(),
             intensity,
             held,
+            animation,
         },
     )
     .map_err(cmd_err)
@@ -466,7 +492,8 @@ fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64) {
 fn release_visual_hint(app: &AppHandle) {
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
     let _ = app.emit_to("hint-overlay", "tawel:hint-clear", ());
-    schedule_hint_hide(app, revision, 500);
+    let fade_out = app.state::<HintWindowState>().animation.lock().map(|a| a.fade_out).unwrap_or(450);
+    schedule_hint_hide(app, revision, fade_out + 50);
 }
 #[tauri::command]
 fn hide_visual_hint(app: AppHandle) -> Result<(), String> {

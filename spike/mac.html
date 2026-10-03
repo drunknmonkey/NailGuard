@@ -20,7 +20,7 @@
     </section>
     <section id="settingsView" hidden aria-labelledby="settingsTitle">
       <div class="section-heading"><h1 id="settingsTitle" data-copy="makeItYours"></h1><p data-copy="settingsIntro"></p></div>
-      <nav class="settings-nav" aria-label="Einstellungsbereiche"><button id="detectionSection" data-copy="detection" aria-pressed="true"></button><button id="hintsSection" data-copy="imageSound" aria-pressed="false"></button><button id="cameraSection" data-copy="camera" aria-pressed="false"></button></nav>
+      <nav class="settings-nav" aria-label="Einstellungsbereiche"><button id="detectionSection" data-copy="detection" aria-pressed="true"></button><button id="hintsSection" data-copy="imageSound" aria-pressed="false"></button><button id="animationSection" data-copy="animation" aria-pressed="false"></button><button id="cameraSection" data-copy="camera" aria-pressed="false"></button></nav>
       <div id="detectionPanel" class="settings-panel">
       <h2 class="group-title" data-copy="detection"></h2>
       <div class="group settings-group"><label class="setting-row"><span data-copy="sensitivity"></span><select id="sensitivity"><option value="native_less" data-copy="later"></option><option value="native_medium" data-copy="balanced"></option><option value="native_more" data-copy="earlier"></option></select></label><p class="setting-explanation" data-copy="sensitivityNote"></p></div>
@@ -41,6 +41,16 @@
         <div class="setting-row"><p class="setting-note" data-copy="soundNote"></p><button id="testSound" class="secondary" data-copy="testSound"></button></div>
       </div>
       </div>
+      <div id="animationPanel" class="settings-panel" hidden>
+        <h2 class="group-title" data-copy="blurAnimation"></h2>
+        <div class="group settings-group">
+          <label class="setting-row intensity-row"><span data-copy="blurAmount"></span><output id="blurValue" for="blur"></output><input id="blur" type="range" min="0.5" max="10" step="0.1"></label>
+          <label class="setting-row intensity-row"><span data-copy="fadeIn"></span><output id="fadeInValue" for="fadeIn"></output><input id="fadeIn" type="range" min="150" max="3000" step="50"></label>
+          <label class="setting-row intensity-row"><span data-copy="fadeOut"></span><output id="fadeOutValue" for="fadeOut"></output><input id="fadeOut" type="range" min="150" max="3000" step="50"></label>
+          <div class="setting-row"><button id="animationReset" class="text-button" data-copy="resetAnimation"></button><button id="animationPreview" class="secondary" data-copy="preview"></button></div>
+        </div>
+        <p class="footnote" data-copy="animationNote"></p>
+      </div>
       <div id="cameraPanel" class="settings-panel" hidden>
       <h2 class="group-title" data-copy="camera"></h2>
       <div class="group"><div class="row"><div class="row-text"><strong id="settingsCamera"></strong><span data-copy="cameraNote"></span></div><button class="text-button" id="settingsChooseCamera" data-copy="change"></button></div></div>
@@ -51,7 +61,7 @@
     </section>
   </main>
   <p id="error" role="alert" hidden></p>
-  <footer><span data-copy="privacy"></span><div><button id="language" class="text-button" aria-label="Sprache / Language">EN</button><span>0.1.13 · Alpha</span></div></footer>
+  <footer><span data-copy="privacy"></span><div><button id="language" class="text-button" aria-label="Sprache / Language">EN</button><span>0.1.14 · Alpha</span></div></footer>
 </div>
 <script src="./diagnostics.js"></script><script src="mac-i18n.js"></script><script src="mac.js"></script>
 </body></html>

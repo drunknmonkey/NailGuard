@@ -9,6 +9,8 @@
   var overlay = document.getElementById("hintOverlay");
   var hideTimer = null;
   var held = false;
+  var customBlur = false;
+  var fadeOut = 450;
   var styles = [
     "lavender-vignette",
     "soft-focus",
@@ -46,6 +48,22 @@
   function show(value, intensity) {
     held = Boolean(value && value.held);
     var config = normalizeConfig(value, intensity);
+    customBlur = Boolean(value && value.animation && (config.style === 'soft-focus' || config.style === 'wash-focus'));
+    overlay.classList.remove('is-tunable');
+    var duration = 3400;
+    if (customBlur) {
+      var settings = value.animation;
+      var bounded = function (v, min, max, fallback) { v = Number(v); return Number.isFinite(v) ? Math.max(min, Math.min(max,v)) : fallback; };
+      var blur = bounded(settings.blur,0.5,10,2.7);
+      var fadeIn = bounded(settings.fadeIn,150,3000,650);
+      fadeOut = bounded(settings.fadeOut,150,3000,450);
+      overlay.style.setProperty('--focus-blur', blur+'px');
+      overlay.style.setProperty('--combo-blur', blur+'px');
+      overlay.style.setProperty('--blur-in', fadeIn+'ms');
+      overlay.style.setProperty('--blur-out', fadeOut+'ms');
+      overlay.classList.add('is-tunable');
+      duration = fadeIn * (config.style === 'wash-focus' ? 2 : 1) + 1200;
+    }
     overlay.classList.remove("is-releasing");
     if (held) overlay.classList.add("is-held");
     else overlay.classList.remove("is-held");
@@ -57,11 +75,14 @@
     overlay.classList.add("is-active");
     if (hideTimer) clearTimeout(hideTimer);
     // Fallback, falls WebKit bei einem Displaywechsel kein animationend meldet.
-    hideTimer = held ? null : setTimeout(hideWindow, 3400);
+    hideTimer = held ? null : setTimeout(customBlur ? function () {
+      overlay.classList.add('is-releasing');
+      hideTimer = setTimeout(hideWindow, fadeOut + 50);
+    } : hideWindow, duration);
   }
 
   overlay.addEventListener("animationend", function (event) {
-    if (!held && event.target.classList.contains("hint-terminal")) {
+    if (!held && !customBlur && event.target.classList.contains("hint-terminal")) {
       hideWindow();
     }
   });

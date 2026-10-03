@@ -17,6 +17,7 @@ const tauriListeners = new Map();
 const timeouts = [];
 const invocations = [];
 const overlay = {
+  style: {values:{},setProperty(key,value) { this.values[key]=value; }},
   dataset: {},
   classList: new ClassList(),
   offsetWidth: 100,
@@ -118,3 +119,19 @@ assert.equal(overlay.classList.contains("is-releasing"), true);
 tauriListeners.get("tawel:visual-hint")({payload:{style:"ambient-glow",intensity:1,held:false}});
 assert.equal(overlay.classList.contains("is-held"), false);
 assert.equal(overlay.classList.contains("is-releasing"), false);
+tauriListeners.get('tawel:visual-hint')({payload:{style:'soft-focus',intensity:2,held:false,animation:{blur:6,fadeIn:2000,fadeOut:1800}}});
+assert.equal(overlay.style.values['--focus-blur'],'6px');
+assert.equal(overlay.style.values['--blur-in'],'2000ms');
+assert.equal(timeouts.at(-1).delay,3200);
+const tuningBefore=invocations.length;
+listeners.get('animationend')({target:{classList:new ClassList(['hint-terminal'])}});
+assert.equal(invocations.length,tuningBefore,'Preview entrance does not end the cue');
+timeouts.at(-1).fn();
+assert.equal(overlay.classList.contains('is-releasing'),true);
+assert.equal(timeouts.at(-1).delay,1850);
+timeouts.at(-1).fn();
+assert.equal(invocations.at(-1),'hide_visual_hint');
+const tuningCount=timeouts.length;
+tauriListeners.get('tawel:visual-hint')({payload:{style:'wash-focus',intensity:2,held:true,animation:{blur:99,fadeIn:2000,fadeOut:1800}}});
+assert.equal(overlay.style.values['--combo-blur'],'10px');
+assert.equal(timeouts.length,tuningCount,'Tuned detection remains held until hand release');

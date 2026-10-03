@@ -11,6 +11,14 @@
   if (!copy.styles[style]) style = 'lavender-vignette';
   let intensity = Number(read('tawel.alpha.hint-intensity.v1', '2'));
   if (![1,2,3].includes(intensity)) intensity = 2;
+  const animationDefaults = {blur:2.7, fadeIn:650, fadeOut:450};
+  let animation = {...animationDefaults};
+  try {
+    const stored = JSON.parse(read('tawel.alpha.blur-animation.v1', '{}'));
+    for (const [key,min,max] of [['blur',0.5,10],['fadeIn',150,3000],['fadeOut',150,3000]]) {
+      if (Number.isFinite(stored[key])) animation[key] = Math.max(min,Math.min(max,stored[key]));
+    }
+  } catch (_) {}
   let sensitivity = read('tawel.native.sensitivity.v1', 'native_medium');
   if (!['native_less','native_medium','native_more'].includes(sensitivity)) sensitivity = 'native_medium';
   let state = {enabled:false, status:0, camera:'', hintActive:false, snoozeUntil:null};
@@ -42,9 +50,9 @@
     $('cameraPreviewMessage').textContent = copy[$('cameraPreviewToggle').checked ? 'previewWaiting' : 'previewOff'];
     invoke('native_preview', {enabled:false}).catch(() => {});
   }
-  for (const name of ['detection','hints','camera']) $(name+'Section').addEventListener('click', () => {
+  for (const name of ['detection','hints','animation','camera']) $(name+'Section').addEventListener('click', () => {
     settingsPanel = name;
-    for (const panel of ['detection','hints','camera']) {
+    for (const panel of ['detection','hints','animation','camera']) {
       $(panel+'Panel').hidden = panel !== name;
       $(panel+'Section').setAttribute('aria-pressed', String(panel === name));
     }
@@ -117,6 +125,10 @@
     const camera = !state.camera || state.camera === 'Noch keine Kamera gewählt' ? copy.noCamera : state.camera;
     $('settingsCamera').textContent = camera;
     $('intensityValue').textContent = copy[['light','medium','strong'][intensity-1]];
+    for (const key of ['blur','fadeIn','fadeOut']) {
+      $(key).value = animation[key];
+      $(key+'Value').textContent = key === 'blur' ? animation[key].toLocaleString(locale)+' px' : (animation[key]/1000).toLocaleString(locale,{maximumFractionDigits:2})+' s';
+    }
   }
   function translate() {
     copy = window.TAWEL_MAC_COPY[locale]; document.documentElement.lang = locale;
@@ -147,10 +159,11 @@
     try { await fn(); await refresh(); } catch (_) { showError('actionError'); }
     finally { busy = false; render(); }
   }
-  const config = () => ({style, intensity});
+  const config = () => ({style, intensity, animation});
   function chooseCamera() { return perform(() => invoke('native_start', config())); }
   function preview() { return invoke('show_visual_hint', config()); }
   async function syncHint() {
+    save('tawel.alpha.blur-animation.v1', JSON.stringify(animation));
     save('tawel.alpha.hint-style.v1', style); save('tawel.alpha.hint-intensity.v1', String(intensity));
     render(); await invoke('alpha_hint_style', config());
   }
@@ -211,6 +224,13 @@
     if (['15','30','60'].includes(minutes)) perform(() => invoke('native_control', {action:'snooze_' + minutes}));
   });
   $('preview').addEventListener('click', () => perform(preview));
+  const animationPreview = () => invoke('show_visual_hint', {...config(),style:['soft-focus','wash-focus'].includes(style) ? style : 'soft-focus'});
+  $('animationPreview').addEventListener('click', () => perform(animationPreview));
+  for (const key of ['blur','fadeIn','fadeOut']) {
+    $(key).addEventListener('input', () => { animation[key] = Number($(key).value); render(); });
+    $(key).addEventListener('change', () => perform(async () => { await syncHint(); await animationPreview(); }));
+  }
+  $('animationReset').addEventListener('click', () => perform(async () => { animation = {...animationDefaults}; await syncHint(); await animationPreview(); }));
   $('hintStyle').addEventListener('change', () => { style = $('hintStyle').value; perform(async () => { await syncHint(); await preview(); }); });
   $('hintIntensity').addEventListener('input', () => { intensity = Number($('hintIntensity').value); render(); });
   $('hintIntensity').addEventListener('change', () => perform(async () => { await syncHint(); await preview(); }));
