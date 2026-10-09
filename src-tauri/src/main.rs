@@ -115,6 +115,29 @@ fn new_log_path() -> PathBuf {
     p
 }
 
+/// Hinweis-Ereignisse mit Millisekunden neben der CSV: tawel-alpha-hints-<Stempel>.log.
+/// Die Datei entsteht erst beim ersten Hinweis; ohne Hinweis bleibt der Desktop frei.
+fn hint_log_path_for(csv: &std::path::Path) -> PathBuf {
+    let stamp = csv
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .and_then(|s| s.strip_prefix("tawel-alpha-log-"))
+        .unwrap_or("session");
+    csv.with_file_name(format!("tawel-alpha-hints-{stamp}.log"))
+}
+
+/// Eine Zeile pro Schritt: Zeit · Revision · Ereignis. Nur Skalare, keine Bilder.
+fn hint_log(app: &AppHandle, revision: u64, message: &str) {
+    let path = app.state::<HintWindowState>().log_path.clone();
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(
+            f,
+            "{} rev={revision} {message}",
+            chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f")
+        );
+    }
+}
+
 /// Wird vom WebView bei jedem abgeschlossenen Detection-Callback aufgerufen.
 #[tauri::command]
 fn spike_tick(state: tauri::State<SpikeState>) {
@@ -379,6 +402,31 @@ fn configure_hint_overlay_macos(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn configure_hint_overlay_macos(_window: &tauri::WebviewWindow) {}
 
+/// Fenster-Alpha wird vom Window Server auf das fertige Fensterbild angewendet –
+/// unabhängig davon, was WebKit oder der Backdrop-Layer darin gerade tun. Alpha 0
+/// vor dem Verstecken macht den Abbau des Filter-Layers unsichtbar.
+#[cfg(target_os = "macos")]
+fn set_overlay_alpha(window: &tauri::WebviewWindow, alpha: f64) {
+    let ns_addr = match window.ns_window() {
+        Ok(p) => p as usize,
+        Err(_) => return,
+    };
+    let _ = window.run_on_main_thread(move || {
+        if ns_addr == 0 {
+            return;
+        }
+        unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+            let ns = ns_addr as *mut AnyObject;
+            let _: () = msg_send![&*ns, setAlphaValue: alpha];
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn set_overlay_alpha(_window: &tauri::WebviewWindow, _alpha: f64) {}
+
 fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
     let overlay = WebviewWindowBuilder::new(
         app,
@@ -392,6 +440,9 @@ fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
     .always_on_top(true)
     .resizable(false)
     .focused(false)
+    // tao zeigt Fenster per makeKeyAndOrderFront:. Ohne canBecomeKeyWindow kann
+    // der Hinweis weder Tawel noch der aktiven App den Tastaturfokus wegnehmen.
+    .focusable(false)
     .skip_taskbar(true)
     .visible(false)
     .build()?;
@@ -445,8 +496,24 @@ fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimatio
     display_visual_hint(style, intensity, false, hold_ms.unwrap_or(1200).clamp(1200, 3000), mode, app)
 }
 
-#[derive(Default)]
-struct HintWindowState { revision: AtomicU64, completed: AtomicU64, finish_mode: Mutex<FinishMode>, animation: Mutex<BlurAnimation> }
+struct HintWindowState {
+    revision: AtomicU64,
+    completed: AtomicU64,
+    finish_mode: Mutex<FinishMode>,
+    animation: Mutex<BlurAnimation>,
+    log_path: PathBuf,
+}
+impl HintWindowState {
+    fn new(log_path: PathBuf) -> Self {
+        Self {
+            revision: AtomicU64::new(0),
+            completed: AtomicU64::new(0),
+            finish_mode: Mutex::new(FinishMode::default()),
+            animation: Mutex::new(BlurAnimation::default()),
+            log_path,
+        }
+    }
+}
 
 fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms: u64, finish_mode: FinishMode, app: AppHandle) -> Result<(), String> {
     let style = match style.as_str() {
@@ -468,9 +535,13 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
     *app.state::<HintWindowState>().finish_mode.lock().map_err(cmd_err)? = finish_mode;
     // Renderer first neutralizes the previous filter, then acknowledges readiness.
     let animation = app.state::<HintWindowState>().animation.lock().map_err(cmd_err)?.clone();
+    hint_log(&app, revision, &format!(
+        "show style={style} intensity={intensity} held={held} hold_ms={preview_hold_ms} mode={} blur={} fade_in={} fade_out={}",
+        finish_mode.label(), animation.blur, animation.fade_in, animation.fade_out
+    ));
     if !held {
         let duration = animation.fade_in * if style == "wash-focus" { 2 } else { 1 } + preview_hold_ms + animation.fade_out + 1000;
-        schedule_hint_hide(&app, revision, duration, true);
+        schedule_hint_hide(&app, revision, duration, true, "fallback");
     }
     app.emit_to(
         "hint-overlay",
@@ -487,31 +558,51 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
     .map_err(cmd_err)
 }
 
-// Native Frist: funktioniert auch bei gedrosseltem Overlay-WebView.
-fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: bool) {
+// Native Frist: funktioniert auch bei gedrosseltem Overlay-WebView. Jeder Lauf
+// wird protokolliert – auch wenn er wegen neuer Revision oder Abschluss nichts tut.
+fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: bool, reason: &'static str) {
     let app = app.clone();
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(millis));
         let ui_app = app.clone();
         let _ = app.run_on_main_thread(move || {
             let state = ui_app.state::<HintWindowState>();
-            if hint_finish::may_hide(state.revision.load(Ordering::SeqCst), revision, state.completed.load(Ordering::SeqCst), fallback) {
-                if let Some(overlay) = ui_app.get_webview_window("hint-overlay") { let _ = overlay.hide(); }
+            let (current, completed) = (state.revision.load(Ordering::SeqCst), state.completed.load(Ordering::SeqCst));
+            if hint_finish::may_hide(current, revision, completed, fallback) {
+                if let Some(overlay) = ui_app.get_webview_window("hint-overlay") {
+                    if fallback {
+                        // Renderer never reported zero: at least make the window transparent first.
+                        set_overlay_alpha(&overlay, 0.0);
+                    }
+                    let _ = overlay.hide();
+                }
+                hint_log(&ui_app, revision, &format!("hide reason={reason} after_ms={millis}"));
+            } else {
+                hint_log(&ui_app, revision, &format!("hide skipped reason={reason} current={current} completed={completed}"));
             }
         });
     });
 }
 fn release_visual_hint(app: &AppHandle) {
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
+    hint_log(app, revision, "clear");
     let _ = app.emit_to("hint-overlay", "tawel:hint-clear", revision);
     let fade_out = app.state::<HintWindowState>().animation.lock().map(|a| a.fade_out).unwrap_or(450);
-    // Safety only: normal completion is acknowledged by the renderer at zero blur.
-    schedule_hint_hide(app, revision, fade_out + 1000, true);
+    // Safety only: normal completion is acknowledged by the renderer at opacity zero.
+    schedule_hint_hide(app, revision, fade_out + 1000, true, "fallback");
 }
 #[tauri::command]
 fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
     if app.state::<HintWindowState>().revision.load(Ordering::SeqCst) == revision {
-        if let Some(overlay) = app.get_webview_window("hint-overlay") { overlay.show().map_err(cmd_err)?; }
+        if let Some(overlay) = app.get_webview_window("hint-overlay") {
+            // Alpha zurück auf 1, bevor das Fenster nach vorn kommt; der Inhalt
+            // steht zu diesem Zeitpunkt bereits auf Deckkraft 0.
+            set_overlay_alpha(&overlay, 1.0);
+            overlay.show().map_err(cmd_err)?;
+        }
+        hint_log(&app, revision, "ready window=shown alpha=1");
+    } else {
+        hint_log(&app, revision, "ready stale");
     }
     Ok(())
 }
@@ -519,15 +610,26 @@ fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
 fn complete_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
     let state = app.state::<HintWindowState>();
     if state.revision.load(Ordering::SeqCst) == revision && state.completed.swap(revision, Ordering::SeqCst) != revision {
-        match state.finish_mode.lock().map_err(cmd_err)?.hide_delay() {
-            None => {}, // Test A: neutral, click-through window remains on screen.
-            Some(0) => {
-                if let Some(overlay) = app.get_webview_window("hint-overlay") { overlay.hide().map_err(cmd_err)?; }
-            },
-            Some(delay) => schedule_hint_hide(&app, revision, delay, false),
+        let mode = *state.finish_mode.lock().map_err(cmd_err)?;
+        let plan = mode.plan();
+        if plan.gate_alpha {
+            if let Some(overlay) = app.get_webview_window("hint-overlay") { set_overlay_alpha(&overlay, 0.0); }
         }
+        hint_log(&app, revision, &format!("complete mode={} alpha={} hide_after_ms={:?}", mode.label(), if plan.gate_alpha { 0 } else { 1 }, plan.hide_after_ms));
+        match plan.hide_after_ms {
+            None => {} // Test A: layer stays at opacity 0, window stays on screen.
+            Some(delay) => schedule_hint_hide(&app, revision, delay, false, if plan.gate_alpha { "complete" } else { "delayed" }),
+        }
+    } else {
+        hint_log(&app, revision, "complete stale");
     }
     Ok(())
+}
+/// Zeitmarken aus dem Renderer (erstes gezeichnetes Bild, gehalten, Freigabe).
+#[tauri::command]
+fn trace_visual_hint(revision: u64, stage: String, app: AppHandle) {
+    let stage: String = stage.chars().filter(|c| c.is_ascii_alphanumeric()).take(16).collect();
+    if !stage.is_empty() { hint_log(&app, revision, &format!("renderer {stage}")); }
 }
 #[tauri::command]
 fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
@@ -539,6 +641,8 @@ fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
 }
 
 fn main() {
+    let log_path = new_log_path();
+    let hint_log_path = hint_log_path_for(&log_path);
     tauri::Builder::default()
         .menu(|app| {
             let quit = MenuItem::with_id(app, "app_quit", "Tawel beenden", true, Some("CmdOrCtrl+Q"))?;
@@ -552,13 +656,13 @@ fn main() {
             _ => {}
         })
         .manage(Mutex::new(DiagnosticState::default()))
-        .manage(HintWindowState::default())
+        .manage(HintWindowState::new(hint_log_path))
         .manage(SpikeState {
             count: AtomicU64::new(0),
             start: Instant::now(),
             visibility: Mutex::new("visible".to_string()),
             focus: AtomicBool::new(true),
-            log_path: new_log_path(),
+            log_path,
         })
         .invoke_handler(tauri::generate_handler![
             spike_tick,
@@ -579,6 +683,7 @@ fn main() {
             show_visual_hint,
             ready_visual_hint,
             complete_visual_hint,
+            trace_visual_hint,
             hide_visual_hint,
             close_app,
             background_app

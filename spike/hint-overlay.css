@@ -26,55 +26,63 @@ body {
 .hint-layer {
   display: none;
   opacity: 0;
-  will-change: opacity, transform, backdrop-filter;
+  will-change: opacity;
 }
 
 /* Drei grobe Stufen reichen für den Hardwarevergleich. Die Unterschiede sind
-   bewusst gut spürbar, bleiben aber in allen Stufen weit von einem Alarm weg. */
+   bewusst gut spürbar, bleiben aber in allen Stufen weit von einem Alarm weg.
+   Unschärfe und Entsättigung setzt der Renderer pro Hinweis einmalig als
+   --cue-blur-max / --cue-saturation-min; sie ändern sich während eines
+   Hinweises nicht mehr. */
 #hintOverlay[data-intensity="1"] {
   --vignette-edge: 0.22;
   --vignette-mid: 0.092;
-  --focus-blur: 1.4px;
   --focus-veil: 0.012;
-  --desaturate-value: 0.76;
   --desaturate-veil: 0.012;
   --ambient-alpha: 0.24;
   --ambient-petrol-alpha: 0.197;
   --ambient-edge-alpha: 0.043;
   --combo-color-alpha: 0.055;
-  --combo-blur: 1.2px;
   --combo-veil: 0.009;
 }
 
 #hintOverlay[data-intensity="2"] {
   --vignette-edge: 0.34;
   --vignette-mid: 0.143;
-  --focus-blur: 2.7px;
   --focus-veil: 0.018;
-  --desaturate-value: 0.56;
   --desaturate-veil: 0.022;
   --ambient-alpha: 0.38;
   --ambient-petrol-alpha: 0.312;
   --ambient-edge-alpha: 0.068;
   --combo-color-alpha: 0.085;
-  --combo-blur: 2.4px;
   --combo-veil: 0.013;
 }
 
 #hintOverlay[data-intensity="3"] {
   --vignette-edge: 0.48;
   --vignette-mid: 0.202;
-  --focus-blur: 4.4px;
   --focus-veil: 0.028;
-  --desaturate-value: 0.34;
   --desaturate-veil: 0.035;
   --ambient-alpha: 0.56;
   --ambient-petrol-alpha: 0.459;
   --ambient-edge-alpha: 0.101;
   --combo-color-alpha: 0.12;
-  --combo-blur: 4px;
   --combo-veil: 0.02;
 }
+
+/* Ein Animationswert pro Schicht. Während ein Hinweis sichtbar ist, wird im
+   Compositor nichts hinzugefügt, entfernt oder umgebaut: Der Backdrop-Filter
+   bleibt strukturell gleich, nur die Deckkraft der Schicht bewegt sich. Das
+   Fenster selbst wird nativ erst unsichtbar gemacht und danach versteckt. */
+#hintOverlay {
+  --cue-level: 0;
+  --cue-color: 0;
+  --cue-focus: 0;
+  --cue-blur-max: 2.7px;
+  --cue-saturation-min: 0.56;
+}
+
+.hint-layer { opacity: var(--cue-level); }
 
 /* A · Lavendel-Vignette: Die Mitte bleibt frei, der Hinweis kommt nur aus
    dem peripheren Blickfeld. */
@@ -95,18 +103,20 @@ body {
    Fallback sichtbar, falls ein älterer Compositor den Filter ignoriert. */
 #hintOverlay[data-style="soft-focus"] .hint-focus {
   display: block;
+  opacity: var(--cue-focus);
   background: rgba(var(--paper-rgb), var(--focus-veil));
-  -webkit-backdrop-filter: blur(var(--focus-blur)) saturate(0.96);
-  backdrop-filter: blur(var(--focus-blur)) saturate(0.96);
+  -webkit-backdrop-filter: blur(var(--cue-blur-max));
+  backdrop-filter: blur(var(--cue-blur-max));
 }
 
 /* C · Entsättigung: Der Inhalt bleibt scharf, seine Farben ziehen sich kurz
    zurück. Keine Grau- oder Fehlerfläche wird darübergelegt. */
 #hintOverlay[data-style="desaturate"] .hint-desaturate {
   display: block;
+  opacity: var(--cue-level);
   background: rgba(var(--paper-rgb), var(--desaturate-veil));
-  -webkit-backdrop-filter: saturate(var(--desaturate-value));
-  backdrop-filter: saturate(var(--desaturate-value));
+  -webkit-backdrop-filter: saturate(var(--cue-saturation-min));
+  backdrop-filter: saturate(var(--cue-saturation-min));
 }
 
 /* D · Ambient Glow: Zwei ruhige Farbräume atmen von gegenüberliegenden
@@ -136,35 +146,14 @@ body {
 
 .hint-combo-color {
   background: rgba(var(--lavender-soft-rgb), var(--combo-color-alpha));
-  opacity: 0;
+  opacity: var(--cue-color);
+  will-change: opacity;
 }
 
 .hint-combo-focus {
   background: rgba(var(--paper-rgb), var(--combo-veil));
-  -webkit-backdrop-filter: blur(var(--combo-blur)) saturate(0.92);
-  backdrop-filter: blur(var(--combo-blur)) saturate(0.92);
-  opacity: 0;
-}
-
-/* Animate the filter itself to neutral; no parent opacity/animation competes. */
-#hintOverlay { --cue-level: 0; --cue-color: 0; --cue-focus: 0; --cue-blur: 0px; --cue-saturation: 1; }
-.hint-layer { opacity: var(--cue-level); }
-#hintOverlay[data-style="soft-focus"] .hint-focus {
-  opacity: 1;
-  background: rgba(var(--paper-rgb), calc(var(--focus-veil) * var(--cue-focus)));
-  -webkit-backdrop-filter: blur(var(--cue-blur));
-  backdrop-filter: blur(var(--cue-blur));
-}
-#hintOverlay[data-style="desaturate"] .hint-desaturate {
-  opacity: 1;
-  background: rgba(var(--paper-rgb), calc(var(--desaturate-veil) * var(--cue-level)));
-  -webkit-backdrop-filter: saturate(var(--cue-saturation));
-  backdrop-filter: saturate(var(--cue-saturation));
-}
-.hint-combo-color { opacity: var(--cue-color); }
-.hint-combo-focus {
-  opacity: 1;
-  background: rgba(var(--paper-rgb), calc(var(--combo-veil) * var(--cue-focus)));
-  -webkit-backdrop-filter: blur(var(--cue-blur));
-  backdrop-filter: blur(var(--cue-blur));
+  -webkit-backdrop-filter: blur(var(--cue-blur-max));
+  backdrop-filter: blur(var(--cue-blur-max));
+  opacity: var(--cue-focus);
+  will-change: opacity;
 }

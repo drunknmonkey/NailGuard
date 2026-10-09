@@ -1744,7 +1744,7 @@ dependencies = [
 
 [[package]]
 name = "tawel-alpha"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "block2",
  "chrono",

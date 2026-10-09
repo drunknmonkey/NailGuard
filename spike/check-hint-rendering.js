@@ -36,11 +36,14 @@ const {chromium} = require(process.argv[2]);
       assert(result.samples.length>1);
       for(let i=1;i<result.samples.length;i++)assert(result.samples[i].level<=result.samples[i-1].level);
       assert.equal(result.animations,0,'No competing CSS animation');
-      const last=result.samples.at(-1);
-      if(style==='soft-focus'||style==='wash-focus')assert.equal(last.filter,'blur(0px)');
-      else if(style==='desaturate')assert.equal(last.filter,'saturate(1)');
-      else assert.equal(last.opacity,0);
+      const first=result.samples[0], last=result.samples.at(-1);
+      for(const sample of result.samples)assert.equal(sample.filter,first.filter,'Backdrop filter never changes while the cue is on screen');
+      if(style==='soft-focus'||style==='wash-focus')assert.equal(first.filter,'blur(6px)');
+      else if(style==='desaturate')assert.match(first.filter,/^saturate\(0\.56\)$/);
+      else assert.equal(first.filter,'none');
+      assert.equal(last.opacity,0,'Release ends at opacity zero');
+      assert(first.opacity>0,'Release starts from a visible layer');
     }
-    console.log('Browser rendering: all five styles return to neutral without competing animations');
+    console.log('Browser rendering: all five styles fade by opacity only, with a fixed backdrop filter');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1});
