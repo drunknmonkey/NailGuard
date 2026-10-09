@@ -16,6 +16,7 @@ struct ProximityGate {
     private var missingSince: Double?
     private var lastSample: Double?
     private var reacquireSince: Double?
+    private var noHandSince: Double?
     var phase: Int {
         if active { return uncertain ? 4 : 3 }
         if episode { return 5 }
@@ -27,7 +28,7 @@ struct ProximityGate {
     private mutating func resetApproach() {
         nearSince = nil; candidateSince = nil; smoothedDistance = nil
     }
-    mutating func update(distance: Double?, now: Double) -> Bool {
+    mutating func update(distance: Double?, now: Double, handVisible: Bool? = nil) -> Bool {
         guard now.isFinite else { return false }
         if let previous = lastSample, now <= previous { return false }
         if !episode, let previous = lastSample, now - previous > 0.55 {
@@ -43,6 +44,15 @@ struct ProximityGate {
         lastSample = now
         guard let distance = distance, distance.isFinite, distance >= 0 else {
             candidateSince = nil; awaySince = nil; reacquireSince = nil
+            if handVisible == false {
+                if noHandSince == nil { noHandSince = now }
+                uncertain = false
+                if now - noHandSince! >= 0.55 {
+                    active = false; episode = false; missingSince = nil; resetApproach()
+                }
+                return false
+            }
+            noHandSince = nil
             if !episode, let previous = lastFinite, now - previous > 0.55 { resetApproach() }
             if episode {
                 if missingSince == nil { missingSince = now }
@@ -53,7 +63,7 @@ struct ProximityGate {
         }
         if !episode, let previous = lastFinite, now - previous > 0.55 { resetApproach() }
         lastFinite = now
-        missingSince = nil; uncertain = false
+        noHandSince = nil; missingSince = nil; uncertain = false
         // Keep the established episode/occlusion behaviour on raw measurements.
         // A smoothed tail must not delay confirmed withdrawal of an active cue.
         if distance >= radius * 1.35 {

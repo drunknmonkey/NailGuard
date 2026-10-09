@@ -70,6 +70,16 @@ import Foundation
         for i in 1...12 { _ = gate.update(distance:0.2,now:13+Double(i)/20) }
         assert(!gate.active, "Missing or band points reset reacquisition")
         assert(!gate.update(distance:0.2,now:13.7)); assert(gate.active)
+        // A confidently absent hand is withdrawal; low-confidence points on a still-visible hand remain occlusion.
+        var removed = ProximityGate()
+        for i in 0...50 { _ = removed.update(distance:0.2,now:Double(i)/20,handVisible:true) }
+        assert(removed.active)
+        for i in 1...11 { _ = removed.update(distance:nil,now:2.5+Double(i)/20,handVisible:false) }
+        assert(!removed.active && !removed.episode && !removed.uncertain)
+        var covered = ProximityGate()
+        for i in 0...50 { _ = covered.update(distance:0.2,now:Double(i)/20,handVisible:true) }
+        for i in 1...40 { _ = covered.update(distance:nil,now:2.5+Double(i)/20,handVisible:true) }
+        assert(covered.active && covered.episode && covered.uncertain, "Visible hand with hidden points keeps the cue")
         for i in 0...14 { _ = gate.update(distance:0.8,now:14+Double(i)/20) }
         assert(!gate.episode && !gate.active)
         _ = gate.update(distance:0.2,now:15)

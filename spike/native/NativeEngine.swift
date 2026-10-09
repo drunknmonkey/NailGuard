@@ -446,7 +446,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 callback?(12, 5, 0)
                 callback?(1, distance ?? -1, Double(hands.results?.count ?? 0))
                 if !announcedActive { announcedActive = true; report(2) }
-                let moment = gate.update(distance: distance, now: now)
+                let handVisible = !(hands.results?.isEmpty ?? true)
+                let moment = gate.update(distance: distance, now: now, handVisible: handVisible)
                 if moment {
                     callback?(2, 0, 0)
                 }
@@ -458,9 +459,9 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     playCue(preset: soundPreferences.preset, volume: soundPreferences.volume)
                 }
                 // Missing hands are normal. Only missing mouth/low-confidence hands need guidance.
-                let tracking = !mouthValid ? 1 : ((hands.results?.isEmpty ?? true) ? 0 : (distance == nil ? 2 : 0))
+                let tracking = !mouthValid ? 1 : (!handVisible ? 0 : (distance == nil ? 2 : 0))
                 callback?(21, gate.uncertain || tracking != 0 ? 1 : 0, Double(tracking))
-                let reason = !mouthValid ? 1 : ((hands.results?.isEmpty ?? true) ? 2 : (distance == nil ? 3 : (gate.active ? 6 : (distance! > gate.radius ? 4 : 5))))
+                let reason = !mouthValid ? 1 : (!handVisible ? 2 : (distance == nil ? 3 : (gate.active ? 6 : (distance! > gate.radius ? 4 : 5))))
                 callback?(33, Double(reason), Double(gate.phase))
                 callback?(34, Double(validPoints), Double(fallbackPoints))
                 callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
