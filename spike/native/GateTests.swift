@@ -74,7 +74,7 @@ import Foundation
         var removed = ProximityGate()
         for i in 0...50 { _ = removed.update(distance:0.2,now:Double(i)/20,handVisible:true) }
         assert(removed.active)
-        for i in 1...11 { _ = removed.update(distance:nil,now:2.5+Double(i)/20,handVisible:false) }
+        for i in 1...13 { _ = removed.update(distance:nil,now:2.5+Double(i)/20,handVisible:false) }
         assert(!removed.active && !removed.episode && !removed.uncertain)
         var covered = ProximityGate()
         for i in 0...50 { _ = covered.update(distance:0.2,now:Double(i)/20,handVisible:true) }
