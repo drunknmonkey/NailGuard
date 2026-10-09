@@ -124,3 +124,5 @@ footer { margin-top:18px; }
 
 .camera-preview { display:flex; align-items:center; justify-content:center; }
 #cameraFrame { flex:none; min-height:0; }
+
+@media (max-width:560px) { .settings-nav { gap:2px; } .settings-nav button { padding-left:6px; padding-right:6px; font-size:11px; } }

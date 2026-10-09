@@ -70,7 +70,7 @@ jobs:
 
       - name: Test native proximity logic
         run: |
-          swiftc spike/native/CameraChoice.swift spike/native/ProximityGate.swift spike/native/ReviewStore.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
+          swiftc spike/native/CameraChoice.swift spike/native/ProximityGate.swift spike/native/ReviewStore.swift spike/native/DetectionPolicy.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
           /tmp/tawel-native-tests
           swiftc spike/native/PreviewMailbox.swift spike/native/PreviewMailboxTests.swift -o /tmp/tawel-preview-tests
           /tmp/tawel-preview-tests

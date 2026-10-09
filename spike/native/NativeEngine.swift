@@ -3,6 +3,7 @@ import AVFoundation
 import Vision
 import CoreMedia
 import CoreImage
+import Darwin
 
 private typealias NativeCallback = @convention(c) (Int32, Double, Double) -> Void
 private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -23,6 +24,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var sleeping = false
     private var snoozeUntil: Date?
     private var gate = ProximityGate()
+    private var soundCue = SoundCuePolicy()
+    private var detail = UserDefaults.standard.object(forKey: "tawel.native.detail.v1") as? Bool ?? true
+    private var fingerFallback = UserDefaults.standard.object(forKey: "tawel.native.fallback.v1") as? Bool ?? true
+    private var lastCPU: (time: Double, cpu: Double)?
     private let review = ReviewStore()
     private var soundPreferences = UserDefaults.standard.data(forKey: "tawel.native.sound.v1").flatMap { try? JSONDecoder().decode(SoundPreferences.self, from: $0) } ?? SoundPreferences()
     private var analysisAfter = 0.0
@@ -62,7 +67,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     }
                     let xy = [Double(point.location.x), Double(point.location.y)]
                     chain.append(xy)
-                    if index == 4 || (gate.episode && index == 3) { tips.append(xy) }
+                    let tipConfidence = (try? hand.recognizedPoint(finger[4]))?.confidence ?? 0
+                    if index == 4 || (index == 3 && (gate.episode || (fingerFallback && tipConfidence < 0.3))) { tips.append(xy) }
                 }
                 if !chain.isEmpty { chains.append(chain) }
             }
@@ -94,6 +100,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
 
     override init() {
         super.init()
+        _ = NativeAudio.shared
         hands.maximumHandCount = 2
         let notifications = NotificationCenter.default
         observers.append(notifications.addObserver(forName: NSNotification.Name.AVCaptureSessionRuntimeError, object: session, queue: nil) { [weak self] note in
@@ -122,9 +129,11 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             self.callback?(9, 0, 0) // Capture-Queue lebt, auch ohne Bilder.
+            self.reportPerformance()
             if Date().timeIntervalSince(self.lastFrameAt) > 8 {
                 _ = self.gate.update(distance: nil, now: ProcessInfo.processInfo.systemUptime)
                 self.callback?(20, 0, 0); self.callback?(21, 1, 0); self.review.interrupt()
+                _ = self.soundCue.update(visible: false, enabled: false, now: ProcessInfo.processInfo.systemUptime)
             }
             if self.wanted { self.reportCaptureState() }
             if let until = self.snoozeUntil, Date() >= until {
@@ -142,6 +151,43 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     }
 
     // Nur lokale Gerätebeschreibung und technische Zustände, keine IDs/Bilder.
+    private func reportPerformance() {
+        let now = ProcessInfo.processInfo.systemUptime
+        var usage = rusage()
+        if getrusage(RUSAGE_SELF, &usage) == 0 {
+            let cpu = Double(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) + Double(usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) / 1_000_000
+            if let previous = lastCPU, now > previous.time {
+                callback?(24, max(0,(cpu-previous.cpu)/(now-previous.time)*100), Double(usage.ru_maxrss)/1_048_576)
+            }
+            lastCPU = (now,cpu)
+        }
+        callback?(28, soundPreferences.enabled ? 1 : 0, soundPreferences.volume)
+        callback?(25, Double(ProcessInfo.processInfo.thermalState.rawValue), Double((detail ? 1 : 0) + (fingerFallback ? 2 : 0)))
+    }
+    func quality(detail: Bool, fallback: Bool) {
+        queue.async {
+            let changed = self.detail != detail
+            self.detail = detail; self.fingerFallback = fallback
+            UserDefaults.standard.set(detail, forKey: "tawel.native.detail.v1")
+            UserDefaults.standard.set(fallback, forKey: "tawel.native.fallback.v1")
+            if changed && self.configured {
+                self.stopSession()
+                self.session.beginConfiguration()
+                for input in self.session.inputs { self.session.removeInput(input) }
+                for output in self.session.outputs { self.session.removeOutput(output) }
+                self.session.commitConfiguration()
+                self.configured = false; self.videoOutput = nil
+                if self.wanted && !self.sleeping && self.snoozeUntil == nil { self.startSession() }
+            }
+            self.reportPerformance()
+        }
+    }
+    private func playCue(preset: Int, volume: Double) {
+        callback?(29, 0, 0)
+        NativeAudio.shared.play(preset: preset, volume: volume) { delay, started in
+            self.queue.async { self.callback?(30, delay, started ? 1 : 0) }
+        }
+    }
     private func diagnostic(_ message: String) {
         guard let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first else { return }
         let url = desktop.appendingPathComponent("tawel-native-camera-debug.txt")
@@ -257,7 +303,8 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     } }
     func configureSound(enabled: Bool, preset: Int, volume: Double, preview: Bool) {
         queue.async {
-            if preview { NativeAudio.shared.play(preset: preset, volume: volume); return }
+            if preview { self.playCue(preset: preset, volume: volume); return }
+            if !enabled { NativeAudio.shared.cancel() }
             self.soundPreferences = SoundPreferences(enabled: enabled, preset: max(0,min(4,preset)), volume: max(0,min(1,volume)))
             if let data = try? JSONEncoder().encode(self.soundPreferences) { UserDefaults.standard.set(data, forKey: "tawel.native.sound.v1") }
         }
@@ -275,8 +322,9 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             self.stopSession(); self.report(3)
         }
     }
-    func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset(); self.callback?(20, 0, 0) } }
+    func sensitivity(_ radius: Double) { queue.async { self.gate.radius = max(0.15, min(0.5, radius)); self.gate.reset(); self.soundCue = SoundCuePolicy(); NativeAudio.shared.cancel(); self.callback?(20, 0, 0) } }
     private func stopSession() {
+        NativeAudio.shared.cancel(); soundCue = SoundCuePolicy()
         _ = preview.read(enabled: false, now: ProcessInfo.processInfo.systemUptime)
         if session.isRunning { session.stopRunning() }
         gate.reset(); callback?(20, 0, 0); callback?(21, 0, 0); review.interrupt()
@@ -293,9 +341,6 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             do {
                 let input = try AVCaptureDeviceInput(device: device)
                 session.beginConfiguration()
-                if session.canSetSessionPreset(.vga640x480) { session.sessionPreset = .vga640x480 }
-                else if session.canSetSessionPreset(.high) { session.sessionPreset = .high }
-                diagnostic("preset=\(session.sessionPreset.rawValue)")
                 guard session.canAddInput(input) else { session.commitConfiguration(); wanted = false; report(5); return }
                 session.addInput(input)
                 let output = AVCaptureVideoDataOutput()
@@ -306,6 +351,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     session.removeInput(input); session.commitConfiguration(); wanted = false; report(5); return
                 }
                 session.addOutput(output)
+                if detail && session.canSetSessionPreset(.hd1280x720) { session.sessionPreset = .hd1280x720 }
+                else if session.canSetSessionPreset(.vga640x480) { session.sessionPreset = .vga640x480 }
+                else if session.canSetSessionPreset(.medium) { session.sessionPreset = .medium }
+                diagnostic("preset=\(session.sessionPreset.rawValue) detail=\(detail) fallback=\(fingerFallback)")
                 videoOutput = output
                 guard let connection = output.connection(with: .video) else {
                     session.removeOutput(output); session.removeInput(input)
@@ -343,15 +392,18 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         guard now - lastProcessed >= 1.0 / 15.0 else { return }
         lastProcessed = now
         guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else { callback?(12, 6, 0); callback?(4, 0, 0); return }
+        callback?(26, Double(CVPixelBufferGetWidth(image)), Double(CVPixelBufferGetHeight(image)))
         autoreleasepool {
             do {
                 let handler = VNImageRequestHandler(cvPixelBuffer: image, orientation: .up, options: [:])
                 callback?(6, 0, 0)
                 callback?(12, 2, 0)
                 try handler.perform([face])
+                let faceFinished = ProcessInfo.processInfo.systemUptime
                 callback?(7, 0, 0)
                 callback?(12, 3, 0)
                 try handler.perform([hands])
+                callback?(27, (faceFinished-now)*1000, (ProcessInfo.processInfo.systemUptime-faceFinished)*1000)
                 callback?(8, 0, 0)
                 callback?(12, 4, 0)
                 var distance: Double?
@@ -366,15 +418,17 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     for hand in hands.results ?? [] {
                         // Once a moment is active, visible adjacent joints preserve evidence
                         // when the fingertip itself is covered by the mouth.
-                        var tips: [VNHumanHandPoseObservation.JointName] = [.thumbTip, .indexTip, .middleTip, .ringTip, .littleTip]
-                        if gate.episode { tips += [.thumbIP, .indexDIP, .middleDIP, .ringDIP, .littleDIP] }
-                        for tip in tips {
-                            let point = try hand.recognizedPoint(tip)
-                            guard point.confidence >= 0.3 else { continue }
+                        let fingers: [(VNHumanHandPoseObservation.JointName, VNHumanHandPoseObservation.JointName)] = [(.thumbTip,.thumbIP),(.indexTip,.indexDIP),(.middleTip,.middleDIP),(.ringTip,.ringDIP),(.littleTip,.littleDIP)]
+                        func measured(_ joint: VNHumanHandPoseObservation.JointName) -> Double? {
+                            guard let point = try? hand.recognizedPoint(joint), point.confidence >= 0.3 else { return nil }
                             let dx = Double(point.location.x - center.x)
                             let dy = Double(point.location.y - center.y) * aspect
-                            let d = hypot(dx, dy) / Double(face.boundingBox.width)
-                            distance = min(distance ?? .infinity, d)
+                            return hypot(dx, dy) / Double(face.boundingBox.width)
+                        }
+                        for (tip, joint) in fingers {
+                            if let d = DetectionPolicy.distance(tip: measured(tip), adjacent: measured(joint), episode: gate.episode, fallback: fingerFallback) {
+                                distance = min(distance ?? .infinity, d)
+                            }
                         }
                     }
                 }
@@ -385,18 +439,21 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 let moment = gate.update(distance: distance, now: now)
                 if moment {
                     callback?(2, 0, 0)
-                    if soundPreferences.enabled { NativeAudio.shared.play(preset: soundPreferences.preset, volume: soundPreferences.volume) }
                 }
                 let faceVisible = !(face.results?.isEmpty ?? true)
                 review.sample(now: now, date: Date(), valid: faceVisible && !gate.uncertain,
                     quiet: !gate.active && (distance == nil || distance! > gate.radius * 1.35), moment: moment)
                 callback?(20, gate.active ? 1 : 0, 0)
+                if soundCue.update(visible: gate.active, enabled: soundPreferences.enabled, now: now) {
+                    playCue(preset: soundPreferences.preset, volume: soundPreferences.volume)
+                }
                 callback?(21, (gate.uncertain || !faceVisible) ? 1 : 0, 0)
                 callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
                 makePreview(image, now: now)
             } catch {
                 _ = gate.update(distance: nil, now: now)
                 callback?(20, gate.active ? 1 : 0, 0); callback?(21, 1, 0)
+                _ = soundCue.update(visible: gate.active, enabled: false, now: now)
                 review.interrupt(); callback?(4, 0, 0)
                 callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
             }
@@ -407,6 +464,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
 @_cdecl("tawel_native_register")
 public func tawelNativeRegister(_ cb: @escaping @convention(c) (Int32, Double, Double) -> Void) { NativeEngine.shared.setCallback(cb) }
 @_cdecl("tawel_native_start") public func tawelNativeStart() { NativeEngine.shared.start() }
+@_cdecl("tawel_native_quality") public func tawelNativeQuality(_ detail: Int32, _ fallback: Int32) { NativeEngine.shared.quality(detail: detail != 0, fallback: fallback != 0) }
 @_cdecl("tawel_native_choose_camera") public func tawelNativeChooseCamera() { NativeEngine.shared.start(chooseCamera: true) }
 @_cdecl("tawel_native_camera_name") public func tawelNativeCameraName() -> UnsafeMutablePointer<CChar>? { strdup(NativeEngine.shared.cameraName()) }
 @_cdecl("tawel_native_free_string") public func tawelNativeFreeString(_ pointer: UnsafeMutablePointer<CChar>?) { free(pointer) }

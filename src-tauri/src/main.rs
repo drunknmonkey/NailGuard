@@ -531,6 +531,7 @@ fn main() {
             native::native_control,
             native::native_snapshot,
             native::native_review,
+            native::native_quality,
             native::native_preview,
             native::native_sound_settings,
             native::native_sound,
@@ -553,7 +554,7 @@ fn main() {
             if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
                 let _ = writeln!(
                     f,
-                    "{},native_inference_last_ms,native_inference_max_ms,native_preview_last_ms,native_preview_max_ms",
+                    "{},native_inference_last_ms,native_inference_max_ms,native_preview_last_ms,native_preview_max_ms,native_cpu_percent,native_peak_rss_mb,native_thermal_state,native_quality_profile,native_width,native_height,native_face_ms,native_hand_ms,native_sound_requests,native_sound_started,native_sound_failed,native_sound_start_ms,native_visual_presentations,native_visual_dispatch_ms,native_sound_enabled,native_sound_volume",
                     "iso_timestamp,sekunden_seit_start,callbacks_letzte_sekunde,visibilityState,hasFocus,app_version,build_sha,native_visible,native_minimized,js_received_age_ms,js_sequence,timer_total,heartbeat_total,video_changes_total,attempts_total,errors_total,ipc_failures,watchdog_total,restarts_total,running,paused,video_time,video_ready_state,video_paused,track_live,track_muted,decoded_frames,last_error_kind,last_error_stage,last_error_at_ms,native_enabled,native_status,native_frames_total,native_errors_total,native_hints_total,native_frame_age_ms,native_raw_frames_total,native_vision_started_total,native_face_finished_total,native_hands_finished_total,native_queue_ticks_total,native_restarts_total,native_stage,native_raw_frame_age_ms,native_connection_flags,native_device_source,native_interrupted,native_runtime_error_code,native_device_flags,native_dropped_total,native_face_frames_total,native_hand_frames_total,native_distance_milli,native_hint_active,native_tracking_uncertain"
                 );
             }

@@ -24,6 +24,7 @@
   let state = {enabled:false, status:0, camera:'', hintActive:false, snoozeUntil:null};
   let busy = false, polling = false, failures = 0;
   let settingsPanel = 'detection';
+  let rateSample = null, analysisRate = 0, pendingQuality = null;
   let activeTab = 'focus', reviewData = null, selectedDay = '', lastReview = 0;
   let sound = {enabled:false,preset:0,volume:0.35};
   function invoke(command, args) {
@@ -50,9 +51,9 @@
     $('cameraPreviewMessage').textContent = copy[$('cameraPreviewToggle').checked ? 'previewWaiting' : 'previewOff'];
     invoke('native_preview', {enabled:false}).catch(() => {});
   }
-  for (const name of ['detection','hints','animation','camera']) $(name+'Section').addEventListener('click', () => {
+  for (const name of ['detection','hints','animation','performance','camera']) $(name+'Section').addEventListener('click', () => {
     settingsPanel = name;
-    for (const panel of ['detection','hints','animation','camera']) {
+    for (const panel of ['detection','hints','animation','performance','camera']) {
       $(panel+'Panel').hidden = panel !== name;
       $(panel+'Section').setAttribute('aria-pressed', String(panel === name));
     }
@@ -124,6 +125,23 @@
     $('snoozeSelect').disabled = busy || ![2,9,12].includes(status);
     const camera = !state.camera || state.camera === 'Noch keine Kamera gewählt' ? copy.noCamera : state.camera;
     $('settingsCamera').textContent = camera;
+    const p = state.performance || {}, profile = pendingQuality ?? p.profile ?? 3;
+    $('cameraQuality').value = String(profile & 1);
+    $('fingerFallback').checked = Boolean(profile & 2);
+    $('cameraQuality').disabled = busy || [1,9,11,8].includes(status);
+    $('fingerFallback').disabled = busy;
+    const now = Date.now();
+    if (Number.isFinite(p.frames)) {
+      if (rateSample && now-rateSample.time >= 2000) {
+        analysisRate = Math.max(0,p.frames-rateSample.frames)/((now-rateSample.time)/1000);
+        rateSample = {time:now,frames:p.frames};
+      } else if (!rateSample) rateSample = {time:now,frames:p.frames};
+    }
+    $('actualResolution').textContent = p.width ? p.width+' × '+p.height : '—';
+    $('analysisRate').textContent = [2,12].includes(status) ? analysisRate.toLocaleString(locale,{maximumFractionDigits:1}) : '—';
+    $('analysisTime').textContent = [2,12].includes(status) && p.inferenceMs != null ? p.inferenceMs+' ms' : '—';
+    $('cpuLoad').textContent = p.cpuPercent == null ? '—' : p.cpuPercent.toLocaleString(locale,{maximumFractionDigits:1})+' %';
+    $('thermal').textContent = copy.thermalStates[p.thermal] || '—';
     $('intensityValue').textContent = copy[['light','medium','strong'][intensity-1]];
     for (const key of ['blur','fadeIn','fadeOut']) {
       $(key).value = animation[key];
@@ -149,7 +167,7 @@
     polling = true;
     try {
       const value = await invoke('native_snapshot');
-      if (value && typeof value.status === 'number') { state = value; failures = 0; render(); if (activeTab === 'review' && Date.now()-lastReview > 3000) await refreshReview(); }
+      if (value && typeof value.status === 'number') { state = value; if (state.performance?.profile === pendingQuality) pendingQuality = null; failures = 0; render(); if (activeTab === 'review' && Date.now()-lastReview > 3000) await refreshReview(); }
     } catch (_) { if (++failures >= 3) { showError('connectionError'); $('statusChip').textContent = '—'; } }
     finally { polling = false; }
   }
@@ -223,6 +241,16 @@
     const minutes = $('snoozeSelect').value; $('snoozeSelect').value = '';
     if (['15','30','60'].includes(minutes)) perform(() => invoke('native_control', {action:'snooze_' + minutes}));
   });
+  function changeQuality() {
+    const detail = $('cameraQuality').value === '1', fallback = $('fingerFallback').checked;
+    pendingQuality = (detail ? 1 : 0) + (fallback ? 2 : 0);
+    return perform(async () => {
+      try { await invoke('native_quality', {detail,fallback}); }
+      catch (error) { pendingQuality = null; throw error; }
+    });
+  }
+  $('cameraQuality').addEventListener('change', changeQuality);
+  $('fingerFallback').addEventListener('change', changeQuality);
   $('preview').addEventListener('click', () => perform(preview));
   const animationPreview = () => invoke('show_visual_hint', {...config(),style:['soft-focus','wash-focus'].includes(style) ? style : 'soft-focus'});
   $('animationPreview').addEventListener('click', () => perform(animationPreview));

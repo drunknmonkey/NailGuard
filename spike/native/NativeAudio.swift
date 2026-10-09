@@ -10,7 +10,36 @@ struct SoundPreferences: Codable {
 final class NativeAudio {
     static let shared = NativeAudio()
     private var sound: NSSound?
-    func play(preset: Int, volume: Double) {
+    private let preparation = DispatchQueue(label: "app.tawel.sound", qos: .userInitiated)
+    private var waves: [Int: Data] = [:]
+    private let lock = NSLock()
+    private var generation = 0
+    private init() {
+        preparation.async { for preset in 0...4 { self.waves[preset] = self.makeWave(preset: preset) } }
+    }
+    func cancel() {
+        lock.lock(); generation += 1; lock.unlock()
+        DispatchQueue.main.async { self.sound?.stop() }
+    }
+    func play(preset: Int, volume: Double, completion: ((Double, Bool) -> Void)? = nil) {
+        let requested = ProcessInfo.processInfo.systemUptime
+        lock.lock(); generation += 1; let ticket = generation; lock.unlock()
+        preparation.async {
+            let preset = max(0,min(4,preset))
+            let data = self.waves[preset] ?? self.makeWave(preset: preset)
+            self.waves[preset] = data
+            DispatchQueue.main.async {
+                self.lock.lock(); let current = ticket == self.generation; self.lock.unlock()
+                guard current else { completion?((ProcessInfo.processInfo.systemUptime-requested)*1000, false); return }
+                self.sound?.stop()
+                self.sound = NSSound(data: data)
+                self.sound?.volume = Float(max(0,min(1,volume)))
+                let started = self.sound?.play() ?? false
+                completion?((ProcessInfo.processInfo.systemUptime-requested)*1000, started)
+            }
+        }
+    }
+    private func makeWave(preset: Int) -> Data {
         let notes: [[(Double, Double, Double, Int)]] = [
             [(420,0,0.08,0),(760,0.07,0.12,0)],
             [(240,0,0.08,0),(240,0.14,0.08,0)],
@@ -46,11 +75,6 @@ final class NativeAudio {
         ascii("RIFF"); u32(UInt32(36+count*2)); ascii("WAVEfmt "); u32(16); u16(1); u16(1)
         u32(44100); u32(88200); u16(2); u16(16); ascii("data"); u32(UInt32(count*2))
         for sample in samples { u16(UInt16(bitPattern: Int16(max(-1,min(1,sample))*32767))) }
-        DispatchQueue.main.async {
-            self.sound?.stop()
-            self.sound = NSSound(data: data)
-            self.sound?.volume = Float(max(0,min(1,volume)))
-            self.sound?.play()
-        }
+        return data
     }
 }

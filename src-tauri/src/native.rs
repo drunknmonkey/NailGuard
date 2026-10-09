@@ -13,6 +13,7 @@ extern "C" {
     fn tawel_background_notice();
     fn tawel_native_register(callback: extern "C" fn(i32, f64, f64));
     fn tawel_native_start();
+    fn tawel_native_quality(detail: i32, fallback: i32);
     fn tawel_native_choose_camera();
     fn tawel_native_camera_name() -> *mut std::ffi::c_char;
     fn tawel_native_free_string(pointer: *mut std::ffi::c_char);
@@ -22,7 +23,25 @@ extern "C" {
     fn tawel_native_sensitivity(radius: f64);
 }
 
+#[derive(Clone, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Performance {
+    cpu_percent: f64, peak_rss_mb: f64, thermal: i32, profile: i32,
+    width: u32, height: u32, face_ms: f64, hand_ms: f64,
+    sound_requests: u64, sound_started: u64, sound_failed: u64, sound_start_ms: f64,
+    visual_presentations: u64, visual_dispatch_ms: f64,
+    frames: u64, inference_ms: u64, sound_enabled: bool, sound_volume: f64,
+}
+impl Performance {
+    fn csv(&self) -> Vec<String> {
+        vec![format!("{:.1}",self.cpu_percent),format!("{:.1}",self.peak_rss_mb),self.thermal.to_string(),self.profile.to_string(),
+            self.width.to_string(),self.height.to_string(),format!("{:.1}",self.face_ms),format!("{:.1}",self.hand_ms),
+            self.sound_requests.to_string(),self.sound_started.to_string(),self.sound_failed.to_string(),format!("{:.1}",self.sound_start_ms),
+            self.visual_presentations.to_string(),format!("{:.1}",self.visual_dispatch_ms),self.sound_enabled.to_string(),format!("{:.2}",self.sound_volume)]
+    }
+}
 pub struct NativeState {
+    performance: Mutex<Performance>,
     enabled: AtomicBool,
     hint_active: AtomicBool,
     tracking_uncertain: AtomicBool,
@@ -50,6 +69,7 @@ pub struct NativeState {
 
 pub fn install(app: &AppHandle) {
     app.manage(NativeState {
+        performance: Mutex::new(Performance { profile: 3, ..Performance::default() }),
         tracking_uncertain: AtomicBool::new(false), hint_active: AtomicBool::new(false), snooze_until: Mutex::new(None),
         enabled: AtomicBool::new(false), status: AtomicI32::new(0),
         raw_frames: AtomicU64::new(0), vision_started: AtomicU64::new(0),
@@ -83,12 +103,19 @@ pub fn hint_active(app: &AppHandle) -> bool { app.state::<NativeState>().hint_ac
 fn update_hint(app: &AppHandle, active: bool) {
     if app.state::<NativeState>().hint_active.swap(active, Ordering::SeqCst) == active { return; }
     let ui_app = app.clone();
+    let requested = Instant::now();
     let _ = app.run_on_main_thread(move || {
         // Ignore an obsolete queued transition after pause/camera loss.
         if hint_active(&ui_app) != active { return; }
         if active {
             let hint = ui_app.state::<NativeState>().hint.lock().ok().map(|h| h.clone());
-            if let Some((style, intensity)) = hint { let _ = display_visual_hint(style, intensity, true, ui_app); }
+            if let Some((style, intensity)) = hint {
+                if display_visual_hint(style, intensity, true, ui_app.clone()).is_ok() {
+                    if let Ok(mut p) = ui_app.state::<NativeState>().performance.lock() {
+                        p.visual_presentations += 1; p.visual_dispatch_ms = requested.elapsed().as_secs_f64()*1000.;
+                    }
+                }
+            }
         } else { release_visual_hint(&ui_app); }
     });
 }
@@ -101,13 +128,23 @@ pub fn check_hint_health(app: &AppHandle) {
 #[serde(rename_all = "camelCase")]
 pub struct NativeSnapshot {
     enabled: bool, status: i32, camera: String, hint_active: bool, snooze_until: Option<i64>,
+    performance: Performance,
 }
 #[tauri::command]
 pub fn native_snapshot(app: AppHandle) -> NativeSnapshot {
     let (enabled, status, camera) = native_info(app.clone());
     let until = app.state::<NativeState>().snooze_until.lock().ok().and_then(|u| *u);
     let status = if status == 2 && app.state::<NativeState>().tracking_uncertain.load(Ordering::Relaxed) && !hint_active(&app) { 12 } else { status };
-    NativeSnapshot { enabled, status, camera, hint_active: hint_active(&app), snooze_until: until }
+    let state = app.state::<NativeState>();
+    let mut performance = state.performance.lock().map(|p| p.clone()).unwrap_or_default();
+    performance.frames = state.frames.load(Ordering::Relaxed);
+    performance.inference_ms = state.inference_ms.load(Ordering::Relaxed);
+    NativeSnapshot { enabled, status, camera, hint_active: hint_active(&app), snooze_until: until, performance }
+}
+#[tauri::command]
+pub fn native_quality(app: AppHandle, detail: bool, fallback: bool) {
+    #[cfg(target_os = "macos")] unsafe { tawel_native_quality(detail as i32, fallback as i32); }
+    let _ = (app, detail, fallback);
 }
 #[tauri::command]
 pub fn native_control(app: AppHandle, action: String) -> Result<(), String> {
@@ -168,8 +205,23 @@ fn stop(app: &AppHandle) {
 extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
     let Some(app) = APP.get() else { return };
     let state = app.state::<NativeState>();
-    if !state.enabled.load(Ordering::Relaxed) { return; }
+    if !state.enabled.load(Ordering::Relaxed) && event < 24 { return; }
     match event {
+        24..=30 => {
+            if !value.is_finite() || !auxiliary.is_finite() { return; }
+            if let Ok(mut p) = state.performance.lock() {
+                match event {
+                    24 => { p.cpu_percent = value; p.peak_rss_mb = auxiliary; }
+                    25 => { p.thermal = value as i32; p.profile = auxiliary as i32; }
+                    26 => { p.width = value as u32; p.height = auxiliary as u32; }
+                    27 => { p.face_ms = value; p.hand_ms = auxiliary; }
+                    28 => { p.sound_enabled = value > 0.; p.sound_volume = auxiliary; }
+                    29 => { p.sound_requests += 1; }
+                    30 => { p.sound_start_ms = value; if auxiliary > 0. { p.sound_started += 1; } else { p.sound_failed += 1; } }
+                    _ => {}
+                }
+            }
+        }
         1 => {
             state.frames.fetch_add(1, Ordering::Relaxed);
             state.distance_milli.store(if value.is_finite() && value >= 0. { (value * 1000.).round() as i32 } else { -1 }, Ordering::Relaxed);
@@ -304,6 +356,7 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
         hint_active(app).to_string(), state.tracking_uncertain.load(Ordering::Relaxed).to_string(),
         state.inference_ms.load(Ordering::Relaxed).to_string(), state.inference_max_ms.load(Ordering::Relaxed).to_string(),
         state.preview_ms.load(Ordering::Relaxed).to_string(), state.preview_max_ms.load(Ordering::Relaxed).to_string()]
+        .into_iter().chain(state.performance.lock().map(|p| p.csv()).unwrap_or_else(|_| Performance::default().csv())).collect()
 }
 
 pub fn flush() { #[cfg(target_os = "macos")] unsafe { tawel_native_flush(); } }

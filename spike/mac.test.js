@@ -102,6 +102,18 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  await click('animationReset');
  assert.equal(JSON.parse(storage.get('tawel.alpha.blur-animation.v1')).fadeIn,650);
  assert.equal(elements.get('blur').value,2.7);
+ await click('performanceSection'); assert.equal(elements.get('performancePanel').hidden,false);
+ snapshot.performance={profile:3,width:1280,height:720,frames:100,inferenceMs:85,cpuPercent:123.4,thermal:0};
+ snapshot.status=2; await intervals[0]();await flush();
+ assert.equal(elements.get('actualResolution').textContent,'1280 × 720');
+ assert.equal(elements.get('analysisTime').textContent,'85 ms');
+ assert.equal(elements.get('cameraQuality').value,'1');
+ elements.get('cameraQuality').value='0'; await click('cameraQuality','change');
+ assert(calls.some(c=>c.command==='native_quality'&&!c.args.detail&&c.args.fallback));
+ assert.equal(elements.get('cameraQuality').value,'0','Pending quality remains visible until engine confirms it');
+ snapshot.performance.profile=2; await intervals[0]();await flush();
+ elements.get('fingerFallback').checked=false; await click('fingerFallback','change');
+ assert(calls.some(c=>c.command==='native_quality'&&!c.args.detail&&!c.args.fallback));
  fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');
  console.log('mac.test.js: ok');
