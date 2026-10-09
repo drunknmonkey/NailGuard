@@ -488,3 +488,45 @@ mit Gesicht bzw. Hand und den letzten relativen Mund-Finger-Abstand mal 1000
 (-1 nicht messbar). Keine Koordinaten/Bilder. Hinweisgrenzen bleiben unverändert.
 Native externe Kameraauswahl ist noch nicht implementiert; dieser Test verwendet
 weiterhin bevorzugt die interne Kamera und benötigt ein offenes MacBook.
+
+## 0.1.15 · Erkennung angleichen – zeitliche Auswertung zuerst
+
+Paul berichtet am 09.10.2026 zuverlässigere Hand-zum-Mund-Erkennung in der Web-App.
+Der Codevergleich bestätigt: Web glättet Distanzen (EMA alpha 0,2), bestätigt Nähe
+350 ms und toleriert kurz fehlende Messungen. Das bisherige native Gate setzte
+seine zweisekündige Eintrittszeit bei jedem fehlenden oder knapp außerhalb liegenden
+Messwert zurück. Das erklärt einen möglichen Ausfallpfad; ein Qualitätsvergleich
+der Modelle selbst ist dadurch noch nicht erbracht. Web-Abstände und native
+Gesichtsbreiten sind unterschiedliche Einheiten, keine direkt übertragbaren Radien.
+
+Dieser erste Vergleichsbuild verändert nur das native zeitliche Gate:
+- EMA alpha 0,2 für die Annäherung, 350 ms bestätigte Nähe vor der 2-s-Haltezeit.
+- Eine begonnene Haltezeit überlebt einzelne fehlende Messungen bis 550 ms sowie
+  Messwerte im Hystereseband. Ein fehlender, ferner oder nur im Band liegender
+  aktueller Messwert kann selbst keinen Treffer auslösen.
+- Entfernung ab Radius × 1,35 für 650 ms setzt die Annäherung zurück; längere
+  Tracking-/Callback-Lücken ebenfalls. Kurze, getrennte Annäherungen vor der
+  Qualifikation sammeln keine Haltezeit. Ungültige Werte werden nicht als Nähe gewertet.
+- Aktive Episode weiterhin bis bestätigter Entfernung gehalten, acht Sekunden
+  Tracking-Verdeckung überbrückt; Wiedererfassung erzeugt keinen neuen Ton/Moment.
+- Kamera, 15/s-Limit, Confidence 0,3, Gelenkauswahl und Radien 0,20/0,30/0,40
+  bleiben für einen aussagekräftigen Vergleich gleich. Höhere Auflösung, ROI,
+  Ersatzgelenke und andere Radien sind mögliche spätere, getrennte Experimente.
+- 0.1.13-Performanceentkopplung und 0.1.14-Animationseinstellungen bleiben enthalten.
+
+Swift-Regressionen: stabiler Eintritt, kurzer Verlust/Jitter, langes Fehlen,
+fehlende Callbacks, bestätigte Entfernung, Band ohne Eintritt, wiederholte kurze
+Annäherung, Dauerhinweis, acht Sekunden Verdeckung, Wiedererfassung und Reset.
+CI ist kein Beleg für bessere Erkennungsqualität auf echter Hardware.
+
+### Vergleich auf Pauls Mac
+
+Web und Mac nacheinander mit derselben Kamera, Position und Beleuchtung starten
+(nicht gleichzeitig). Kamera und gewählte Empfindlichkeit/Kalibrierung notieren.
+Je fünf Versuche mit mindestens drei Sekunden Nähe: frontal, seitlich, leichtes
+Zittern, teilweise verdeckte Fingerspitze. Zwischen Versuchen Hand deutlich
+entfernen. Treffer, ungefähre Verzögerung und korrektes Ende des Hinweises notieren.
+Zusätzlich fünfmal Wange/Kinn berühren und trinken: unerwünschte Hinweise zählen;
+das Produkt erkennt Nähe, nicht sicher die tatsächliche Tätigkeit Nägelkauen.
+Neueste CSV beilegen; danach Vorschau → Fokus und Hintergrundbetrieb kurz prüfen.
+Erst nach diesem Vergleich über räumliche Schwellen oder Modelländerungen entscheiden.

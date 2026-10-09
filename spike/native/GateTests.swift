@@ -1,5 +1,58 @@
 import Foundation
 @main struct GateTests {
+    static func temporalTests() {
+        // First hit: 350 ms qualification + 2 s hold, rounded to sample cadence.
+        for disrupted in [false, true] {
+            var gate = ProximityGate()
+            for i in 0..<47 {
+                let d: Double? = disrupted && i == 20 ? nil : (disrupted && i == 30 ? 0.35 : 0.2)
+                assert(!gate.update(distance:d, now:Double(i)/20), "No early hit")
+            }
+            assert(gate.update(distance:0.2, now:2.4), "Missing frame and hysteresis jitter preserve hold")
+            for i in 49...800 {
+                assert(!gate.update(distance:0.2, now:Double(i)/20))
+                assert(gate.active, "A sustained cue stays active without repeat moments")
+            }
+            _ = gate.update(distance:nil,now:40.1); assert(gate.active && gate.uncertain)
+            assert(!gate.update(distance:0.2,now:40.3)); assert(gate.active)
+            for i in 0...14 { _ = gate.update(distance:0.9,now:40.4+Double(i)/20) }
+            assert(!gate.active && !gate.episode, "650 ms withdrawal releases the episode")
+            for i in 0...48 { _ = gate.update(distance:0.2,now:42+Double(i)/20) }
+            assert(gate.active, "New approach can trigger without cooldown")
+            for i in 0...82 { _ = gate.update(distance:nil,now:44.5+Double(i)/10) }
+            assert(!gate.active && gate.uncertain && gate.episode)
+            assert(!gate.update(distance:0.2,now:53)); assert(gate.active, "Reacquisition is the same episode")
+            _ = gate.update(distance:nil,now:53.1); _ = gate.update(distance:nil,now:55.1)
+            assert(gate.active, "Existing eight-second occlusion grace remains")
+            gate.reset(); assert(!gate.active && !gate.episode)
+        }
+        var gate = ProximityGate()
+        for i in 0...40 { _ = gate.update(distance:0.2,now:Double(i)/20) }
+        for i in 41...55 { assert(!gate.update(distance:nil,now:Double(i)/20)) }
+        assert(!gate.update(distance:0.2,now:2.8), "Long tracking gap resets hold")
+        assert(!gate.active)
+        gate.reset()
+        for i in 0...40 { _ = gate.update(distance:0.2,now:Double(i)/20) }
+        assert(!gate.update(distance:0.2,now:10), "Missing callbacks cannot complete a hold")
+        gate.reset()
+        for i in 0...40 { _ = gate.update(distance:0.2,now:Double(i)/20) }
+        for i in 41...58 { assert(!gate.update(distance:0.6,now:Double(i)/20)) }
+        assert(!gate.update(distance:0.2,now:3), "Confirmed withdrawal resets approach")
+        gate.reset()
+        for i in 0...100 { assert(!gate.update(distance:0.35,now:Double(i)/20), "Band alone cannot enter") }
+        gate.reset()
+        for i in 0...46 { assert(!gate.update(distance:0.2,now:Double(i)/20)) }
+        assert(!gate.update(distance:nil,now:2.4), "Missing evidence cannot itself trigger")
+        assert(gate.update(distance:0.2,now:2.5), "Short gap preserves qualified hold")
+        gate.reset()
+        for i in 0...100 {
+            assert(!gate.update(distance:i % 6 == 0 ? 0.2 : 0.38,now:Double(i)/20), "Brief approaches do not accumulate")
+        }
+        for value in [Double.nan, Double.infinity, -0.1] {
+            gate.reset()
+            for i in 0...60 { assert(!gate.update(distance:value,now:Double(i)/20)) }
+        }
+    }
     static func main() {
         assert(CameraChoice.automaticID(ids: [], available: [], remembered: nil) == nil)
         assert(CameraChoice.automaticID(ids: ["internal"], available: ["internal"], remembered: nil) == "internal")
@@ -8,35 +61,7 @@ import Foundation
         assert(CameraChoice.automaticID(ids: ["internal", "usb"], available: ["usb"], remembered: "internal") == nil, "Zugeklappt mit Webcam: Auswahl zeigen")
         assert(CameraChoice.automaticID(ids: ["internal"], available: ["internal"], remembered: "usb") == nil, "Abgezogene Webcam erlaubt keinen stillen Wechsel")
         assert(CameraChoice.automaticID(ids: ["usb"], available: ["usb"], remembered: "usb") == "usb")
-        var gate = ProximityGate()
-        for i in 0..<20 { assert(!gate.update(distance: 0.2, now: Double(i)/10)) }
-        assert(gate.update(distance: 0.2, now: 2))
-        for i in 21...400 {
-            assert(!gate.update(distance: 0.2, now: Double(i)/10))
-            assert(gate.active, "Der Hinweis bleibt auch nach 40 Sekunden bestehen")
-        }
-        assert(!gate.update(distance: nil, now: 40.1)); assert(gate.active)
-        assert(!gate.update(distance: 0.2, now: 40.3)); assert(gate.active)
-        for i in 0...8 { _ = gate.update(distance: 0.9, now: 40.4 + Double(i)/10) }
-        assert(!gate.active, "Bestätigte Entfernung beendet den Hinweis")
-        for i in 0..<20 { assert(!gate.update(distance: 0.2, now: 41 + Double(i)/10)) }
-        assert(gate.update(distance: 0.2, now: 43), "Neue Annäherung ohne künstliche 15s-Sperre")
-        for i in 0...84 { _ = gate.update(distance: nil, now: 43.1 + Double(i)/10) }
-        assert(!gate.active, "Dauerhaft fehlendes Tracking gibt den Bildschirm frei")
-        assert(gate.uncertain)
-        assert(!gate.update(distance: 0.1, now: 52), "Reacquisition is the same episode, not a new sound/moment")
-        assert(gate.active)
-        assert(!gate.update(distance: 0.1, now: 52.8)); assert(gate.active, "Slow frame does not clear the cue")
-        _ = gate.update(distance: nil, now: 53)
-        _ = gate.update(distance: nil, now: 55)
-        assert(gate.active, "Two seconds of occlusion do not mean withdrawal")
-        gate.reset()
-        assert(!gate.update(distance: 0.1, now: 100))
-        assert(!gate.update(distance: 0.1, now: 110), "Schlaflücke erfüllt keine Haltezeit")
-        assert(!gate.update(distance: 0.9, now: 110.1))
-        for i in 0...21 { _ = gate.update(distance: 0.1, now: 120 + Double(i)/10) }
-        assert(gate.active)
-        gate.reset(); assert(!gate.active, "Pause/Stop gibt den Hinweis frei")
+        temporalTests()
         let suite = "tawel.tests." + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }

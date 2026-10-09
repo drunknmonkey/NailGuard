@@ -9,19 +9,31 @@ struct ProximityGate {
     private(set) var uncertain = false
     private(set) var episode = false
     private var nearSince: Double?
+    private var candidateSince: Double?
+    private var smoothedDistance: Double?
+    private var lastFinite: Double?
     private var awaySince: Double?
     private var missingSince: Double?
     private var lastSample: Double?
 
     mutating func reset() { self = ProximityGate(radius: radius, hold: hold) }
+    private mutating func resetApproach() {
+        nearSince = nil; candidateSince = nil; smoothedDistance = nil
+    }
     mutating func update(distance: Double?, now: Double) -> Bool {
+        guard now.isFinite else { return false }
+        if let previous = lastSample, now <= previous { return false }
+        if !episode, let previous = lastSample, now - previous > 0.55 {
+            resetApproach(); awaySince = nil
+        }
         if let previous = lastSample, now - previous > 1 {
-            nearSince = nil; awaySince = nil
+            resetApproach(); awaySince = nil
             if episode && missingSince == nil { missingSince = previous }
         }
         lastSample = now
-        guard let distance = distance, distance.isFinite else {
-            nearSince = nil; awaySince = nil
+        guard let distance = distance, distance.isFinite, distance >= 0 else {
+            candidateSince = nil; awaySince = nil
+            if !episode, let previous = lastFinite, now - previous > 0.55 { resetApproach() }
             if episode {
                 if missingSince == nil { missingSince = now }
                 uncertain = true
@@ -29,18 +41,31 @@ struct ProximityGate {
             }
             return false
         }
+        if !episode, let previous = lastFinite, now - previous > 0.55 { resetApproach() }
+        lastFinite = now
         missingSince = nil; uncertain = false
-        if distance > radius * 1.35 {
-            nearSince = nil
+        // Keep the established episode/occlusion behaviour on raw measurements.
+        // A smoothed tail must not delay confirmed withdrawal of an active cue.
+        if distance >= radius * 1.35 {
+            candidateSince = nil
             if awaySince == nil { awaySince = now }
-            if now - awaySince! >= 0.65 { active = false; episode = false }
+            if now - awaySince! >= 0.65 {
+                active = false; episode = false; resetApproach()
+            }
             return false
         }
         awaySince = nil
         if episode { active = true; return false }
-        // A sample in the hysteresis band cannot complete an approach.
-        guard distance <= radius else { nearSince = nil; return false }
-        if nearSince == nil { nearSince = now }
+        smoothedDistance = smoothedDistance.map { $0 + 0.2 * (distance - $0) } ?? distance
+        // Jitter preserves an established hold but cannot start/finish a hit.
+        guard distance <= radius, smoothedDistance! <= radius else {
+            candidateSince = nil; return false
+        }
+        if nearSince == nil {
+            if candidateSince == nil { candidateSince = now }
+            guard now - candidateSince! >= 0.35 else { return false }
+            nearSince = now; candidateSince = nil
+        }
         guard now - nearSince! >= hold else { return false }
         active = true; episode = true
         return true
