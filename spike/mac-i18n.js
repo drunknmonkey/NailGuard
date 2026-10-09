@@ -1,6 +1,7 @@
 /* Mac-only copy; the public Web app and its translations stay untouched. */
 window.TAWEL_MAC_COPY = {
  de: {
+  heldPreview:'Dauereffekt testen · 3 Sekunden',
   performance:'Leistung', cameraQuality:'Analysebild', standardQuality:'Standard · bis 640 × 480', detailQuality:'Detail · bis 1280 × 720', fingerFallback:'Verdeckte Fingerspitzen ergänzen', qualityNote:'Das Analysebild wird auf diese Größe begrenzt, ohne Beschnitt. Ein Wechsel startet dieselbe Kamera kurz neu. Ersatzpunkte helfen bei verdeckten Spitzen.', actualResolution:'Tatsächliches Analysebild', analysisRate:'Analysen pro Sekunde', analysisTime:'Letzte Analyse', cpuLoad:'CPU · Tawel-Prozess', thermal:'Thermischer Zustand', thermalStates:['Normal','Leicht erhöht','Hoch','Sehr hoch'], performanceNote:'100 % CPU entspricht einem Kern; WebKit und GPU sind nicht enthalten. Das CSV ergänzt Speicher- und Tonmesswerte, keine Bilder.',
 
   animation:'Animation', blurAnimation:'Unschärfe abstimmen', blurAmount:'Unschärfe', fadeIn:'Einblenden', fadeOut:'Ausblenden', resetAnimation:'Zurücksetzen', animationNote:'Für Fokusverlust und Farbhauch → Fokusverlust. Die Vorschau hält den Hinweis kurz und blendet ihn dann aus. Im Alltag bleibt er, bis die Hand weg ist. Bei „Bewegung reduzieren“ werden die Übergänge verkürzt.',
@@ -11,6 +12,7 @@ window.TAWEL_MAC_COPY = {
   styles: {'lavender-vignette':'Lavendel-Vignette','soft-focus':'Sanfter Fokusverlust',desaturate:'Entsättigung','ambient-glow':'Ambient Glow','wash-focus':'Farbhauch & Fokusverlust'}
  },
  en: {
+  heldPreview:'Test sustained cue · 3 seconds',
   performance:'Performance', cameraQuality:'Analysis image', standardQuality:'Standard · up to 640 × 480', detailQuality:'Detail · up to 1280 × 720', fingerFallback:'Use joints for hidden fingertips', qualityNote:'Analysis is limited to this size without cropping. Switching briefly restarts the same camera. Adjacent joints help when tips are hidden.', actualResolution:'Actual analysis image', analysisRate:'Analyses per second', analysisTime:'Last analysis', cpuLoad:'CPU · Tawel process', thermal:'Thermal state', thermalStates:['Normal','Fair','Serious','Critical'], performanceNote:'100% CPU is one core; excludes WebKit and GPU. The CSV adds memory and sound measurements, never images.',
 
   animation:'Animation', blurAnimation:'Tune the blur', blurAmount:'Blur', fadeIn:'Fade in', fadeOut:'Fade out', resetAnimation:'Reset', animationNote:'For Soft focus and Colour wash → focus. The preview holds briefly, then fades out. During detection it stays until your hand moves away. Reduce Motion shortens the transitions.',

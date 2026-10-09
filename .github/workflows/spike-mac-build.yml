@@ -30,6 +30,8 @@ jobs:
           node-version: 20
       - name: Render Mac interface
         run: bash spike/check-mac-layout.sh
+      - name: Verify hint fade in browser
+        run: node spike/check-hint-rendering.js "$RUNNER_TEMP/tawel-ui-preview/node_modules/playwright"
       - name: Upload interface previews
         if: always()
         uses: actions/upload-artifact@v4

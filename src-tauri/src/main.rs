@@ -404,6 +404,8 @@ fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
 
 #[derive(Clone, serde::Serialize)]
 struct VisualHintPayload {
+    revision: u64,
+    preview_hold_ms: u64,
     style: String,
     intensity: u8,
     held: bool,
@@ -431,16 +433,16 @@ fn store_blur_animation(app: &AppHandle, value: Option<BlurAnimation>) -> Result
 /// Intensitäten. Das Overlay nimmt keine Bildschirmbilder auf; WebKit filtert
 /// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
 #[tauri::command]
-fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimation>, app: AppHandle) -> Result<(), String> {
+fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimation>, hold_ms: Option<u64>, app: AppHandle) -> Result<(), String> {
     store_blur_animation(&app, animation)?;
     if native::hint_active(&app) { return Ok(()); }
-    display_visual_hint(style, intensity, false, app)
+    display_visual_hint(style, intensity, false, hold_ms.unwrap_or(1200).clamp(1200, 3000), app)
 }
 
 #[derive(Default)]
 struct HintWindowState { revision: AtomicU64, animation: Mutex<BlurAnimation> }
 
-fn display_visual_hint(style: String, intensity: u8, held: bool, app: AppHandle) -> Result<(), String> {
+fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms: u64, app: AppHandle) -> Result<(), String> {
     let style = match style.as_str() {
         "lavender-vignette" => "lavender-vignette",
         "soft-focus" => "soft-focus",
@@ -457,16 +459,18 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, app: AppHandle)
         fit_hint_overlay_to_main(&overlay, &main);
     }
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
-    overlay.show().map_err(cmd_err)?;
+    // Renderer first neutralizes the previous filter, then acknowledges readiness.
     let animation = app.state::<HintWindowState>().animation.lock().map_err(cmd_err)?.clone();
     if !held {
-        let duration = if style == "soft-focus" || style == "wash-focus" { animation.fade_in * if style == "wash-focus" { 2 } else { 1 } + 1200 + animation.fade_out + 150 } else { 3400 };
+        let duration = animation.fade_in * if style == "wash-focus" { 2 } else { 1 } + preview_hold_ms + animation.fade_out + 1000;
         schedule_hint_hide(&app, revision, duration);
     }
     app.emit_to(
         "hint-overlay",
         "tawel:visual-hint",
         VisualHintPayload {
+            revision,
+            preview_hold_ms,
             style: style.to_string(),
             intensity,
             held,
@@ -491,9 +495,24 @@ fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64) {
 }
 fn release_visual_hint(app: &AppHandle) {
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
-    let _ = app.emit_to("hint-overlay", "tawel:hint-clear", ());
+    let _ = app.emit_to("hint-overlay", "tawel:hint-clear", revision);
     let fade_out = app.state::<HintWindowState>().animation.lock().map(|a| a.fade_out).unwrap_or(450);
-    schedule_hint_hide(app, revision, fade_out + 50);
+    // Safety only: normal completion is acknowledged by the renderer at zero blur.
+    schedule_hint_hide(app, revision, fade_out + 1000);
+}
+#[tauri::command]
+fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
+    if app.state::<HintWindowState>().revision.load(Ordering::SeqCst) == revision {
+        if let Some(overlay) = app.get_webview_window("hint-overlay") { overlay.show().map_err(cmd_err)?; }
+    }
+    Ok(())
+}
+#[tauri::command]
+fn complete_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
+    if app.state::<HintWindowState>().revision.load(Ordering::SeqCst) == revision {
+        if let Some(overlay) = app.get_webview_window("hint-overlay") { overlay.hide().map_err(cmd_err)?; }
+    }
+    Ok(())
 }
 #[tauri::command]
 fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
@@ -540,6 +559,8 @@ fn main() {
             alpha_status,
             alpha_hint_style,
             show_visual_hint,
+            ready_visual_hint,
+            complete_visual_hint,
             hide_visual_hint,
             close_app,
             background_app

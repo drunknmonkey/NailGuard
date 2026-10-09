@@ -146,105 +146,25 @@ body {
   opacity: 0;
 }
 
-#hintOverlay.is-active[data-style="lavender-vignette"] .hint-vignette {
-  animation: tawel-vignette-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+/* Animate the filter itself to neutral; no parent opacity/animation competes. */
+#hintOverlay { --cue-level: 0; --cue-color: 0; --cue-focus: 0; --cue-blur: 0px; --cue-saturation: 1; }
+.hint-layer { opacity: var(--cue-level); }
+#hintOverlay[data-style="soft-focus"] .hint-focus {
+  opacity: 1;
+  background: rgba(var(--paper-rgb), calc(var(--focus-veil) * var(--cue-focus)));
+  -webkit-backdrop-filter: blur(var(--cue-blur));
+  backdrop-filter: blur(var(--cue-blur));
 }
-
-#hintOverlay.is-active[data-style="soft-focus"] .hint-focus,
-#hintOverlay.is-active[data-style="desaturate"] .hint-desaturate {
-  animation: tawel-filter-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+#hintOverlay[data-style="desaturate"] .hint-desaturate {
+  opacity: 1;
+  background: rgba(var(--paper-rgb), calc(var(--desaturate-veil) * var(--cue-level)));
+  -webkit-backdrop-filter: saturate(var(--cue-saturation));
+  backdrop-filter: saturate(var(--cue-saturation));
 }
-
-#hintOverlay.is-active[data-style="ambient-glow"] .hint-ambient {
-  animation: tawel-ambient-hint var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
-}
-
-#hintOverlay.is-active[data-style="wash-focus"] .hint-combo-color {
-  animation: tawel-combo-color var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
-}
-
-#hintOverlay.is-active[data-style="wash-focus"] .hint-combo-focus {
-  animation: tawel-combo-focus var(--hint-duration) cubic-bezier(0.22, 0.72, 0.18, 1) both;
-}
-
-@keyframes tawel-filter-hint {
-  0% { opacity: 0; }
-  22% { opacity: 1; }
-  60% { opacity: 0.82; }
-  100% { opacity: 0; }
-}
-
-@keyframes tawel-vignette-hint {
-  0% { opacity: 0; transform: scale(1.055); }
-  24% { opacity: 1; transform: scale(1); }
-  58% { opacity: 0.86; transform: scale(1.012); }
-  100% { opacity: 0; transform: scale(1.035); }
-}
-
-@keyframes tawel-ambient-hint {
-  0% { opacity: 0; transform: scale(1.04); }
-  26% { opacity: 1; transform: scale(1); }
-  62% { opacity: 0.88; transform: scale(1.012); }
-  100% { opacity: 0; transform: scale(1.035); }
-}
-
-@keyframes tawel-combo-color {
-  0% { opacity: 0; }
-  16% { opacity: 1; }
-  44% { opacity: 0.74; }
-  72%, 100% { opacity: 0; }
-}
-
-@keyframes tawel-combo-focus {
-  0%, 24% { opacity: 0; }
-  48% { opacity: 1; }
-  70% { opacity: 0.82; }
-  100% { opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --hint-duration: 1900ms;
-  }
-
-  #hintOverlay.is-active .hint-terminal,
-  #hintOverlay.is-active .hint-combo-color {
-    animation-name: tawel-reduced-hint;
-    transform: none;
-  }
-
-  @keyframes tawel-reduced-hint {
-    0% { opacity: 0; }
-    14%, 58% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-}
-
-/* Stateful cue: animate in once and remain steady until native detection releases. */
-#hintOverlay { opacity: 1; transition: opacity 450ms ease; }
-#hintOverlay.is-releasing { opacity: 0; }
-#hintOverlay.is-held.is-active .hint-layer,
-#hintOverlay.is-held.is-active .hint-combo-color,
-#hintOverlay.is-held.is-active .hint-combo-focus {
-  animation: tawel-held-in 650ms ease both;
-  transform: none;
-}
-#hintOverlay.is-held.is-active .hint-combo-focus { animation-delay: 650ms; }
-@keyframes tawel-held-in { from { opacity: 0; } to { opacity: 1; } }
-#hintOverlay.is-tunable { transition-duration: var(--blur-out); }
-#hintOverlay.is-tunable.is-active .hint-layer,
-#hintOverlay.is-tunable.is-active .hint-combo-color,
-#hintOverlay.is-tunable.is-active .hint-combo-focus {
-  animation: tawel-held-in var(--blur-in) ease both;
-  transform: none;
-}
-#hintOverlay.is-tunable.is-active .hint-combo-focus { animation-delay: var(--blur-in); }
-@media (prefers-reduced-motion: reduce) {
-  #hintOverlay, #hintOverlay.is-tunable { transition-duration: 150ms; }
-  #hintOverlay.is-held.is-active .hint-layer,
-  #hintOverlay.is-held.is-active .hint-combo-color,
-  #hintOverlay.is-held.is-active .hint-combo-focus,
-  #hintOverlay.is-tunable.is-active .hint-layer,
-  #hintOverlay.is-tunable.is-active .hint-combo-color,
-  #hintOverlay.is-tunable.is-active .hint-combo-focus { animation-duration: 150ms; animation-delay: 0ms; }
+.hint-combo-color { opacity: var(--cue-color); }
+.hint-combo-focus {
+  opacity: 1;
+  background: rgba(var(--paper-rgb), calc(var(--combo-veil) * var(--cue-focus)));
+  -webkit-backdrop-filter: blur(var(--cue-blur));
+  backdrop-filter: blur(var(--cue-blur));
 }

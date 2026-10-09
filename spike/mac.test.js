@@ -57,6 +57,8 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  elements.get('hintStyle').value='ambient-glow';await click('hintStyle','change');
  assert.equal(storage.get('tawel.alpha.hint-style.v1'),'ambient-glow');
  assert.equal(calls.some(c=>c.command==='show_visual_hint'&&c.args.style==='ambient-glow'),true);
+ await click('heldPreview');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.holdMs,3000,'Camera-free test uses the same display with a three-second hold');
  snapshot.status=5;await intervals[0]();await flush();
  assert.equal(elements.get('focusTitle').textContent,'Kamera nicht verfügbar.');
  await click('settingsChooseCamera');assert.equal(calls.filter(c=>c.command==='native_start').length,2);

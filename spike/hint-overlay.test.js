@@ -1,137 +1,78 @@
-/* DOM-Vertragstest für die capture-ausgeschlossene Mac-Hinweisschicht. */
-"use strict";
-
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const vm = require("node:vm");
-
-class ClassList {
-  constructor(values = []) { this.values = new Set(values); }
-  add(value) { this.values.add(value); }
-  remove(value) { this.values.delete(value); }
-  contains(value) { return this.values.has(value); }
+// Execute animation frames and race scenarios, rather than checking CSS class names.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+function harness(reduced = false) {
+  let now = 0, id = 0;
+  const frames = new Map(), timers = new Map(), events = new Map(), calls = [];
+  const overlay = {dataset:{},style:{values:{},setProperty(k,v){this.values[k]=v}}};
+  const context = {
+    document:{getElementById:()=>overlay}, performance:{now:()=>now},
+    requestAnimationFrame:fn=>{frames.set(++id,fn);return id},
+    cancelAnimationFrame:key=>frames.delete(key),
+    setTimeout:(fn,ms)=>{timers.set(++id,{fn,at:now+ms});return id},
+    clearTimeout:key=>timers.delete(key),
+    window:{matchMedia:()=>({matches:reduced}),__TAURI__:{
+      core:{invoke:(command,args)=>{calls.push({command,args,level:level()});return Promise.resolve()}},
+      event:{listen:(name,fn)=>events.set(name,fn)}
+    }}
+  };
+  const level=()=>Number(overlay.style.values['--cue-level']);
+  vm.runInNewContext(fs.readFileSync(__dirname+'/hint-overlay.js','utf8'),context);
+  async function flush(){for(let i=0;i<6;i++)await Promise.resolve()}
+  async function show(revision,extra={}) {
+    events.get('tawel:visual-hint')({payload:{revision,style:'soft-focus',intensity:2,held:true,animation:{blur:4,fadeIn:2000,fadeOut:450},...extra}});
+    await flush();
+  }
+  function advance(ms) {
+    now+=ms;
+    const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(now));
+    for(const [key,timer] of [...timers])if(timer.at<=now){timers.delete(key);timer.fn()}
+  }
+  return {show,advance,level,overlay,calls,frames,timers,clear:revision=>events.get('tawel:hint-clear')({payload:revision})};
 }
-
-const listeners = new Map();
-const tauriListeners = new Map();
-const timeouts = [];
-const invocations = [];
-const overlay = {
-  style: {values:{},setProperty(key,value) { this.values[key]=value; }},
-  dataset: {},
-  classList: new ClassList(),
-  offsetWidth: 100,
-  addEventListener(type, listener) { listeners.set(type, listener); },
-};
-
-const context = {
-  document: {
-    getElementById(id) {
-      assert.equal(id, "hintOverlay");
-      return overlay;
-    },
-  },
-  setTimeout(fn, delay) {
-    timeouts.push({ fn, delay });
-    return timeouts.length;
-  },
-  clearTimeout() {},
-  window: {
-    __TAURI__: {
-      core: {
-        invoke(command) {
-          invocations.push(command);
-          return Promise.resolve(null);
-        },
-      },
-      event: {
-        listen(name, listener) {
-          tauriListeners.set(name, listener);
-          return Promise.resolve(() => {});
-        },
-      },
-    },
-  },
-};
-context.window.window = context.window;
-
-const source = fs.readFileSync(`${__dirname}/hint-overlay.js`, "utf8");
-vm.runInNewContext(source, context, { filename: "hint-overlay.js" });
-
-assert.ok(context.window.__tawelHintOverlay);
-assert.ok(tauriListeners.has("tawel:visual-hint"));
-
-tauriListeners.get("tawel:visual-hint")({
-  payload: { style: "soft-focus", intensity: 3 },
-});
-assert.equal(overlay.dataset.style, "soft-focus");
-assert.equal(overlay.dataset.intensity, "3");
-assert.equal(overlay.classList.contains("is-active"), true);
-assert.equal(timeouts.at(-1).delay, 3400);
-
-listeners.get("animationend")({
-  target: { classList: new ClassList(["hint-terminal"]) },
-});
-assert.equal(overlay.classList.contains("is-active"), false);
-assert.equal(invocations.at(-1), "hide_visual_hint");
-
-context.window.__tawelHintOverlay.show("ambient-glow", 1);
-assert.equal(overlay.dataset.style, "ambient-glow");
-assert.equal(overlay.dataset.intensity, "1");
-assert.equal(overlay.classList.contains("is-active"), true);
-
-context.window.__tawelHintOverlay.show("unbekannt");
-assert.equal(
-  overlay.dataset.style,
-  "lavender-vignette",
-  "Unbekannte Werte fallen sicher auf Lavendel-Vignette zurück",
-);
-assert.equal(overlay.dataset.intensity, "2", "Unbekannte Intensität fällt auf Mittel zurück");
-
-assert.deepEqual(
-  [...context.window.__tawelHintOverlay.styles],
-  ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"],
-);
-
-const html = fs.readFileSync(`${__dirname}/hint-overlay.html`, "utf8");
-const css = fs.readFileSync(`${__dirname}/hint-overlay.css`, "utf8");
-for (const style of context.window.__tawelHintOverlay.styles) {
-  assert.ok(css.includes(`data-style="${style}"`), `${style} besitzt einen CSS-Modus`);
-}
-assert.ok(html.includes("hint-combo-focus"), "Die gestufte Kombination besitzt eine Fokusphase");
-assert.ok(css.includes("backdrop-filter: blur("), "Fokusvarianten filtern den transparenten Hintergrund");
-assert.ok(css.includes("backdrop-filter: saturate("), "Entsättigung filtert den transparenten Hintergrund");
-assert.equal(css.includes("196, 106, 74"), false, "Das frühere Alarmrot ist aus dem Overlay entfernt");
-
-console.log("hint-overlay.test.js: ok");
-
-// A sustained detection must survive animation completion and create no expiry.
-const count = timeouts.length;
-tauriListeners.get("tawel:visual-hint")({ payload: {style:"soft-focus", intensity:2, held:true} });
-assert.equal(timeouts.length, count);
-assert.equal(overlay.classList.contains("is-held"), true);
-const before = invocations.length;
-listeners.get("animationend")({target:{classList:new ClassList(["hint-terminal"])}});
-assert.equal(invocations.length, before, "Animation end cannot dismiss a held cue");
-assert.equal(overlay.classList.contains("is-active"), true);
-tauriListeners.get("tawel:hint-clear")({});
-assert.equal(overlay.classList.contains("is-releasing"), true);
-tauriListeners.get("tawel:visual-hint")({payload:{style:"ambient-glow",intensity:1,held:false}});
-assert.equal(overlay.classList.contains("is-held"), false);
-assert.equal(overlay.classList.contains("is-releasing"), false);
-tauriListeners.get('tawel:visual-hint')({payload:{style:'soft-focus',intensity:2,held:false,animation:{blur:6,fadeIn:2000,fadeOut:1800}}});
-assert.equal(overlay.style.values['--focus-blur'],'6px');
-assert.equal(overlay.style.values['--blur-in'],'2000ms');
-assert.equal(timeouts.at(-1).delay,3200);
-const tuningBefore=invocations.length;
-listeners.get('animationend')({target:{classList:new ClassList(['hint-terminal'])}});
-assert.equal(invocations.length,tuningBefore,'Preview entrance does not end the cue');
-timeouts.at(-1).fn();
-assert.equal(overlay.classList.contains('is-releasing'),true);
-assert.equal(timeouts.at(-1).delay,1850);
-timeouts.at(-1).fn();
-assert.equal(invocations.at(-1),'hide_visual_hint');
-const tuningCount=timeouts.length;
-tauriListeners.get('tawel:visual-hint')({payload:{style:'wash-focus',intensity:2,held:true,animation:{blur:99,fadeIn:2000,fadeOut:1800}}});
-assert.equal(overlay.style.values['--combo-blur'],'10px');
-assert.equal(timeouts.length,tuningCount,'Tuned detection remains held until hand release');
+(async()=>{
+  for(const style of ['soft-focus','wash-focus','lavender-vignette','desaturate','ambient-glow']) {
+    // Withdrawal during entrance used to leave entrance/delayed blur running.
+    const h=harness();await h.show(1,{style});
+    h.advance(500);assert(h.level()>0&&h.level()<1);
+    h.clear(2);let previous=h.level();
+    let previousBlur=parseFloat(h.overlay.style.values['--cue-blur']);
+    for(let i=0;i<10;i++){
+      h.advance(50);assert(h.level()<=previous,'Release can only weaken');
+      const blur=parseFloat(h.overlay.style.values['--cue-blur']);
+      assert(blur<=previousBlur,'Delayed focus must not appear after withdrawal');
+      previous=h.level();previousBlur=blur;
+    }
+    assert.equal(h.level(),0);assert.equal(h.overlay.dataset.phase,'idle');
+    assert.equal(h.calls.at(-1).command,'complete_visual_hint');
+    assert.equal(h.calls.at(-1).args.revision,2);
+    assert.equal(h.calls.at(-1).level,0,'Hide only after filter reaches zero');
+    h.advance(5000);assert.equal(h.level(),0,'No delayed reappearance');
+  }
+  const h=harness();await h.show(1);h.advance(2000);
+  assert.equal(h.level(),1);h.advance(60000);assert.equal(h.level(),1,'Held cue has no expiry');
+  assert.equal(h.frames.size,0,'No continuous rendering while held');
+  h.clear(2);h.advance(100);await h.show(3);
+  assert.equal(h.calls.at(-1).command,'ready_visual_hint');
+  assert.equal(h.calls.at(-1).level,0,'Neutralize old content before showing native window');
+  h.clear(2);h.advance(2000);assert.equal(h.level(),1,'Stale clear cannot dismiss new cue');
+  await h.show(1);assert.equal(h.level(),1,'Stale show cannot replay');
+  h.clear(4);h.clear(4);h.advance(450);assert.equal(h.level(),0);
+  const p=harness();await p.show(1,{held:false,preview_hold_ms:3000});
+  p.advance(2000);p.advance(2999);assert.equal(p.level(),1);
+  p.advance(1);assert.equal(p.overlay.dataset.phase,'held'); // Paint changes on next frame.
+  p.advance(225);assert(p.level()<1&&p.level()>0);
+  p.advance(225);assert.equal(p.level(),0);
+  const r=harness(true);await r.show(1,{style:'wash-focus'});r.advance(150);assert.equal(r.level(),1);
+  r.clear(2);r.advance(150);assert.equal(r.level(),0,'Reduce Motion applies to both transitions');
+  const stale=harness();stale.clear(4);await stale.show(3);assert.equal(stale.level(),0);
+  const css=fs.readFileSync(__dirname+'/hint-overlay.css','utf8');
+  assert(!css.includes('@keyframes'),'No independent animation can compete with release');
+  assert(css.includes('blur(var(--cue-blur))'),'Blur itself returns to neutral');
+  const native=fs.readFileSync(__dirname+'/../src-tauri/src/main.rs','utf8');
+  assert(native.includes('fn complete_visual_hint(revision: u64'));
+  assert(native.includes('fn ready_visual_hint(revision: u64'));
+  assert(native.includes('== revision'),'Native completion is revision guarded');
+  console.log('hint-overlay.test.js: monotonic release, hold, preview, stale events and neutral handoff passed');
+})().catch(error=>{console.error(error);process.exitCode=1});

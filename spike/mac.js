@@ -254,6 +254,7 @@
   $('preview').addEventListener('click', () => perform(preview));
   const animationPreview = () => invoke('show_visual_hint', {...config(),style:['soft-focus','wash-focus'].includes(style) ? style : 'soft-focus'});
   $('animationPreview').addEventListener('click', () => perform(animationPreview));
+  $('heldPreview').addEventListener('click', () => perform(() => invoke('show_visual_hint', {...config(),holdMs:3000})));
   for (const key of ['blur','fadeIn','fadeOut']) {
     $(key).addEventListener('input', () => { animation[key] = Number($(key).value); render(); });
     $(key).addEventListener('change', () => perform(async () => { await syncHint(); await animationPreview(); }));
