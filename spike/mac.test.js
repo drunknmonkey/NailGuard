@@ -59,6 +59,18 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert.equal(calls.some(c=>c.command==='show_visual_hint'&&c.args.style==='ambient-glow'),true);
  await click('heldPreview');
  assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.holdMs,3000,'Camera-free test uses the same display with a three-second hold');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.finishMode,'keep_transparent');
+ await click('delayedPreview');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.finishMode,'delayed');
+ const beforeTest=calls.filter(c=>c.command==='show_visual_hint').length;
+ snapshot={...snapshot,enabled:true,status:2};await intervals[0]();await flush();
+ await click('heldPreview');await click('delayedPreview');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').length,beforeTest,'A/B tests require a paused or stopped camera');
+ assert.equal(elements.get('error').textContent,context.window.TAWEL_MAC_COPY.de.pauseForHintTest);
+ snapshot.status=3;await intervals[0]();await flush();await click('delayedPreview');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').length,beforeTest+1);
+ await click('endHintTest');assert(calls.some(c=>c.command==='hide_visual_hint'));
+ snapshot.enabled=false;
  snapshot.status=5;await intervals[0]();await flush();
  assert.equal(elements.get('focusTitle').textContent,'Kamera nicht verfügbar.');
  await click('settingsChooseCamera');assert.equal(calls.filter(c=>c.command==='native_start').length,2);

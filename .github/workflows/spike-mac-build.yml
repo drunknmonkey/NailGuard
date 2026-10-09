@@ -69,6 +69,8 @@ jobs:
         run: |
           rustc --test src-tauri/src/native_health.rs -o /tmp/tawel-health-tests
           /tmp/tawel-health-tests
+          rustc --test src-tauri/src/hint_finish.rs -o /tmp/tawel-hint-finish-tests
+          /tmp/tawel-hint-finish-tests
 
       - name: Test native proximity logic
         run: |

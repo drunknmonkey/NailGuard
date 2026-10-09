@@ -96,12 +96,15 @@ pub fn install(app: &AppHandle) {
     unsafe { tawel_native_register(receive); }
 }
 pub fn enabled(app: &AppHandle) -> bool { app.state::<NativeState>().enabled.load(Ordering::Relaxed) }
+pub fn can_test_hint(app: &AppHandle) -> bool {
+    !enabled(app) || app.state::<NativeState>().status.load(Ordering::Relaxed) == 3
+}
 pub fn set_hint(app: &AppHandle, style: &str, intensity: u8) {
     if let Ok(mut hint) = app.state::<NativeState>().hint.lock() { *hint = (style.to_string(), intensity.clamp(1, 3)); }
     if hint_active(app) {
         let ui_app = app.clone(); let style = style.to_string();
         let _ = app.run_on_main_thread(move || {
-            if hint_active(&ui_app) { let _ = display_visual_hint(style, intensity, true, 0, ui_app); }
+            if hint_active(&ui_app) { let _ = display_visual_hint(style, intensity, true, 0, FinishMode::Immediate, ui_app); }
         });
     }
 }
@@ -116,7 +119,7 @@ fn update_hint(app: &AppHandle, active: bool) {
         if active {
             let hint = ui_app.state::<NativeState>().hint.lock().ok().map(|h| h.clone());
             if let Some((style, intensity)) = hint {
-                if display_visual_hint(style, intensity, true, 0, ui_app.clone()).is_ok() {
+                if display_visual_hint(style, intensity, true, 0, FinishMode::Immediate, ui_app.clone()).is_ok() {
                     if let Ok(mut p) = ui_app.state::<NativeState>().performance.lock() {
                         p.visual_presentations += 1; p.visual_dispatch_ms = requested.elapsed().as_secs_f64()*1000.;
                     }

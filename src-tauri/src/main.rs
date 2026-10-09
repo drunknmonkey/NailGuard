@@ -6,6 +6,8 @@
 
 mod native;
 mod native_health;
+mod hint_finish;
+use hint_finish::FinishMode;
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -433,16 +435,20 @@ fn store_blur_animation(app: &AppHandle, value: Option<BlurAnimation>) -> Result
 /// Intensitäten. Das Overlay nimmt keine Bildschirmbilder auf; WebKit filtert
 /// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
 #[tauri::command]
-fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimation>, hold_ms: Option<u64>, app: AppHandle) -> Result<(), String> {
+fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimation>, hold_ms: Option<u64>, finish_mode: Option<String>, app: AppHandle) -> Result<(), String> {
+    let mode = FinishMode::parse(finish_mode.as_deref()).map_err(cmd_err)?;
+    if mode != FinishMode::Immediate && !native::can_test_hint(&app) {
+        return Err("Bitte zuerst die Erkennung pausieren".into());
+    }
     store_blur_animation(&app, animation)?;
     if native::hint_active(&app) { return Ok(()); }
-    display_visual_hint(style, intensity, false, hold_ms.unwrap_or(1200).clamp(1200, 3000), app)
+    display_visual_hint(style, intensity, false, hold_ms.unwrap_or(1200).clamp(1200, 3000), mode, app)
 }
 
 #[derive(Default)]
-struct HintWindowState { revision: AtomicU64, animation: Mutex<BlurAnimation> }
+struct HintWindowState { revision: AtomicU64, completed: AtomicU64, finish_mode: Mutex<FinishMode>, animation: Mutex<BlurAnimation> }
 
-fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms: u64, app: AppHandle) -> Result<(), String> {
+fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms: u64, finish_mode: FinishMode, app: AppHandle) -> Result<(), String> {
     let style = match style.as_str() {
         "lavender-vignette" => "lavender-vignette",
         "soft-focus" => "soft-focus",
@@ -459,11 +465,12 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
         fit_hint_overlay_to_main(&overlay, &main);
     }
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
+    *app.state::<HintWindowState>().finish_mode.lock().map_err(cmd_err)? = finish_mode;
     // Renderer first neutralizes the previous filter, then acknowledges readiness.
     let animation = app.state::<HintWindowState>().animation.lock().map_err(cmd_err)?.clone();
     if !held {
         let duration = animation.fade_in * if style == "wash-focus" { 2 } else { 1 } + preview_hold_ms + animation.fade_out + 1000;
-        schedule_hint_hide(&app, revision, duration);
+        schedule_hint_hide(&app, revision, duration, true);
     }
     app.emit_to(
         "hint-overlay",
@@ -481,13 +488,14 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
 }
 
 // Native Frist: funktioniert auch bei gedrosseltem Overlay-WebView.
-fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64) {
+fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: bool) {
     let app = app.clone();
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(millis));
         let ui_app = app.clone();
         let _ = app.run_on_main_thread(move || {
-            if ui_app.state::<HintWindowState>().revision.load(Ordering::SeqCst) == revision {
+            let state = ui_app.state::<HintWindowState>();
+            if hint_finish::may_hide(state.revision.load(Ordering::SeqCst), revision, state.completed.load(Ordering::SeqCst), fallback) {
                 if let Some(overlay) = ui_app.get_webview_window("hint-overlay") { let _ = overlay.hide(); }
             }
         });
@@ -498,7 +506,7 @@ fn release_visual_hint(app: &AppHandle) {
     let _ = app.emit_to("hint-overlay", "tawel:hint-clear", revision);
     let fade_out = app.state::<HintWindowState>().animation.lock().map(|a| a.fade_out).unwrap_or(450);
     // Safety only: normal completion is acknowledged by the renderer at zero blur.
-    schedule_hint_hide(app, revision, fade_out + 1000);
+    schedule_hint_hide(app, revision, fade_out + 1000, true);
 }
 #[tauri::command]
 fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
@@ -509,14 +517,24 @@ fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
 }
 #[tauri::command]
 fn complete_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
-    if app.state::<HintWindowState>().revision.load(Ordering::SeqCst) == revision {
-        if let Some(overlay) = app.get_webview_window("hint-overlay") { overlay.hide().map_err(cmd_err)?; }
+    let state = app.state::<HintWindowState>();
+    if state.revision.load(Ordering::SeqCst) == revision && state.completed.swap(revision, Ordering::SeqCst) != revision {
+        match state.finish_mode.lock().map_err(cmd_err)?.hide_delay() {
+            None => {}, // Test A: neutral, click-through window remains on screen.
+            Some(0) => {
+                if let Some(overlay) = app.get_webview_window("hint-overlay") { overlay.hide().map_err(cmd_err)?; }
+            },
+            Some(delay) => schedule_hint_hide(&app, revision, delay, false),
+        }
     }
     Ok(())
 }
 #[tauri::command]
 fn hide_visual_hint(app: AppHandle) -> Result<(), String> {
-    if !native::hint_active(&app) { release_visual_hint(&app); }
+    if !native::hint_active(&app) {
+        *app.state::<HintWindowState>().finish_mode.lock().map_err(cmd_err)? = FinishMode::Immediate;
+        release_visual_hint(&app);
+    }
     Ok(())
 }
 
