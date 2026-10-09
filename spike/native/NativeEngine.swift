@@ -28,6 +28,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var detail = UserDefaults.standard.object(forKey: "tawel.native.detail.v1") as? Bool ?? true
     private var fingerFallback = UserDefaults.standard.object(forKey: "tawel.native.fallback.v1") as? Bool ?? true
     private var lastCPU: (time: Double, cpu: Double)?
+    private let analysisFrame = AnalysisFrame()
     private let review = ReviewStore()
     private var soundPreferences = UserDefaults.standard.data(forKey: "tawel.native.sound.v1").flatMap { try? JSONDecoder().decode(SoundPreferences.self, from: $0) } ?? SoundPreferences()
     private var analysisAfter = 0.0
@@ -68,7 +69,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                     let xy = [Double(point.location.x), Double(point.location.y)]
                     chain.append(xy)
                     let tipConfidence = (try? hand.recognizedPoint(finger[4]))?.confidence ?? 0
-                    if index == 4 || (index == 3 && (gate.episode || (fingerFallback && tipConfidence < 0.3))) { tips.append(xy) }
+                    if index == 4 || (index == 3 && (gate.active || (fingerFallback && tipConfidence < 0.3))) { tips.append(xy) }
                 }
                 if !chain.isEmpty { chains.append(chain) }
             }
@@ -132,7 +133,7 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
             self.reportPerformance()
             if Date().timeIntervalSince(self.lastFrameAt) > 8 {
                 _ = self.gate.update(distance: nil, now: ProcessInfo.processInfo.systemUptime)
-                self.callback?(20, 0, 0); self.callback?(21, 1, 0); self.review.interrupt()
+                self.callback?(20, 0, 0); self.callback?(21, 1, 3); self.review.interrupt()
                 _ = self.soundCue.update(visible: false, enabled: false, now: ProcessInfo.processInfo.systemUptime)
             }
             if self.wanted { self.reportCaptureState() }
@@ -392,10 +393,14 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         guard now - lastProcessed >= 1.0 / 15.0 else { return }
         lastProcessed = now
         guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else { callback?(12, 6, 0); callback?(4, 0, 0); return }
-        callback?(26, Double(CVPixelBufferGetWidth(image)), Double(CVPixelBufferGetHeight(image)))
+        callback?(31, Double(CVPixelBufferGetWidth(image)), Double(CVPixelBufferGetHeight(image)))
         autoreleasepool {
             do {
-                let handler = VNImageRequestHandler(cvPixelBuffer: image, orientation: .up, options: [:])
+                let analysis = try analysisFrame.image(image, detail:detail)
+                let prepared = ProcessInfo.processInfo.systemUptime
+                callback?(32, (prepared-now)*1000, 0)
+                callback?(26, Double(CVPixelBufferGetWidth(analysis)), Double(CVPixelBufferGetHeight(analysis)))
+                let handler = VNImageRequestHandler(cvPixelBuffer: analysis, orientation: .up, options: [:])
                 callback?(6, 0, 0)
                 callback?(12, 2, 0)
                 try handler.perform([face])
@@ -403,12 +408,14 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 callback?(7, 0, 0)
                 callback?(12, 3, 0)
                 try handler.perform([hands])
-                callback?(27, (faceFinished-now)*1000, (ProcessInfo.processInfo.systemUptime-faceFinished)*1000)
+                callback?(27, (faceFinished-prepared)*1000, (ProcessInfo.processInfo.systemUptime-faceFinished)*1000)
                 callback?(8, 0, 0)
                 callback?(12, 4, 0)
                 var distance: Double?
+                var mouthValid = false, validPoints = 0, fallbackPoints = 0
                 if let face = face.results?.max(by: { $0.boundingBox.width < $1.boundingBox.width }),
                    let lips = face.landmarks?.outerLips, lips.pointCount > 0, face.boundingBox.width > 0 {
+                    mouthValid = true
                     let points = lips.normalizedPoints
                     var center = CGPoint.zero
                     for i in 0..<lips.pointCount { center.x += CGFloat(points[i].x); center.y += CGFloat(points[i].y) }
@@ -426,7 +433,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                             return hypot(dx, dy) / Double(face.boundingBox.width)
                         }
                         for (tip, joint) in fingers {
-                            if let d = DetectionPolicy.distance(tip: measured(tip), adjacent: measured(joint), episode: gate.episode, fallback: fingerFallback) {
+                            let tipDistance = measured(tip), jointDistance = measured(joint)
+                            if let d = DetectionPolicy.distance(tip: tipDistance, adjacent: jointDistance, episode: gate.active, fallback: fingerFallback) {
+                                validPoints += 1
+                                if tipDistance == nil { fallbackPoints += 1 }
                                 distance = min(distance ?? .infinity, d)
                             }
                         }
@@ -447,12 +457,18 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 if soundCue.update(visible: gate.active, enabled: soundPreferences.enabled, now: now) {
                     playCue(preset: soundPreferences.preset, volume: soundPreferences.volume)
                 }
-                callback?(21, (gate.uncertain || !faceVisible) ? 1 : 0, 0)
+                // Missing hands are normal. Only missing mouth/low-confidence hands need guidance.
+                let tracking = !mouthValid ? 1 : ((hands.results?.isEmpty ?? true) ? 0 : (distance == nil ? 2 : 0))
+                callback?(21, gate.uncertain || tracking != 0 ? 1 : 0, Double(tracking))
+                let reason = !mouthValid ? 1 : ((hands.results?.isEmpty ?? true) ? 2 : (distance == nil ? 3 : (gate.active ? 6 : (distance! > gate.radius ? 4 : 5))))
+                callback?(33, Double(reason), Double(gate.phase))
+                callback?(34, Double(validPoints), Double(fallbackPoints))
                 callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
                 makePreview(image, now: now)
             } catch {
                 _ = gate.update(distance: nil, now: now)
-                callback?(20, gate.active ? 1 : 0, 0); callback?(21, 1, 0)
+                callback?(20, gate.active ? 1 : 0, 0); callback?(21, 1, 3)
+                callback?(33, 7, Double(gate.phase))
                 _ = soundCue.update(visible: gate.active, enabled: false, now: now)
                 review.interrupt(); callback?(4, 0, 0)
                 callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)

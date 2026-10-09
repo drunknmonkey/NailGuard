@@ -15,6 +15,13 @@ struct ProximityGate {
     private var awaySince: Double?
     private var missingSince: Double?
     private var lastSample: Double?
+    private var reacquireSince: Double?
+    var phase: Int {
+        if active { return uncertain ? 4 : 3 }
+        if episode { return 5 }
+        if nearSince != nil { return 2 }
+        return candidateSince == nil ? 0 : 1
+    }
 
     mutating func reset() { self = ProximityGate(radius: radius, hold: hold) }
     private mutating func resetApproach() {
@@ -30,9 +37,12 @@ struct ProximityGate {
             resetApproach(); awaySince = nil
             if episode && missingSince == nil { missingSince = previous }
         }
+        if let previous = lastSample, now - previous > 0.55 { reacquireSince = nil }
+        // Expiry also applies when callbacks resume directly with a valid point.
+        if episode, let previous = lastFinite, now - previous >= 8 { active = false }
         lastSample = now
         guard let distance = distance, distance.isFinite, distance >= 0 else {
-            candidateSince = nil; awaySince = nil
+            candidateSince = nil; awaySince = nil; reacquireSince = nil
             if !episode, let previous = lastFinite, now - previous > 0.55 { resetApproach() }
             if episode {
                 if missingSince == nil { missingSince = now }
@@ -47,7 +57,7 @@ struct ProximityGate {
         // Keep the established episode/occlusion behaviour on raw measurements.
         // A smoothed tail must not delay confirmed withdrawal of an active cue.
         if distance >= radius * 1.35 {
-            candidateSince = nil
+            candidateSince = nil; reacquireSince = nil
             if awaySince == nil { awaySince = now }
             if now - awaySince! >= 0.65 {
                 active = false; episode = false; resetApproach()
@@ -55,7 +65,15 @@ struct ProximityGate {
             return false
         }
         awaySince = nil
-        if episode { active = true; return false }
+        if episode {
+            if !active {
+                guard distance <= radius else { reacquireSince = nil; return false }
+                if reacquireSince == nil { reacquireSince = now }
+                guard now - reacquireSince! >= 0.65 else { return false }
+                active = true; reacquireSince = nil
+            }
+            return false
+        }
         smoothedDistance = smoothedDistance.map { $0 + 0.2 * (distance - $0) } ?? distance
         // Jitter preserves an established hold but cannot start/finish a hit.
         guard distance <= radius, smoothedDistance! <= radius else {

@@ -114,6 +114,11 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  snapshot.performance.profile=2; await intervals[0]();await flush();
  elements.get('fingerFallback').checked=false; await click('fingerFallback','change');
  assert(calls.some(c=>c.command==='native_quality'&&!c.args.detail&&!c.args.fallback));
+ snapshot.status=12; await intervals[0]();await flush(); assert.equal(elements.get('focusTitle').textContent,'Gesicht ausrichten.');
+ snapshot.status=13; await intervals[0]();await flush(); assert.equal(elements.get('focusTitle').textContent,'Handpunkte unsicher.');
+ snapshot.status=14; await intervals[0]();await flush(); assert.equal(elements.get('focusTitle').textContent,'Auswertung wartet.');
+ await click('primaryAction'); assert(calls.some(c=>c.command==='native_control'&&c.args.action==='pause'));
+ snapshot.status=2; await intervals[0]();await flush(); assert.equal(elements.get('focusTitle').textContent,'Du kannst einfach weitermachen.');
  fail=true; await click('preview'); assert.equal(elements.get('error').hidden,false);
  assert(!html.includes('app.js'),'Public Web app does not run in native shell');
  console.log('mac.test.js: ok');

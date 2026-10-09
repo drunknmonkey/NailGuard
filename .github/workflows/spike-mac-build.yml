@@ -72,6 +72,8 @@ jobs:
         run: |
           swiftc spike/native/CameraChoice.swift spike/native/ProximityGate.swift spike/native/ReviewStore.swift spike/native/DetectionPolicy.swift spike/native/GateTests.swift -o /tmp/tawel-native-tests
           /tmp/tawel-native-tests
+          swiftc spike/native/DetectionPolicy.swift spike/native/AnalysisFrame.swift spike/native/AnalysisFrameTests.swift -o /tmp/tawel-analysis-tests
+          /tmp/tawel-analysis-tests
           swiftc spike/native/PreviewMailbox.swift spike/native/PreviewMailboxTests.swift -o /tmp/tawel-preview-tests
           /tmp/tawel-preview-tests
 

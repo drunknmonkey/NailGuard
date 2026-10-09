@@ -30,6 +30,9 @@ struct Performance {
     width: u32, height: u32, face_ms: f64, hand_ms: f64,
     sound_requests: u64, sound_started: u64, sound_failed: u64, sound_start_ms: f64,
     visual_presentations: u64, visual_dispatch_ms: f64,
+    source_width: u32, source_height: u32, prepare_ms: f64,
+    reason: i32, phase: i32, valid_points: u32, fallback_points: u32,
+    reason_counts: [u64; 8],
     frames: u64, inference_ms: u64, sound_enabled: bool, sound_volume: f64,
 }
 impl Performance {
@@ -37,7 +40,9 @@ impl Performance {
         vec![format!("{:.1}",self.cpu_percent),format!("{:.1}",self.peak_rss_mb),self.thermal.to_string(),self.profile.to_string(),
             self.width.to_string(),self.height.to_string(),format!("{:.1}",self.face_ms),format!("{:.1}",self.hand_ms),
             self.sound_requests.to_string(),self.sound_started.to_string(),self.sound_failed.to_string(),format!("{:.1}",self.sound_start_ms),
-            self.visual_presentations.to_string(),format!("{:.1}",self.visual_dispatch_ms),self.sound_enabled.to_string(),format!("{:.2}",self.sound_volume)]
+            self.visual_presentations.to_string(),format!("{:.1}",self.visual_dispatch_ms),self.sound_enabled.to_string(),format!("{:.2}",self.sound_volume),self.source_width.to_string(),self.source_height.to_string(),format!("{:.1}",self.prepare_ms),
+            self.reason.to_string(),self.phase.to_string(),self.valid_points.to_string(),self.fallback_points.to_string()]
+            .into_iter().chain(self.reason_counts[1..].iter().map(|v| v.to_string())).collect()
     }
 }
 pub struct NativeState {
@@ -45,6 +50,7 @@ pub struct NativeState {
     enabled: AtomicBool,
     hint_active: AtomicBool,
     tracking_uncertain: AtomicBool,
+    tracking_problem: AtomicI32,
     snooze_until: Mutex<Option<i64>>,
     status: AtomicI32,
     raw_frames: AtomicU64,
@@ -70,7 +76,7 @@ pub struct NativeState {
 pub fn install(app: &AppHandle) {
     app.manage(NativeState {
         performance: Mutex::new(Performance { profile: 3, ..Performance::default() }),
-        tracking_uncertain: AtomicBool::new(false), hint_active: AtomicBool::new(false), snooze_until: Mutex::new(None),
+        tracking_problem: AtomicI32::new(0), tracking_uncertain: AtomicBool::new(false), hint_active: AtomicBool::new(false), snooze_until: Mutex::new(None),
         enabled: AtomicBool::new(false), status: AtomicI32::new(0),
         raw_frames: AtomicU64::new(0), vision_started: AtomicU64::new(0),
         face_finished: AtomicU64::new(0), hands_finished: AtomicU64::new(0),
@@ -134,7 +140,8 @@ pub struct NativeSnapshot {
 pub fn native_snapshot(app: AppHandle) -> NativeSnapshot {
     let (enabled, status, camera) = native_info(app.clone());
     let until = app.state::<NativeState>().snooze_until.lock().ok().and_then(|u| *u);
-    let status = if status == 2 && app.state::<NativeState>().tracking_uncertain.load(Ordering::Relaxed) && !hint_active(&app) { 12 } else { status };
+    let age = app.state::<NativeState>().last_frame.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
+    let status = native_health::view_status(status, age, app.state::<NativeState>().tracking_problem.load(Ordering::Relaxed));
     let state = app.state::<NativeState>();
     let mut performance = state.performance.lock().map(|p| p.clone()).unwrap_or_default();
     performance.frames = state.frames.load(Ordering::Relaxed);
@@ -207,7 +214,7 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
     let state = app.state::<NativeState>();
     if !state.enabled.load(Ordering::Relaxed) && event < 24 { return; }
     match event {
-        24..=30 => {
+        24..=34 => {
             if !value.is_finite() || !auxiliary.is_finite() { return; }
             if let Ok(mut p) = state.performance.lock() {
                 match event {
@@ -218,6 +225,10 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
                     28 => { p.sound_enabled = value > 0.; p.sound_volume = auxiliary; }
                     29 => { p.sound_requests += 1; }
                     30 => { p.sound_start_ms = value; if auxiliary > 0. { p.sound_started += 1; } else { p.sound_failed += 1; } }
+                    31 => { p.source_width = value as u32; p.source_height = auxiliary as u32; }
+                    32 => { p.prepare_ms = value; }
+                    33 => { p.reason = value as i32; p.phase = auxiliary as i32; if (1..=7).contains(&p.reason) { let index = p.reason as usize; p.reason_counts[index] += 1; } }
+                    34 => { p.valid_points = value as u32; p.fallback_points = auxiliary as u32; }
                     _ => {}
                 }
             }
@@ -229,7 +240,7 @@ extern "C" fn receive(event: i32, value: f64, auxiliary: f64) {
         }
         2 => { state.hints.fetch_add(1, Ordering::Relaxed); }
         20 => { update_hint(app, value > 0.); }
-        21 => { state.tracking_uncertain.store(value > 0., Ordering::Relaxed); }
+        21 => { state.tracking_uncertain.store(value > 0., Ordering::Relaxed); state.tracking_problem.store(auxiliary as i32, Ordering::Relaxed); }
         22 | 23 => {
             if value.is_finite() && value >= 0. {
                 let millis = value.round() as u64;
@@ -330,8 +341,9 @@ pub fn csv_fields(app: &AppHandle) -> Vec<String> {
     let age = state.last_frame.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
     let raw_age = state.last_raw.lock().ok().and_then(|t| *t).map(|t| t.elapsed().as_millis() as i64).unwrap_or(-1);
     if enabled(app) && matches!(state.status.load(Ordering::Relaxed), 2 | 9) {
-        let label = if state.tracking_uncertain.load(Ordering::Relaxed) && !hint_active(app) && age >= 0 && age <= 3000 {
-            "Erkennung: Tracking unterbrochen"
+        let problem = state.tracking_problem.load(Ordering::Relaxed);
+        let label = if age >= 0 && age <= 3000 && raw_age >= 0 && raw_age <= 3000 {
+            match problem { 1 => "Erkennung: Gesicht ausrichten", 2 => "Erkennung: Handpunkte unsicher", 3 => "Erkennung: Analyse wird wiederholt", _ => native_health::device_label(state.device_flags.load(Ordering::Relaxed),raw_age,age) }
         } else { native_health::device_label(state.device_flags.load(Ordering::Relaxed), raw_age, age) };
         let _ = app.state::<AlphaUiState>().status_item.set_text(label);
     }

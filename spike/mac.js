@@ -108,7 +108,7 @@
     if (status === 2) {
       title = state.hintActive ? 'cueTitle' : 'activeTitle';
       description = state.hintActive ? 'cueText' : 'activeText'; chip = 'active'; action = 'pause';
-    } else if (status === 12) { title = 'trackingTitle'; description = 'trackingText'; chip = 'attention'; action = 'pause'; } else if (status === 3) { title = 'pausedTitle'; description = 'pausedText'; chip = 'paused'; action = 'resume'; }
+    } else if (status === 12) { title = 'trackingTitle'; description = 'trackingText'; chip = 'attention'; action = 'pause'; } else if (status === 13 || status === 14) { title = status === 13 ? 'handTrackingTitle' : 'analysisWaitingTitle'; description = status === 13 ? 'handTrackingText' : 'analysisWaitingText'; chip = 'attention'; action = 'pause'; } else if (status === 3) { title = 'pausedTitle'; description = 'pausedText'; chip = 'paused'; action = 'resume'; }
     else if ([1,9,11].includes(status)) { title = 'waitingTitle'; description = status === 11 ? 'chooseText' : 'waitingText'; chip = status === 11 ? 'choose' : 'waiting'; }
     else if (status === 4) { title = 'deniedTitle'; description = 'deniedText'; chip = 'attention'; action = 'retry'; }
     else if ([5,10].includes(status)) { title = 'unavailableTitle'; description = 'unavailableText'; chip = 'attention'; action = 'retry'; }
@@ -122,7 +122,7 @@
     $('primaryAction').textContent = copy[action];
     $('primaryAction').disabled = busy || [1,9,11,8].includes(status);
     for (const id of ['settingsChooseCamera']) $(id).disabled = busy || [1,11].includes(status);
-    $('snoozeSelect').disabled = busy || ![2,9,12].includes(status);
+    $('snoozeSelect').disabled = busy || ![2,9,12,13,14].includes(status);
     const camera = !state.camera || state.camera === 'Noch keine Kamera gewählt' ? copy.noCamera : state.camera;
     $('settingsCamera').textContent = camera;
     const p = state.performance || {}, profile = pendingQuality ?? p.profile ?? 3;
@@ -138,8 +138,8 @@
       } else if (!rateSample) rateSample = {time:now,frames:p.frames};
     }
     $('actualResolution').textContent = p.width ? p.width+' × '+p.height : '—';
-    $('analysisRate').textContent = [2,12].includes(status) ? analysisRate.toLocaleString(locale,{maximumFractionDigits:1}) : '—';
-    $('analysisTime').textContent = [2,12].includes(status) && p.inferenceMs != null ? p.inferenceMs+' ms' : '—';
+    $('analysisRate').textContent = [2,12,13].includes(status) ? analysisRate.toLocaleString(locale,{maximumFractionDigits:1}) : '—';
+    $('analysisTime').textContent = [2,12,13].includes(status) && p.inferenceMs != null ? p.inferenceMs+' ms' : '—';
     $('cpuLoad').textContent = p.cpuPercent == null ? '—' : p.cpuPercent.toLocaleString(locale,{maximumFractionDigits:1})+' %';
     $('thermal').textContent = copy.thermalStates[p.thermal] || '—';
     $('intensityValue').textContent = copy[['light','medium','strong'][intensity-1]];
@@ -233,7 +233,7 @@
   $('reviewTab').addEventListener('click', () => tab('review'));
   $('settingsTab').addEventListener('click', () => tab('settings'));
   $('primaryAction').addEventListener('click', () => {
-    if ([2,3,12].includes(state.status)) perform(() => invoke('native_control', {action:'pause'}));
+    if ([2,3,12,13,14].includes(state.status)) perform(() => invoke('native_control', {action:'pause'}));
     else chooseCamera();
   });
   for (const id of ['settingsChooseCamera']) $(id).addEventListener('click', chooseCamera);

@@ -21,8 +21,10 @@ import Foundation
             assert(gate.active, "New approach can trigger without cooldown")
             for i in 0...82 { _ = gate.update(distance:nil,now:44.5+Double(i)/10) }
             assert(!gate.active && gate.uncertain && gate.episode)
-            assert(!gate.update(distance:0.2,now:53)); assert(gate.active, "Reacquisition is the same episode")
-            _ = gate.update(distance:nil,now:53.1); _ = gate.update(distance:nil,now:55.1)
+            assert(!gate.update(distance:0.2,now:53)); assert(!gate.active, "A single point cannot revive an expired cue")
+            for i in 1...14 { assert(!gate.update(distance:0.2,now:53+Double(i)/20)) }
+            assert(gate.active, "Stable reacquisition is the same episode")
+            _ = gate.update(distance:nil,now:53.8); _ = gate.update(distance:nil,now:55.1)
             assert(gate.active, "Existing eight-second occlusion grace remains")
             gate.reset(); assert(!gate.active && !gate.episode)
         }
@@ -53,7 +55,32 @@ import Foundation
             for i in 0...60 { assert(!gate.update(distance:value,now:Double(i)/20)) }
         }
     }
+    static func reacquisitionTests() {
+        var gate = ProximityGate()
+        for i in 0...50 { _ = gate.update(distance:0.2,now:Double(i)/20) }
+        assert(gate.active)
+        _ = gate.update(distance:0.2,now:12)
+        assert(!gate.active, "A callback gap expires the cue even without a nil sample")
+        for i in 1...12 { _ = gate.update(distance:0.2,now:12+Double(i)/20) }
+        assert(!gate.active)
+        _ = gate.update(distance:nil,now:12.65)
+        _ = gate.update(distance:0.2,now:12.7)
+        _ = gate.update(distance:0.35,now:12.8)
+        _ = gate.update(distance:0.2,now:13)
+        for i in 1...12 { _ = gate.update(distance:0.2,now:13+Double(i)/20) }
+        assert(!gate.active, "Missing or band points reset reacquisition")
+        assert(!gate.update(distance:0.2,now:13.7)); assert(gate.active)
+        for i in 0...14 { _ = gate.update(distance:0.8,now:14+Double(i)/20) }
+        assert(!gate.episode && !gate.active)
+        _ = gate.update(distance:0.2,now:15)
+        assert(!gate.active, "Confirmed removal needs a full new approach")
+    }
     static func main() {
+        reacquisitionTests()
+        assert(AnalysisGeometry.size(width:1920,height:1080,detail:false) == (640,360))
+        assert(AnalysisGeometry.size(width:1920,height:1080,detail:true) == (1280,720))
+        assert(AnalysisGeometry.size(width:640,height:480,detail:true) == (640,480))
+        assert(AnalysisGeometry.size(width:1080,height:1920,detail:false) == (270,480))
         assert(CameraChoice.automaticID(ids: [], available: [], remembered: nil) == nil)
         assert(CameraChoice.automaticID(ids: ["internal"], available: ["internal"], remembered: nil) == "internal")
         assert(CameraChoice.automaticID(ids: ["internal"], available: [], remembered: "internal") == nil, "Ruhende interne Kamera nie starten")

@@ -17,3 +17,12 @@ struct SoundCuePolicy {
         return true
     }
 }
+
+// Fit without cropping, stretching or upscaling; normalized landmarks stay aligned.
+enum AnalysisGeometry {
+    static func size(width: Int, height: Int, detail: Bool) -> (Int, Int) {
+        guard width > 0 && height > 0 else { return (0,0) }
+        let scale = min(1, min(Double(detail ? 1280 : 640)/Double(width), Double(detail ? 720 : 480)/Double(height)))
+        return (max(1,Int((Double(width)*scale).rounded(.down))), max(1,Int((Double(height)*scale).rounded(.down))))
+    }
+}
