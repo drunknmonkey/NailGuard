@@ -558,6 +558,8 @@ struct HintWindowState {
     /// Zuletzt gesendeter Pegel 0..1 in Tausendstel (Startwert des nächsten Fades).
     level: AtomicI64,
     animation: Mutex<BlurAnimation>,
+    /// Nativer Renderer (Core Animation) statt WebView-Overlay – zum Vergleich umschaltbar (0.1.32).
+    native_renderer: AtomicBool,
     log_path: PathBuf,
 }
 impl HintWindowState {
@@ -569,6 +571,7 @@ impl HintWindowState {
             alpha: AtomicI64::new(1000),
             level: AtomicI64::new(0),
             animation: Mutex::new(BlurAnimation::default()),
+            native_renderer: AtomicBool::new(false),
             log_path,
         }
     }
@@ -584,6 +587,16 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
         _ => return Err("Unbekannte Hinweisvariante".to_string()),
     };
     let intensity = intensity.clamp(1, 3);
+    if app.state::<HintWindowState>().native_renderer.load(Ordering::SeqCst) {
+        let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
+        let animation = app.state::<HintWindowState>().animation.lock().map_err(cmd_err)?.clone();
+        hint_log(&app, revision, &format!(
+            "show renderer=native style={style} intensity={intensity} hold_ms={preview_hold_ms} blur={} fade_in={} fade_out={}",
+            animation.blur, animation.fade_in, animation.fade_out
+        ));
+        native::cue_show(style, intensity, animation.blur, animation.fade_in, preview_hold_ms, animation.fade_out, revision);
+        return Ok(());
+    }
     let overlay = app
         .get_webview_window("hint-overlay")
         .ok_or_else(|| "Hinweisfenster nicht verfügbar".to_string())?;
@@ -654,6 +667,18 @@ fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: boo
             }
         });
     });
+}
+/// Schaltet zwischen WebView-Overlay und nativem Hinweis um (Vergleich auf Hardware).
+#[tauri::command]
+fn alpha_hint_renderer(native: bool, app: AppHandle) -> Result<(), String> {
+    let state = app.state::<HintWindowState>();
+    let previous = state.native_renderer.swap(native, Ordering::SeqCst);
+    if previous != native {
+        let revision = state.revision.load(Ordering::SeqCst);
+        hint_log(&app, revision, &format!("renderer={}", if native { "native" } else { "web" }));
+        if !native { native::cue_cancel(); }
+    }
+    Ok(())
 }
 /// Der Renderer steht bereits auf voller Deckkraft (fester Filter). Das Fenster
 /// kommt mit Alpha 0 nach vorn und atmet nativ ein – kein WebKit-Frame nötig.
@@ -744,6 +769,7 @@ fn main() {
             spike_log_path,
             alpha_status,
             alpha_hint_style,
+            alpha_hint_renderer,
             show_visual_hint,
             ready_visual_hint,
             complete_visual_hint,

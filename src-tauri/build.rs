@@ -7,6 +7,8 @@ fn main() {
     println!("cargo:rerun-if-changed=../spike/native/NativeEngine.swift");
     println!("cargo:rerun-if-changed=../spike/native/ProximityGate.swift");
     println!("cargo:rerun-if-changed=../spike/native/CameraChoice.swift");
+    println!("cargo:rerun-if-changed=../spike/native/CueTimeline.swift");
+    println!("cargo:rerun-if-changed=../spike/native/NativeCue.swift");
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
         use std::process::Command;
         let out = std::env::var("OUT_DIR").unwrap();
@@ -21,7 +23,7 @@ fn main() {
             "-parse-as-library", "-emit-library", "-static", "-O", "-module-name", "TawelNative",
             "-target", &format!("{arch}-apple-macosx14.0"),
             "-sdk", &sdk,
-            "../spike/native/CameraChoice.swift", "../spike/native/ProximityGate.swift", "../spike/native/NativeEngine.swift", "../spike/native/ReviewStore.swift", "../spike/native/NativeAudio.swift", "../spike/native/PreviewMailbox.swift", "../spike/native/DetectionPolicy.swift", "../spike/native/AnalysisFrame.swift",
+            "../spike/native/CameraChoice.swift", "../spike/native/ProximityGate.swift", "../spike/native/NativeEngine.swift", "../spike/native/ReviewStore.swift", "../spike/native/NativeAudio.swift", "../spike/native/PreviewMailbox.swift", "../spike/native/DetectionPolicy.swift", "../spike/native/AnalysisFrame.swift", "../spike/native/CueTimeline.swift", "../spike/native/NativeCue.swift",
             "-o", &format!("{out}/libTawelNative.a"),
         ]).status().unwrap();
         assert!(status.success(), "Native Swift engine failed to compile");
@@ -32,7 +34,7 @@ fn main() {
         println!("cargo:rustc-link-search=native=/usr/lib/swift");
         println!("cargo:rustc-link-lib=static=TawelNative");
         println!("cargo:rustc-link-lib=dylib=swiftCore");
-        for framework in ["Foundation", "AppKit", "AVFoundation", "Vision", "CoreMedia", "CoreVideo", "CoreImage"] {
+        for framework in ["Foundation", "AppKit", "AVFoundation", "Vision", "CoreMedia", "CoreVideo", "CoreImage", "QuartzCore"] {
             println!("cargo:rustc-link-lib=framework={framework}");
         }
         println!("cargo:rustc-link-arg=-Wl,-rpath,/usr/lib/swift");

@@ -19,6 +19,8 @@
       if (Number.isFinite(stored[key])) animation[key] = Math.max(min,Math.min(max,stored[key]));
     }
   } catch (_) {}
+  // Native cue renderer (Core Animation) versus the WebView overlay – comparable on hardware (0.1.32).
+  let nativeCue = read('tawel.alpha.hint-renderer.v1', 'web') === 'native';
   let sensitivity = read('tawel.native.sensitivity.v1', 'native_medium');
   if (!['native_less','native_medium','native_more'].includes(sensitivity)) sensitivity = 'native_medium';
   let state = {enabled:false, status:0, camera:'', hintActive:false, snoozeUntil:null};
@@ -190,7 +192,9 @@
   async function syncHint() {
     save('tawel.alpha.blur-animation.v1', JSON.stringify(animation));
     save('tawel.alpha.hint-style.v1', style); save('tawel.alpha.hint-intensity.v1', String(intensity));
-    render(); await invoke('alpha_hint_style', config());
+    save('tawel.alpha.hint-renderer.v1', nativeCue ? 'native' : 'web');
+    $('nativeCueToggle').checked = nativeCue;
+    render(); await invoke('alpha_hint_renderer', {native: nativeCue}); await invoke('alpha_hint_style', config());
   }
   function renderSound() {
     $('soundToggle').checked = sound.enabled; $('soundPreset').value = String(sound.preset);
@@ -269,6 +273,7 @@
   $('hintStyle').addEventListener('change', () => { style = $('hintStyle').value; perform(async () => { await syncHint(); await preview(); }); });
   $('hintIntensity').addEventListener('input', () => { intensity = Number($('hintIntensity').value); render(); });
   $('hintIntensity').addEventListener('change', () => perform(async () => { await syncHint(); await preview(); }));
+  $('nativeCueToggle').addEventListener('change', () => { nativeCue = $('nativeCueToggle').checked; perform(async () => { await syncHint(); await preview(); }); });
   $('sensitivity').addEventListener('change', () => perform(async () => {
     const value = $('sensitivity').value; await invoke('native_control', {action:value});
     sensitivity = value; save('tawel.native.sensitivity.v1', value);

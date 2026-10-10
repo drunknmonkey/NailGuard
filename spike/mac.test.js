@@ -59,6 +59,16 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert.equal(storage.get('tawel.alpha.hint-style.v1'),'ambient-glow');
  assert.equal(calls.some(c=>c.command==='show_visual_hint'&&c.args.style==='ambient-glow'),true);
  assert(calls.filter(c=>c.command==='show_visual_hint').every(c=>!('finishMode' in c.args)&&!('holdMs' in c.args)),'Preview carries no test modes; every cue finishes natively');
+ // Native cue renderer: off by default, persisted, pushed to the host before the style, previewed on change.
+ assert.equal(calls.filter(c=>c.command==='alpha_hint_renderer').at(-1).args.native,false,'WebView overlay stays the default');
+ elements.get('nativeCueToggle').checked=true; await click('nativeCueToggle','change');
+ assert.equal(storage.get('tawel.alpha.hint-renderer.v1'),'native');
+ const rendererIndex=calls.findLastIndex(c=>c.command==='alpha_hint_renderer'&&c.args.native===true);
+ assert(rendererIndex>=0,'Toggle reaches the host');
+ assert(calls.slice(rendererIndex).some(c=>c.command==='alpha_hint_style'),'Style follows the renderer switch');
+ assert(calls.slice(rendererIndex).some(c=>c.command==='show_visual_hint'),'Switching previews the cue with the chosen renderer');
+ elements.get('nativeCueToggle').checked=false; await click('nativeCueToggle','change');
+ assert.equal(storage.get('tawel.alpha.hint-renderer.v1'),'web');
  const html=fs.readFileSync(__dirname+'/mac.html','utf8');
  assert(!html.includes('heldPreview')&&!html.includes('delayedPreview')&&!html.includes('parkedPreview')&&!html.includes('endHintTest'),'Fade-out test scaffolding has been removed');
  snapshot.enabled=false;

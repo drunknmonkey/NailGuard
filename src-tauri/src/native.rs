@@ -21,6 +21,10 @@ extern "C" {
     fn tawel_native_stop();
     fn tawel_native_snooze(seconds: f64);
     fn tawel_native_sensitivity(radius: f64);
+    fn tawel_native_cue_register(callback: extern "C" fn(i32, f64, f64));
+    fn tawel_native_cue_show(style: i32, intensity: i32, blur: f64, fade_in_ms: f64, hold_ms: f64, fade_out_ms: f64, revision: f64);
+    fn tawel_native_cue_cancel();
+    fn tawel_native_cue_available() -> i32;
 }
 
 #[derive(Clone, Default, serde::Serialize)]
@@ -93,8 +97,39 @@ pub fn install(app: &AppHandle) {
     });
     let _ = APP.set(app.clone());
     #[cfg(target_os = "macos")]
-    unsafe { tawel_native_register(receive); }
+    unsafe { tawel_native_register(receive); tawel_native_cue_register(receive_cue); }
 }
+
+/// Stufen des nativen Hinweises (NativeCue.swift) landen im Hinweis-Log.
+extern "C" fn receive_cue(stage: i32, revision: f64, auxiliary: f64) {
+    let Some(app) = APP.get() else { return };
+    let revision = if revision.is_finite() && revision >= 0.0 { revision as u64 } else { 0 };
+    let detail = match stage {
+        1 => format!("native-cue show backdrop={}", auxiliary > 0.5),
+        2 => format!("native-cue committed total_ms={auxiliary:.0}"),
+        3 => format!("native-cue complete elapsed_ms={auxiliary:.0}"),
+        4 => "native-cue hidden".to_string(),
+        5 => "native-cue superseded".to_string(),
+        6 => "native-cue unavailable".to_string(),
+        7 => format!("native-cue safety-net elapsed_ms={auxiliary:.0}"),
+        _ => format!("native-cue stage={stage} value={auxiliary}"),
+    };
+    hint_log(app, revision, &detail);
+}
+
+/// Spielt den Hinweis nativ (Core Animation) ab – einmal übergeben, dann läuft er
+/// unabhängig von App und WebView. Rückgabe: ob die Backdrop-Unschärfe verfügbar ist.
+pub fn cue_show(style: &str, intensity: u8, blur: f64, fade_in_ms: u64, hold_ms: u64, fade_out_ms: u64, revision: u64) -> bool {
+    let style_code = match style { "soft-focus" => 1, "desaturate" => 2, "ambient-glow" => 3, "wash-focus" => 4, _ => 0 };
+    #[cfg(target_os = "macos")]
+    unsafe {
+        tawel_native_cue_show(style_code, intensity as i32, blur, fade_in_ms as f64, hold_ms as f64, fade_out_ms as f64, revision as f64);
+        tawel_native_cue_available() != 0
+    }
+    #[cfg(not(target_os = "macos"))]
+    { let _ = (style_code, intensity, blur, fade_in_ms, hold_ms, fade_out_ms, revision); false }
+}
+pub fn cue_cancel() { #[cfg(target_os = "macos")] unsafe { tawel_native_cue_cancel(); } }
 pub fn enabled(app: &AppHandle) -> bool { app.state::<NativeState>().enabled.load(Ordering::Relaxed) }
 /// Variante und Stufe für den nächsten Treffer merken. Ein laufender Hinweis
 /// wird nicht umgeschaltet: Er ist ein einmaliger Impuls und klingt von selbst ab.

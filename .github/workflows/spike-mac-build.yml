@@ -80,6 +80,11 @@ jobs:
           /tmp/tawel-analysis-tests
           swiftc spike/native/PreviewMailbox.swift spike/native/PreviewMailboxTests.swift -o /tmp/tawel-preview-tests
           /tmp/tawel-preview-tests
+          swiftc spike/native/CueTimeline.swift spike/native/NativeCueTests.swift -o /tmp/tawel-cue-tests
+          /tmp/tawel-cue-tests
+          # Native cue: Typprüfung mit Annotationen, damit Swift-Fehler ohne Rohlog lesbar sind.
+          swiftc -parse-as-library -typecheck -target arm64-apple-macosx14.0 spike/native/CueTimeline.swift spike/native/NativeCue.swift > /tmp/swift-cue.log 2>&1 \
+            || { grep -nE 'error' /tmp/swift-cue.log | head -40 | sed 's/^/::error title=swift native cue::/'; exit 1; }
 
       - name: Cache cargo
         uses: actions/cache@v4
