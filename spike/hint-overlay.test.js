@@ -94,7 +94,8 @@ function harness(reduced = false) {
   assert(native.includes('BackgroundThrottlingPolicy::Disabled'),'Overlay clock is never throttled by WebKit');
   assert(native.includes('animate_overlay_alpha(&overlay, ALPHA_FLOOR, fade)'),'Window server fades the window, never to zero');
   assert(native.includes('animate_overlay_alpha(&overlay, 1.0, 0)'),'Alpha returns to 1 before the window is shown');
-  assert(native.includes('fn park_hint_overlay')&&native.includes('park_hint_overlay(app, &overlay);\n        let _ = overlay.hide();'),'Window leaves the screen before it is hidden');
+  assert(!native.includes('park_hint_overlay')&&!native.includes('set_position(tauri::PhysicalPosition'),'No off-screen parking: tao applies set_position asynchronously, after orderOut');
+  assert(native.includes('fade_first')&&native.includes('animate_overlay_alpha(&overlay, ALPHA_FLOOR, REDUCED_FADE_MS)'),'Fallback fades the window before it hides it');
   assert(native.includes('"tawel:hint-reset"'),'Renderer is neutralized after the off-screen hide');
   console.log('hint-overlay.test.js: entrance clock, native hand-off, hold, preview, stale events and reset passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

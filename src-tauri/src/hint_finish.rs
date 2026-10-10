@@ -1,17 +1,16 @@
-// Native completion of a visual cue, as confirmed on hardware (MAC-0.1.22/23):
+// Native completion of a visual cue, as confirmed on hardware (MAC-0.1.22/24):
 // the renderer only acknowledges the release and leaves its backdrop layer
-// untouched; the window server fades the whole window, then the window is parked
-// far outside every display and hidden there. Any opacity change WebKit itself
-// drives on the backdrop layer makes the compositor replay a fade afterwards.
+// untouched; the window server fades the whole window to a small floor, then the
+// window is hidden. Any opacity change WebKit itself drives on the backdrop
+// layer makes the compositor replay a fade afterwards.
 
 /// Milliseconds between the end of the window fade and the off-screen hide.
 pub const SETTLE_MS: u64 = 80;
 /// Window alpha the native fade ends at: invisible, but the compositor keeps
 /// the backdrop group alive instead of tearing it down on screen.
 pub const ALPHA_FLOOR: f64 = 0.02;
-/// Offset (physical px) that parks the window outside any realistic display layout.
-pub const PARK_OFFSET: i32 = 20_000;
-/// Fade-out used when the renderer reports `prefers-reduced-motion`.
+/// Fade-out used when the renderer reports `prefers-reduced-motion`, and for the
+/// native fallback when the renderer never acknowledged.
 pub const REDUCED_FADE_MS: u64 = 150;
 
 /// Duration of the native window fade for this release.
@@ -37,7 +36,6 @@ mod tests {
         assert_eq!(hide_delay(500, false), 500 + SETTLE_MS);
         assert_eq!(hide_delay(3000, true), REDUCED_FADE_MS + SETTLE_MS);
         assert!(ALPHA_FLOOR > 0.0 && ALPHA_FLOOR <= 0.05, "Floor stays invisible but non-zero");
-        assert!(PARK_OFFSET >= 10_000);
         assert!(SETTLE_MS >= 34 && SETTLE_MS <= 200, "Settle covers two frames, stays imperceptible");
     }
     #[test]

@@ -7,7 +7,7 @@
 mod native;
 mod native_health;
 mod hint_finish;
-use hint_finish::{ALPHA_FLOOR, PARK_OFFSET};
+use hint_finish::{ALPHA_FLOOR, REDUCED_FADE_MS};
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -441,20 +441,6 @@ fn animate_overlay_alpha(window: &tauri::WebviewWindow, alpha: f64, millis: u64)
 #[cfg(not(target_os = "macos"))]
 fn animate_overlay_alpha(_window: &tauri::WebviewWindow, _alpha: f64, _millis: u64) {}
 
-/// Parkt das Fenster weit außerhalb jedes Displays. Was der Compositor beim
-/// Abbau des Backdrop-Layers auch immer zeichnet, landet dort im Nichts. Vor dem
-/// nächsten Anzeigen holt `fit_hint_overlay_to_main` es wieder auf das Display.
-fn park_hint_overlay(app: &AppHandle, overlay: &tauri::WebviewWindow) {
-    let monitor = app
-        .get_webview_window("main")
-        .and_then(|main| main.current_monitor().ok().flatten())
-        .or_else(|| overlay.primary_monitor().ok().flatten());
-    let (x, y) = monitor
-        .map(|m| (m.position().x + m.size().width as i32 + PARK_OFFSET, m.position().y + m.size().height as i32 + PARK_OFFSET))
-        .unwrap_or((PARK_OFFSET, PARK_OFFSET));
-    let _ = overlay.set_position(tauri::PhysicalPosition::new(x, y));
-}
-
 fn spawn_hint_overlay(app: &AppHandle) -> tauri::Result<()> {
     let overlay = WebviewWindowBuilder::new(
         app,
@@ -565,7 +551,7 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
     ));
     if !held {
         let duration = animation.fade_in * if style == "wash-focus" { 2 } else { 1 } + preview_hold_ms + animation.fade_out + 1000;
-        schedule_hint_hide(&app, revision, duration, true, "fallback");
+        schedule_hint_hide(&app, revision, duration, true, true, "fallback");
     }
     app.emit_to(
         "hint-overlay",
@@ -582,21 +568,23 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
     .map_err(cmd_err)
 }
 
-/// Versteckt das Hinweisfenster – immer zuerst weit außerhalb jedes Displays
-/// geparkt, damit der Compositor den Backdrop-Layer nie sichtbar abbaut. Danach
-/// erfährt der Renderer per Ereignis, dass er seine Schicht neutral stellen darf.
+/// Versteckt das Hinweisfenster. Das Fenster steht zu diesem Zeitpunkt bereits
+/// auf Alpha 0,02 (Window-Server-Fade); der Abbau des Backdrop-Layers beim
+/// `orderOut` ist damit auf Pauls Mac unsichtbar (0.1.22-Lauf). Danach erfährt
+/// der Renderer per Ereignis, dass er seine Schicht neutral stellen darf.
 fn hide_hint_overlay(app: &AppHandle, revision: u64, reason: &str, after_ms: u64) {
     if let Some(overlay) = app.get_webview_window("hint-overlay") {
-        park_hint_overlay(app, &overlay);
         let _ = overlay.hide();
     }
-    hint_log(app, revision, &format!("hide reason={reason} parked=true after_ms={after_ms}"));
+    hint_log(app, revision, &format!("hide reason={reason} after_ms={after_ms}"));
     let _ = app.emit_to("hint-overlay", "tawel:hint-reset", revision);
 }
 
 // Native Frist: funktioniert auch bei gedrosseltem Overlay-WebView. Jeder Lauf
 // wird protokolliert – auch wenn er wegen neuer Revision oder Abschluss nichts tut.
-fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: bool, reason: &'static str) {
+// `fallback` überspringt, sobald der Renderer bestätigt hat; `fade_first` blendet
+// das Fenster vor dem Verstecken noch kurz aus (nur im Ausfallpfad nötig).
+fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: bool, fade_first: bool, reason: &'static str) {
     let app = app.clone();
     thread::spawn(move || {
         thread::sleep(Duration::from_millis(millis));
@@ -604,10 +592,17 @@ fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: boo
         let _ = app.run_on_main_thread(move || {
             let state = ui_app.state::<HintWindowState>();
             let (current, completed) = (state.revision.load(Ordering::SeqCst), state.completed.load(Ordering::SeqCst));
-            if hint_finish::may_hide(current, revision, completed, fallback) {
-                hide_hint_overlay(&ui_app, revision, reason, millis);
-            } else {
+            if !hint_finish::may_hide(current, revision, completed, fallback) {
                 hint_log(&ui_app, revision, &format!("hide skipped reason={reason} current={current} completed={completed}"));
+            } else if fade_first {
+                // Renderer never acknowledged: fade the window briefly like the
+                // regular path, then hide. A hide at full alpha would tear the
+                // backdrop layer down on screen.
+                if let Some(overlay) = ui_app.get_webview_window("hint-overlay") { animate_overlay_alpha(&overlay, ALPHA_FLOOR, REDUCED_FADE_MS); }
+                hint_log(&ui_app, revision, &format!("fallback window_fade={}ms->{} after_ms={millis}", REDUCED_FADE_MS, ALPHA_FLOOR));
+                schedule_hint_hide(&ui_app, revision, hint_finish::hide_delay(REDUCED_FADE_MS, true), true, false, reason);
+            } else {
+                hide_hint_overlay(&ui_app, revision, reason, millis);
             }
         });
     });
@@ -618,8 +613,8 @@ fn release_visual_hint(app: &AppHandle) {
     let _ = app.emit_to("hint-overlay", "tawel:hint-clear", revision);
     let fade_out = app.state::<HintWindowState>().animation.lock().map(|a| a.fade_out).unwrap_or(450);
     // Safety only: normal completion is acknowledged by the renderer. The fallback
-    // parks as well – nothing is ever torn down on screen.
-    schedule_hint_hide(app, revision, fade_out + 1000, true, "fallback");
+    // fades the window as well before it hides it.
+    schedule_hint_hide(app, revision, fade_out + 1000, true, true, "fallback");
 }
 #[tauri::command]
 fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
@@ -637,8 +632,8 @@ fn ready_visual_hint(revision: u64, app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 /// Der Renderer bestätigt die Freigabe und lässt seine Schicht unverändert.
-/// Der Window Server blendet das Fenster aus; danach wird es abseits geparkt,
-/// versteckt und der Renderer per `tawel:hint-reset` neutral gestellt.
+/// Der Window Server blendet das Fenster aus; danach wird es versteckt und der
+/// Renderer per `tawel:hint-reset` neutral gestellt.
 #[tauri::command]
 fn complete_visual_hint(revision: u64, reduced_motion: Option<bool>, app: AppHandle) -> Result<(), String> {
     let state = app.state::<HintWindowState>();
@@ -649,7 +644,7 @@ fn complete_visual_hint(revision: u64, reduced_motion: Option<bool>, app: AppHan
         if let Some(overlay) = app.get_webview_window("hint-overlay") { animate_overlay_alpha(&overlay, ALPHA_FLOOR, fade); }
         let delay = hint_finish::hide_delay(fade_out, reduced);
         hint_log(&app, revision, &format!("complete window_fade={}ms->{} reduced={reduced} hide_after_ms={delay}", fade, ALPHA_FLOOR));
-        schedule_hint_hide(&app, revision, delay, false, "complete");
+        schedule_hint_hide(&app, revision, delay, false, false, "complete");
     } else {
         hint_log(&app, revision, "complete stale");
     }
