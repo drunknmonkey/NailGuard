@@ -1,0 +1,51 @@
+--- app.js
++++ app.js
+@@ -383 +383 @@
+-    if (document.visibilityState !== "visible" || !state.running || hasLiveCameraTrack()) return;
++    if (document.visibilityState !== "visible" || !state.running || state.paused || hasLiveCameraTrack()) return;
+@@ -435 +435 @@
+-    requestAnimationFrame(detection.loop);
++    detection.scheduleNextFrame();
+@@ -584,0 +585,12 @@
++  timer: null,
++
++  scheduleNextFrame() {
++    if (!state.running || detection.timer !== null) return;
++    // Rendering-unabhängiger Takt; Hintergrundverhalten wird separat gemessen.
++    // Maximal ca. 30 Hz, keine aufgestauten Frames.
++    detection.timer = setTimeout(() => {
++      detection.timer = null;
++      detection.loop(performance.now());
++    }, state.paused ? 200 : 33);
++  },
++
+@@ -587,7 +599,16 @@
+-
+-    if (els.video.currentTime !== state.lastVideoTime && els.video.readyState >= 2) {
+-      state.lastVideoTime = els.video.currentTime;
+-      detection.detectFrame(now);
+-    }
+-
+-    requestAnimationFrame(detection.loop);
++    const eligible = !state.paused && hasLiveCameraTrack() &&
++      els.video.currentTime !== state.lastVideoTime && els.video.readyState >= 2;
++    const diagnostic = window.__tawelDiagnostic;
++    if (diagnostic) diagnostic.loop(state.running, state.paused, eligible);
++    try {
++      if (eligible) {
++        state.lastVideoTime = els.video.currentTime;
++        detection.detectFrame(now);
++      }
++    } catch (error) {
++      if (diagnostic) diagnostic.error(error);
++      throw error;
++    } finally {
++      // Auch nach einem ungültigen Frame weiterlaufen; kein zweiter Loop.
++      detection.scheduleNextFrame();
++    }
+@@ -598,0 +620 @@
++    if (window.__tawelDiagnostic) window.__tawelDiagnostic.stage("face");
+@@ -599,0 +622 @@
++    if (window.__tawelDiagnostic) window.__tawelDiagnostic.stage("hand");
+@@ -600,0 +624 @@
++    if (window.__tawelDiagnostic) window.__tawelDiagnostic.stage("postprocess");
