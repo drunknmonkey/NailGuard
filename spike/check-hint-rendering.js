@@ -22,26 +22,36 @@ const {chromium} = require(process.argv[2]);
         const tick = () => new Promise(requestAnimationFrame);
         const sample = () => { const css=getComputedStyle(layer); return {filter:css.backdropFilter, opacity:Number(css.opacity), display:css.display}; };
         window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,animation:{blur:6,fadeIn:300,fadeOut:200}}});
-        const immediate = sample();
-        const samples=[]; const start = performance.now();
-        while(performance.now()-start < 400) { await tick(); samples.push(sample()); }
+        await tick(); const floor = sample();
+        const ramp=[];
+        for(const level of [0.2,0.5,0.8,1]){ window.hintEvents['tawel:hint-level']({payload:{revision,level}}); await tick(); ramp.push(sample()); }
         window.hintEvents['tawel:hint-clear']({payload:revision+1});
-        const since = performance.now(); while(performance.now()-since < 300) { await tick(); samples.push(sample()); }
-        const released = {phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
+        await tick(); const released = {...sample(), phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
+        for(const level of [0.5,0]){ window.hintEvents['tawel:hint-level']({payload:{revision:revision+1,level}}); await tick(); }
+        const exhaled = sample();
         window.hintEvents['tawel:hint-reset']({payload:revision+1});
         await tick();
-        return {immediate, samples, released, reset:{...sample(), phase:root.dataset.phase}};
+        return {floor, ramp, released, exhaled, reset:{...sample(), phase:root.dataset.phase}};
       }, {revision:index*3+1,style});
-      assert.equal(result.immediate.display,'block',`${style}: layer is on`);
-      assert.equal(result.immediate.opacity,1,`${style}: full opacity before the window is shown`);
-      for(const s of result.samples){assert.equal(s.opacity,1,`${style}: opacity never moves`);assert.equal(s.filter,result.immediate.filter,`${style}: backdrop filter never changes`);}
-      if(style==='soft-focus'||style==='wash-focus')assert.equal(result.immediate.filter,'blur(6px)');
-      else if(style==='desaturate')assert.match(result.immediate.filter,/^saturate\(0\.56\)$/);
-      else assert.equal(result.immediate.filter,'none');
+      assert.equal(result.floor.display,'block',`${style}: layer is on`);
+      const backdrop = style==='soft-focus'||style==='wash-focus';
+      if(backdrop){
+        assert.equal(result.floor.filter,'blur(0.3px)',`${style}: idle filter is the floor, never blur(0)`);
+        for(const s of [result.floor,...result.ramp,result.released,result.exhaled])assert.equal(s.opacity,1,`${style}: backdrop layer opacity never moves`);
+        const radii=result.ramp.map(s=>parseFloat(s.filter.replace('blur(','')));
+        for(let i=1;i<radii.length;i++)assert(radii[i]>=radii[i-1],`${style}: radius grows with the level`);
+        assert.equal(result.ramp.at(-1).filter,'blur(6px)',`${style}: full level reaches the configured blur`);
+        assert.equal(result.exhaled.filter,'blur(0.3px)',`${style}: exhale ends at the floor`);
+      } else if(style==='desaturate'){
+        assert.equal(result.floor.filter,'saturate(1)');assert.match(result.ramp.at(-1).filter,/^saturate\(0\.56\)$/);
+        for(const s of [result.floor,...result.ramp])assert.equal(s.opacity,1,`${style}: opacity never moves`);
+      } else {
+        assert.equal(result.floor.filter,'none');assert.equal(result.floor.opacity,0);assert.equal(result.ramp.at(-1).opacity,1,`${style}: plain wash uses opacity`);
+      }
       assert.equal(result.released.phase,'releasing',`${style}: phase`);assert.equal(result.released.animations,0,`${style}: no CSS animation`);
-      assert.equal(result.reset.opacity,0,`${style}: reset after the hide neutralizes the layer`);assert.equal(result.reset.phase,'idle');
+      assert.equal(result.reset.phase,'idle');
     }
-    console.log('Browser rendering: five styles are static at full opacity with a fixed backdrop filter; the window does the breathing');
+    console.log('Browser rendering: native level drives the filter radius with a 0.3 px floor; backdrop layers never change opacity');
   } finally { await browser.close(); }
 })().catch(error=>{
   console.error(error);

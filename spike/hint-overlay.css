@@ -70,16 +70,16 @@ body {
   --combo-veil: 0.02;
 }
 
-/* Ein Animationswert pro Schicht. Während ein Hinweis sichtbar ist, wird im
-   Compositor nichts hinzugefügt, entfernt oder umgebaut: Der Backdrop-Filter
-   bleibt strukturell gleich, nur die Deckkraft der Schicht bewegt sich. Das
-   Fenster selbst wird nativ erst unsichtbar gemacht und danach versteckt. */
+/* Der native Takt liefert einen Pegel 0..1. Bei Backdrop-Schichten bewegt sich
+   ausschließlich die Filterstärke (Radius bzw. Sättigung) – mit Restwert, nie
+   null. Ihre Deckkraft bleibt 1: Deckkraft-Fades lässt der Compositor später
+   als eigene Ausblendung nachspielen. Reine Farbschleier (ohne Backdrop) nutzen
+   die Deckkraft. */
 #hintOverlay {
   --cue-level: 0;
   --cue-color: 0;
-  --cue-focus: 0;
-  --cue-blur-max: 2.7px;
-  --cue-saturation-min: 0.56;
+  --cue-blur-max: 0.3px;
+  --cue-saturation-min: 1;
 }
 
 .hint-layer { opacity: var(--cue-level); }
@@ -103,7 +103,7 @@ body {
    Fallback sichtbar, falls ein älterer Compositor den Filter ignoriert. */
 #hintOverlay[data-style="soft-focus"] .hint-focus {
   display: block;
-  opacity: var(--cue-focus);
+  opacity: 1;
   background: rgba(var(--paper-rgb), var(--focus-veil));
   -webkit-backdrop-filter: blur(var(--cue-blur-max));
   backdrop-filter: blur(var(--cue-blur-max));
@@ -113,7 +113,7 @@ body {
    zurück. Keine Grau- oder Fehlerfläche wird darübergelegt. */
 #hintOverlay[data-style="desaturate"] .hint-desaturate {
   display: block;
-  opacity: var(--cue-level);
+  opacity: 1;
   background: rgba(var(--paper-rgb), var(--desaturate-veil));
   -webkit-backdrop-filter: saturate(var(--cue-saturation-min));
   backdrop-filter: saturate(var(--cue-saturation-min));
@@ -154,6 +154,5 @@ body {
   background: rgba(var(--paper-rgb), var(--combo-veil));
   -webkit-backdrop-filter: blur(var(--cue-blur-max));
   backdrop-filter: blur(var(--cue-blur-max));
-  opacity: var(--cue-focus);
-  will-change: opacity;
+  opacity: 1;
 }

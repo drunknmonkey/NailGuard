@@ -429,48 +429,53 @@ fn set_overlay_alpha(window: &tauri::WebviewWindow, alpha: f64) {
 #[cfg(not(target_os = "macos"))]
 fn set_overlay_alpha(_window: &tauri::WebviewWindow, _alpha: f64) {}
 
-/// Eigener Takt statt AppKit-Animator: ~120 Schritte/s mit Atemkurve, exakte
-/// Dauer, Soll und Ist im Log. Ein neuer Fade bricht den laufenden ab (Serie),
-/// damit ein neuer Treffer während des Ausblendens sauber wieder einatmet.
-fn fade_overlay_alpha(app: &AppHandle, revision: u64, kind: &'static str, to: f64, millis: u64, curve: Curve) {
-    let Some(overlay) = app.get_webview_window("hint-overlay") else { return };
+#[derive(Clone, serde::Serialize)]
+struct HintLevelPayload { revision: u64, level: f64 }
+
+/// Setzt das Fenster-Alpha sofort und merkt sich den Wert (nur noch Tor vor dem
+/// Verstecken; auf den Backdrop-Filter wirkt Alpha nicht – 0.1.25/26-Läufe).
+fn put_overlay_alpha(app: &AppHandle, revision: u64, alpha: f64, why: &str) {
+    if let Some(overlay) = app.get_webview_window("hint-overlay") { set_overlay_alpha(&overlay, alpha); }
+    app.state::<HintWindowState>().alpha.store((alpha * 1000.0).round() as i64, Ordering::SeqCst);
+    hint_log(app, revision, &format!("alpha {alpha:.3} {why}"));
+}
+
+/// Eigener Takt (ein Schritt pro Bild bei 60 Hz) mit Atemkurve. Er sendet dem Overlay einen
+/// Pegel 0..1, den der Renderer auf den Filterradius abbildet – das Einzige, was
+/// der Compositor bei einem Backdrop-Filter tatsächlich darstellt. Dauer exakt,
+/// Soll und Ist im Log; ein neuer Fade löst den laufenden ab (Serie), damit ein
+/// Treffer während des Ausatmens vom aktuellen Stand weiter einatmet.
+fn fade_overlay_level(app: &AppHandle, revision: u64, kind: &'static str, to: f64, millis: u64, curve: Curve) {
     let state = app.state::<HintWindowState>();
     let serial = state.fade_serial.fetch_add(1, Ordering::SeqCst) + 1;
-    let from = state.alpha.load(Ordering::SeqCst) as f64 / 1000.0;
-    let gamma = state.gamma.load(Ordering::SeqCst) as f64 / 1000.0;
-    hint_log(app, revision, &format!("fade {kind} start {from:.3}->{to:.3} ms={millis} curve={} gamma={gamma:.2}", curve.label()));
-    if millis == 0 {
-        set_overlay_alpha(&overlay, to);
-        state.alpha.store((to * 1000.0).round() as i64, Ordering::SeqCst);
-        return;
-    }
+    let from = state.level.load(Ordering::SeqCst) as f64 / 1000.0;
+    hint_log(app, revision, &format!("fade {kind} start {from:.3}->{to:.3} ms={millis} curve={}", curve.label()));
+    let emit = move |app: &AppHandle, level: f64| {
+        app.state::<HintWindowState>().level.store((level * 1000.0).round() as i64, Ordering::SeqCst);
+        let _ = app.emit_to("hint-overlay", "tawel:hint-level", HintLevelPayload { revision, level });
+    };
+    if millis == 0 { emit(app, to); return; }
     let app = app.clone();
     thread::spawn(move || {
         let started = Instant::now();
         loop {
             thread::sleep(Duration::from_millis(STEP_MS));
-            let progress = (started.elapsed().as_secs_f64() * 1000.0 / millis as f64).min(1.0);
-            let alpha = hint_finish::alpha_for(from, to, progress, curve, gamma);
-            let ui_app = app.clone();
-            let cancelled = std::sync::Arc::new(AtomicBool::new(false));
-            let flag = cancelled.clone();
-            let _ = app.run_on_main_thread(move || {
-                let state = ui_app.state::<HintWindowState>();
-                if state.fade_serial.load(Ordering::SeqCst) != serial { flag.store(true, Ordering::SeqCst); return; }
-                if let Some(overlay) = ui_app.get_webview_window("hint-overlay") { set_overlay_alpha(&overlay, alpha); }
-                state.alpha.store((alpha * 1000.0).round() as i64, Ordering::SeqCst);
-                if progress >= 1.0 {
-                    hint_log(&ui_app, revision, &format!("fade {kind} end alpha={alpha:.3} actual_ms={}", started.elapsed().as_millis()));
-                }
-            });
-            // run_on_main_thread is asynchronous from a thread; give the flag a moment.
-            thread::sleep(Duration::from_millis(1));
-            if cancelled.load(Ordering::SeqCst) {
-                let log_app = app.clone();
-                let _ = app.run_on_main_thread(move || hint_log(&log_app, revision, &format!("fade {kind} superseded")));
+            if app.state::<HintWindowState>().fade_serial.load(Ordering::SeqCst) != serial {
+                hint_log(&app, revision, &format!("fade {kind} superseded"));
                 return;
             }
-            if progress >= 1.0 { return; }
+            let progress = (started.elapsed().as_secs_f64() * 1000.0 / millis as f64).min(1.0);
+            let level = hint_finish::level_for(from, to, progress, curve);
+            emit(&app, level);
+            if progress >= 1.0 {
+                hint_log(&app, revision, &format!("fade {kind} end level={level:.3} actual_ms={}", started.elapsed().as_millis()));
+                if kind == "out" {
+                    // Rest: unsichtbarer Restradius plus niedriges Alpha, dann verstecken.
+                    let ui_app = app.clone();
+                    let _ = app.run_on_main_thread(move || put_overlay_alpha(&ui_app, revision, ALPHA_FLOOR, "gate before hide"));
+                }
+                return;
+            }
         }
     });
 }
@@ -548,10 +553,10 @@ struct HintWindowState {
     completed: AtomicU64,
     /// Laufender Alpha-Fade; ein neuer Fade löst den alten ab.
     fade_serial: AtomicU64,
-    /// Zuletzt gesetztes Fenster-Alpha in Promille (Startwert des nächsten Fades).
+    /// Zuletzt gesetztes Fenster-Alpha in Promille (nur Tor vor dem Verstecken).
     alpha: AtomicI64,
-    /// Wahrnehmungs-Exponent der laufenden Variante, in Tausendstel.
-    gamma: AtomicI64,
+    /// Zuletzt gesendeter Pegel 0..1 in Tausendstel (Startwert des nächsten Fades).
+    level: AtomicI64,
     animation: Mutex<BlurAnimation>,
     log_path: PathBuf,
 }
@@ -562,7 +567,7 @@ impl HintWindowState {
             completed: AtomicU64::new(0),
             fade_serial: AtomicU64::new(0),
             alpha: AtomicI64::new(1000),
-            gamma: AtomicI64::new(1000),
+            level: AtomicI64::new(0),
             animation: Mutex::new(BlurAnimation::default()),
             log_path,
         }
@@ -588,12 +593,8 @@ fn display_visual_hint(style: String, intensity: u8, held: bool, preview_hold_ms
     let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
     // Renderer first neutralizes the previous filter, then acknowledges readiness.
     let animation = app.state::<HintWindowState>().animation.lock().map_err(cmd_err)?.clone();
-    // Wie stark die Wahrnehmung bei dieser Variante gestaucht ist, entscheidet die
-    // Alpha-Kurve – sonst liegt der halbe Verlauf unter der Sichtbarkeitsschwelle.
-    let gamma = hint_finish::perceptual_gamma(style, animation.blur);
-    app.state::<HintWindowState>().gamma.store((gamma * 1000.0).round() as i64, Ordering::SeqCst);
     hint_log(&app, revision, &format!(
-        "show style={style} intensity={intensity} held={held} hold_ms={preview_hold_ms} blur={} fade_in={} fade_out={} gamma={gamma:.2}",
+        "show style={style} intensity={intensity} held={held} hold_ms={preview_hold_ms} blur={} fade_in={} fade_out={}",
         animation.blur, animation.fade_in, animation.fade_out
     ));
     if !held {
@@ -646,7 +647,7 @@ fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: boo
                 // regular path, then hide. A hide at full alpha would tear the
                 // backdrop layer down on screen.
                 hint_log(&ui_app, revision, &format!("fallback after_ms={millis}"));
-                fade_overlay_alpha(&ui_app, revision, "out", ALPHA_FLOOR, REDUCED_FADE_MS, Curve::Exhale);
+                fade_overlay_level(&ui_app, revision, "out", 0.0, REDUCED_FADE_MS, Curve::Exhale);
                 schedule_hint_hide(&ui_app, revision, hint_finish::hide_delay(REDUCED_FADE_MS, true), true, false, reason);
             } else {
                 hide_hint_overlay(&ui_app, revision, reason, millis);
@@ -672,22 +673,23 @@ fn ready_visual_hint(revision: u64, reduced_motion: Option<bool>, app: AppHandle
         let fade_in = state.animation.lock().map(|a| a.fade_in).unwrap_or(650);
         let fade = hint_finish::fade_duration(fade_in, reduced_motion.unwrap_or(false));
         if let Some(overlay) = app.get_webview_window("hint-overlay") {
-            // Ein neuer Treffer während des Ausatmens atmet vom aktuellen Stand
-            // weiter ein; nur ein verstecktes Fenster startet bei null.
+            // Ein neuer Treffer während des Ausatmens atmet vom aktuellen Pegel
+            // weiter ein; ein verstecktes Fenster startet beim Restradius.
             let visible = overlay.is_visible().unwrap_or(false);
-            if !visible { fade_overlay_alpha(&app, revision, "in", 0.0, 0, Curve::Inhale); }
+            if !visible { fade_overlay_level(&app, revision, "in", 0.0, 0, Curve::Inhale); }
+            put_overlay_alpha(&app, revision, 1.0, "before show");
             overlay.show().map_err(cmd_err)?;
             hint_log(&app, revision, &format!("ready window=shown was_visible={visible} fade_in_ms={fade}"));
         }
-        fade_overlay_alpha(&app, revision, "in", 1.0, fade, Curve::Inhale);
+        fade_overlay_level(&app, revision, "in", 1.0, fade, Curve::Inhale);
     } else {
         hint_log(&app, revision, "ready stale");
     }
     Ok(())
 }
-/// Der Renderer bestätigt die Freigabe und lässt seine Schicht unverändert.
-/// Das Fenster atmet nativ aus; danach wird es versteckt und der Renderer per
-/// `tawel:hint-reset` neutral gestellt.
+/// Der Renderer bestätigt die Freigabe. Der native Takt fährt den Filterradius
+/// auf den Restwert, setzt das Fenster-Alpha niedrig, danach wird versteckt und
+/// der Renderer per `tawel:hint-reset` neutral gestellt.
 #[tauri::command]
 fn complete_visual_hint(revision: u64, reduced_motion: Option<bool>, app: AppHandle) -> Result<(), String> {
     let state = app.state::<HintWindowState>();
@@ -697,7 +699,7 @@ fn complete_visual_hint(revision: u64, reduced_motion: Option<bool>, app: AppHan
         let fade = hint_finish::fade_duration(fade_out, reduced);
         let delay = hint_finish::hide_delay(fade_out, reduced);
         hint_log(&app, revision, &format!("complete fade_out_ms={fade} reduced={reduced} hide_after_ms={delay}"));
-        fade_overlay_alpha(&app, revision, "out", ALPHA_FLOOR, fade, Curve::Exhale);
+        fade_overlay_level(&app, revision, "out", 0.0, fade, Curve::Exhale);
         schedule_hint_hide(&app, revision, delay, false, false, "complete");
     } else {
         hint_log(&app, revision, "complete stale");

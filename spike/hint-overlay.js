@@ -1,14 +1,16 @@
-/* The renderer only prepares the cue. Camera detection is native, and so is the
-   motion: filter and opacity of this layer are set once per cue and never
-   animated; the native side breathes the whole window in and out through its
-   alpha. Any opacity change WebKit drives on the backdrop layer makes the
-   compositor replay a fade afterwards (hardware result, MAC-0.1.22/25). */
+/* The renderer prepares the cue and maps a native level onto the filter. Camera
+   detection is native, and so is the clock: the native stepper streams a 0..1
+   level (tawel:hint-level); this layer never changes its opacity, only the
+   filter strength – the one thing the compositor actually renders for a
+   backdrop filter. Opacity fades make the compositor replay a fade of the
+   full-strength filter afterwards (hardware result, MAC-0.1.22/27). */
 (function () {
   "use strict";
   var overlay = document.getElementById("hintOverlay");
   var styles = ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"];
+  var RADIUS_FLOOR = 0.3;
   var revision = 0, expiry = null, level = 0;
-  var combo = false;
+  var combo = false, blurMax = 2.7, saturationMin = 0.56;
   var state = "idle";
   function bounded(value, min, max, fallback) {
     value = Number(value);
@@ -24,13 +26,21 @@
     if (expiry !== null) clearTimeout(expiry);
     expiry = null;
   }
+  // Level 0..1 → filter strength. Blur keeps a floor so the filter is never
+  // structurally removed; washes (no backdrop) may use opacity.
   function paint(value) {
-    level = value;
-    var focus = combo ? Math.max(0, value * 2 - 1) : value;
-    overlay.style.setProperty('--cue-level', String(value));
-    overlay.style.setProperty('--cue-color', String(combo ? Math.min(1, value * 2) : value));
-    overlay.style.setProperty('--cue-focus', String(focus));
+    level = Math.max(0, Math.min(1, Number(value) || 0));
+    var focus = combo ? Math.max(0, level * 2 - 1) : level;
+    overlay.style.setProperty('--cue-level', String(level));
+    overlay.style.setProperty('--cue-color', String(combo ? Math.min(1, level * 2) : level));
+    overlay.style.setProperty('--cue-blur-max', (RADIUS_FLOOR + (Math.max(RADIUS_FLOOR, blurMax) - RADIUS_FLOOR) * focus).toFixed(3) + 'px');
+    overlay.style.setProperty('--cue-saturation-min', (1 - (1 - saturationMin) * level).toFixed(4));
     overlay.dataset.phase = state;
+  }
+  function setLevel(payload) {
+    if (!payload || payload.revision !== revision) return;
+    if (state !== 'entering' && state !== 'held' && state !== 'releasing') return;
+    paint(payload.level);
   }
   function release(payload) {
     var token = payload && typeof payload === 'object' ? payload.revision : payload;
@@ -55,24 +65,23 @@
     var intensity = Math.round(bounded(value.intensity, 1, 3, 2));
     var tuning = value.animation || {};
     combo = style === 'wash-focus';
-    var blur = bounded(tuning.blur, 0.5, 10, [1.4, 2.7, 4.4][intensity - 1]);
-    var saturation = [0.76, 0.56, 0.34][intensity - 1];
+    blurMax = bounded(tuning.blur, 0.5, 10, [1.4, 2.7, 4.4][intensity - 1]);
+    saturationMin = [0.76, 0.56, 0.34][intensity - 1];
     var fadeIn = reduced() ? 150 : bounded(tuning.fadeIn, 150, 3000, 650);
-    // Everything is set while the window is still hidden: fixed filter, full
-    // opacity. The window itself then fades in from alpha 0.
-    overlay.style.setProperty('--cue-blur-max', blur + 'px');
-    overlay.style.setProperty('--cue-saturation-min', String(saturation));
     overlay.dataset.style = style; overlay.dataset.intensity = String(intensity);
-    state = 'entering'; paint(1);
+    // Start at the current level: a cue arriving mid-exhale breathes on from
+    // there; a hidden window sits at the invisible floor anyway.
+    state = 'entering'; paint(level);
     invoke('ready_visual_hint', {revision: revision, reducedMotion: reduced()}).then(function () {
       if (revision !== value.revision || state !== 'entering') return;
-      state = 'held'; paint(1); trace('held');
+      state = 'held'; overlay.dataset.phase = state; trace('held');
       if (!value.held) expiry = setTimeout(function () { release(value.revision); }, fadeIn + (value.preview_hold_ms || 1200));
     });
   }
   function install(attempt) {
     var api = window.__TAURI__ && window.__TAURI__.event;
     if (api && typeof api.listen === 'function') {
+      api.listen('tawel:hint-level', function (event) { setLevel(event.payload); });
       api.listen('tawel:hint-clear', function (event) { release(event.payload); });
       api.listen('tawel:hint-reset', function (event) { reset(event.payload); });
       api.listen('tawel:visual-hint', function (event) { show(event.payload); });
