@@ -20,33 +20,28 @@ const {chromium} = require(process.argv[2]);
         const selectors = {'soft-focus':'.hint-focus','wash-focus':'.hint-combo-focus',desaturate:'.hint-desaturate','ambient-glow':'.hint-ambient','lavender-vignette':'.hint-vignette'};
         const layer = root.querySelector(selectors[style]);
         const tick = () => new Promise(requestAnimationFrame);
-        const sample = () => { const css=getComputedStyle(layer); return {filter:css.backdropFilter, opacity:Number(css.opacity), level:Number(root.style.getPropertyValue('--cue-level'))}; };
-        // Let the frame clock settle first: a cold runner may deliver its first frame late.
-        await tick(); await tick();
-        window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,animation:{blur:6,fadeIn:600,fadeOut:200}}});
-        const entrance=[sample()]; const start = performance.now();
-        while(root.dataset.phase!=='held') { await tick(); entrance.push(sample()); if(performance.now()-start>5000) throw Error('Entrance did not finish'); }
-        const held = sample();
+        const sample = () => { const css=getComputedStyle(layer); return {filter:css.backdropFilter, opacity:Number(css.opacity), display:css.display}; };
+        window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,animation:{blur:6,fadeIn:300,fadeOut:200}}});
+        const immediate = sample();
+        const samples=[]; const start = performance.now();
+        while(performance.now()-start < 400) { await tick(); samples.push(sample()); }
         window.hintEvents['tawel:hint-clear']({payload:revision+1});
-        const since = performance.now(); while(performance.now()-since < 300) await tick();
-        const released = {...sample(), phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
+        const since = performance.now(); while(performance.now()-since < 300) { await tick(); samples.push(sample()); }
+        const released = {phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
         window.hintEvents['tawel:hint-reset']({payload:revision+1});
         await tick();
-        return {entrance, held, released, reset:{...sample(), phase:root.dataset.phase}};
+        return {immediate, samples, released, reset:{...sample(), phase:root.dataset.phase}};
       }, {revision:index*3+1,style});
-      assert(result.entrance.length>=2,`${style}: ${result.entrance.length} entrance samples`);
-      for(let i=1;i<result.entrance.length;i++)assert(result.entrance[i].level>=result.entrance[i-1].level,`${style}: entrance only strengthens`);
-      assert.equal(result.entrance.at(-1).level,1,`${style}: entrance ends at full strength`);
-      for(const s of result.entrance)assert.equal(s.filter,result.held.filter,`${style}: backdrop filter never changes while the cue is on screen`);
-      if(style==='soft-focus'||style==='wash-focus')assert.equal(result.held.filter,'blur(6px)');
-      else if(style==='desaturate')assert.match(result.held.filter,/^saturate\(0\.56\)$/);
-      else assert.equal(result.held.filter,'none');
-      assert.equal(result.held.opacity,1,`${style}: held at full opacity`);
-      assert.equal(result.released.opacity,1,`${style}: release leaves the layer untouched; the window fades natively`);
-      assert.equal(result.released.filter,result.held.filter,`${style}: filter unchanged on release`);assert.equal(result.released.phase,'releasing',`${style}: phase`);assert.equal(result.released.animations,0,`${style}: no competing CSS animation`);
-      assert.equal(result.reset.opacity,0,`${style}: reset after the off-screen hide neutralizes the layer`);assert.equal(result.reset.phase,'idle',`${style}: idle after reset`);
+      assert.equal(result.immediate.display,'block',`${style}: layer is on`);
+      assert.equal(result.immediate.opacity,1,`${style}: full opacity before the window is shown`);
+      for(const s of result.samples){assert.equal(s.opacity,1,`${style}: opacity never moves`);assert.equal(s.filter,result.immediate.filter,`${style}: backdrop filter never changes`);}
+      if(style==='soft-focus'||style==='wash-focus')assert.equal(result.immediate.filter,'blur(6px)');
+      else if(style==='desaturate')assert.match(result.immediate.filter,/^saturate\(0\.56\)$/);
+      else assert.equal(result.immediate.filter,'none');
+      assert.equal(result.released.phase,'releasing',`${style}: phase`);assert.equal(result.released.animations,0,`${style}: no CSS animation`);
+      assert.equal(result.reset.opacity,0,`${style}: reset after the hide neutralizes the layer`);assert.equal(result.reset.phase,'idle');
     }
-    console.log('Browser rendering: five styles fade in by opacity on a fixed backdrop filter; release leaves the layer untouched');
+    console.log('Browser rendering: five styles are static at full opacity with a fixed backdrop filter; the window does the breathing');
   } finally { await browser.close(); }
 })().catch(error=>{
   console.error(error);

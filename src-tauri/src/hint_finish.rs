@@ -13,9 +13,30 @@ pub const ALPHA_FLOOR: f64 = 0.02;
 /// native fallback when the renderer never acknowledged.
 pub const REDUCED_FADE_MS: u64 = 150;
 
-/// Duration of the native window fade for this release.
-pub fn fade_duration(fade_out_ms: u64, reduced_motion: bool) -> u64 {
-    if reduced_motion { REDUCED_FADE_MS.min(fade_out_ms) } else { fade_out_ms }
+/// Interval of the native alpha stepper (about 120 steps per second).
+pub const STEP_MS: u64 = 8;
+
+/// Breathing curves for the window alpha. Both start and end with zero slope,
+/// so neither direction snaps; the exhale lingers longer in its tail.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Curve { Inhale, Exhale }
+impl Curve {
+    pub fn label(self) -> &'static str { match self { Self::Inhale => "inhale", Self::Exhale => "exhale" } }
+    /// Progress 0..1 → eased 0..1.
+    pub fn ease(self, t: f64) -> f64 {
+        let t = t.clamp(0.0, 1.0);
+        match self {
+            // Sine in-out: soft start, soft arrival – like drawing a breath.
+            Self::Inhale => 0.5 - 0.5 * (std::f64::consts::PI * t).cos(),
+            // Sine in-out, lifted: lets go earlier and lingers in the tail.
+            Self::Exhale => (0.5 - 0.5 * (std::f64::consts::PI * t).cos()).powf(0.7),
+        }
+    }
+}
+
+/// Duration of a native window fade (entrance or release).
+pub fn fade_duration(fade_ms: u64, reduced_motion: bool) -> u64 {
+    if reduced_motion { REDUCED_FADE_MS.min(fade_ms) } else { fade_ms }
 }
 /// Delay from the renderer's acknowledgement to the off-screen hide.
 pub fn hide_delay(fade_out_ms: u64, reduced_motion: bool) -> u64 {
@@ -37,6 +58,24 @@ mod tests {
         assert_eq!(hide_delay(3000, true), REDUCED_FADE_MS + SETTLE_MS);
         assert!(ALPHA_FLOOR > 0.0 && ALPHA_FLOOR <= 0.05, "Floor stays invisible but non-zero");
         assert!(SETTLE_MS >= 34 && SETTLE_MS <= 200, "Settle covers two frames, stays imperceptible");
+    }
+    #[test]
+    fn curves_are_monotonic_and_soft_at_both_ends() {
+        for curve in [Curve::Inhale, Curve::Exhale] {
+            assert_eq!(curve.ease(0.0), 0.0);
+            assert!((curve.ease(1.0) - 1.0).abs() < 1e-9);
+            let mut previous = 0.0;
+            for i in 1..=200 {
+                let value = curve.ease(i as f64 / 200.0);
+                assert!(value >= previous - 1e-12, "{curve:?} must not reverse");
+                assert!((0.0..=1.0 + 1e-9).contains(&value));
+                previous = value;
+            }
+            assert!(curve.ease(0.02) < 0.01, "{curve:?} starts without a jump");
+            assert!(curve.ease(0.98) > 0.97, "{curve:?} arrives without a jump");
+        }
+        assert!(Curve::Exhale.ease(0.5) > Curve::Inhale.ease(0.5), "Exhale moves early and lingers in the tail");
+        assert!(STEP_MS >= 4 && STEP_MS <= 17);
     }
     #[test]
     fn successful_completion_cancels_fallback_but_allows_scheduled_hide() {
