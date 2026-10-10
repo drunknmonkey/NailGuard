@@ -463,7 +463,11 @@ fn fade_overlay_alpha(app: &AppHandle, revision: u64, kind: &'static str, to: f6
             });
             // run_on_main_thread is asynchronous from a thread; give the flag a moment.
             thread::sleep(Duration::from_millis(1));
-            if cancelled.load(Ordering::SeqCst) { let _ = app.run_on_main_thread(move || hint_log(&app, revision, &format!("fade {kind} superseded"))); return; }
+            if cancelled.load(Ordering::SeqCst) {
+                let log_app = app.clone();
+                let _ = app.run_on_main_thread(move || hint_log(&log_app, revision, &format!("fade {kind} superseded")));
+                return;
+            }
             if progress >= 1.0 { return; }
         }
     });
