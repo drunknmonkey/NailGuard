@@ -99,6 +99,13 @@ jobs:
       - name: Generate app icons
         run: tauri icon app/icons/icon-512.png
 
+      # Compiler-Fehler als Actions-Annotationen, damit sie ohne Rohlog lesbar sind.
+      - name: Check Rust (annotated)
+        run: |
+          set -o pipefail
+          cargo check --manifest-path src-tauri/Cargo.toml --message-format short 2>&1 | tee /tmp/cargo-check.log | sed -nE 's#^(src-tauri/)?([^:]+):([0-9]+):([0-9]+): (error|warning)(.*)$#::\5 file=src-tauri/\2,line=\3::\5\6#p'
+          ! grep -qE '^(src-tauri/)?[^:]+:[0-9]+:[0-9]+: error' /tmp/cargo-check.log
+
       - name: Build unsigned bundle
         run: tauri build
         env:
