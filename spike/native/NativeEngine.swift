@@ -82,10 +82,10 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 let started = ProcessInfo.processInfo.systemUptime
                 var json: String?
                 let source = CIImage(cvPixelBuffer: image)
-                let scale = min(1, 480 / source.extent.width)
+                let scale = min(1, PreviewMailbox.maxWidth / source.extent.width)
                 let small = source.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
                 if let cg = previewContext.createCGImage(small, from: small.extent),
-                   let jpeg = NSBitmapImageRep(cgImage: cg).representation(using: .jpeg, properties: [.compressionFactor: 0.6]) {
+                   let jpeg = NSBitmapImageRep(cgImage: cg).representation(using: .jpeg, properties: [.compressionFactor: PreviewMailbox.jpegQuality]) {
                     var value = landmarks
                     value["image"] = jpeg.base64EncodedString(); value["width"] = cg.width; value["height"] = cg.height
                     if let data = try? JSONSerialization.data(withJSONObject: value) { json = String(data:data, encoding:.utf8) }
@@ -389,10 +389,14 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
         guard wanted && !sleeping && snoozeUntil == nil else { return }
         let now = ProcessInfo.processInfo.systemUptime
         lastFrameAt = Date()
+        guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else { callback?(12, 6, 0); callback?(4, 0, 0); return }
+        // Preview follows the camera, not the analysis cadence: every delegate
+        // frame may become a preview (mailbox paces and never overlaps), with the
+        // landmarks of the most recent analysis. Vision still runs at most 15/s.
+        makePreview(image, now: now)
         guard now >= analysisAfter else { return } // Zuerst nur Kamera messen.
         guard now - lastProcessed >= 1.0 / 15.0 else { return }
         lastProcessed = now
-        guard let image = CMSampleBufferGetImageBuffer(sampleBuffer) else { callback?(12, 6, 0); callback?(4, 0, 0); return }
         callback?(31, Double(CVPixelBufferGetWidth(image)), Double(CVPixelBufferGetHeight(image)))
         autoreleasepool {
             do {
@@ -465,7 +469,6 @@ private final class NativeEngine: NSObject, AVCaptureVideoDataOutputSampleBuffer
                 callback?(33, Double(reason), Double(gate.phase))
                 callback?(34, Double(validPoints), Double(fallbackPoints))
                 callback?(22, (ProcessInfo.processInfo.systemUptime - now) * 1000, 0)
-                makePreview(image, now: now)
             } catch {
                 _ = gate.update(distance: nil, now: now)
                 callback?(20, gate.active ? 1 : 0, 0); callback?(21, 1, 3)

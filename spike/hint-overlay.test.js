@@ -104,6 +104,12 @@ function harness(reduced = false) {
   assert(native.includes('if !visible { fade_overlay_level(&app, revision, "in", 0.0, 0, Curve::Inhale); }'),'A cue arriving mid-exhale breathes on from where it is');
   assert(!native.includes('animator'),'No AppKit animator: duration and curve are explicit');
   assert(native.includes('"tawel:hint-reset"'),'Renderer is neutralized after the hide');
+  // One-shot cue (0.1.30): a real hit plays the cue once, like the sound, and it ends on its own.
+  const engine=fs.readFileSync(__dirname+'/../src-tauri/src/native.rs','utf8');
+  assert(engine.includes('display_visual_hint(style, intensity, false, CUE_HOLD_MS, ui_app.clone())'),'A real hit triggers a timed cue, never a held one');
+  assert(!engine.includes('release_visual_hint')&&!native.includes('fn release_visual_hint'),'The end of a hit releases nothing; the cue already ended by itself');
+  assert(engine.includes('if !active { return; }'),'Falling edge of a hit is ignored');
+  assert(native.includes('display_visual_hint(style, intensity, false, CUE_HOLD_MS, app)'),'Preview runs the exact cue of a real hit');
   const policy=fs.readFileSync(__dirname+'/../src-tauri/src/hint_finish.rs','utf8');
   assert(policy.includes('enum Curve { Inhale, Exhale }')&&policy.includes('pub const STEP_MS')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0'));
   assert(js.includes('RADIUS_FLOOR = 1.0, RADIUS_EXPONENT = 0.7')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0')&&policy.includes('pub const RADIUS_EXPONENT: f64 = 0.7'),'Renderer and policy agree on floor and exponent');

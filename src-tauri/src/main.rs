@@ -7,7 +7,7 @@
 mod native;
 mod native_health;
 mod hint_finish;
-use hint_finish::{Curve, ALPHA_FLOOR, REDUCED_FADE_MS, STEP_MS};
+use hint_finish::{Curve, ALPHA_FLOOR, CUE_HOLD_MS, REDUCED_FADE_MS, STEP_MS};
 use std::sync::atomic::AtomicI64;
 
 use std::fs::OpenOptions;
@@ -539,13 +539,13 @@ fn store_blur_animation(app: &AppHandle, value: Option<BlurAnimation>) -> Result
 }
 
 /// Zeigt eine der fünf ganzflächigen Testvarianten mit einer von drei groben
-/// Intensitäten. Das Overlay nimmt keine Bildschirmbilder auf; WebKit filtert
-/// den Inhalt hinter dem transparenten Fenster direkt im Compositor.
+/// Intensitäten – exakt der Ablauf eines echten Treffers (einmal weich ein,
+/// kurz halten, weich aus). Das Overlay nimmt keine Bildschirmbilder auf;
+/// WebKit filtert den Inhalt hinter dem transparenten Fenster im Compositor.
 #[tauri::command]
 fn show_visual_hint(style: String, intensity: u8, animation: Option<BlurAnimation>, app: AppHandle) -> Result<(), String> {
     store_blur_animation(&app, animation)?;
-    if native::hint_active(&app) { return Ok(()); }
-    display_visual_hint(style, intensity, false, 1200, app)
+    display_visual_hint(style, intensity, false, CUE_HOLD_MS, app)
 }
 
 struct HintWindowState {
@@ -654,15 +654,6 @@ fn schedule_hint_hide(app: &AppHandle, revision: u64, millis: u64, fallback: boo
             }
         });
     });
-}
-fn release_visual_hint(app: &AppHandle) {
-    let revision = app.state::<HintWindowState>().revision.fetch_add(1, Ordering::SeqCst) + 1;
-    hint_log(app, revision, "clear");
-    let _ = app.emit_to("hint-overlay", "tawel:hint-clear", revision);
-    let fade_out = app.state::<HintWindowState>().animation.lock().map(|a| a.fade_out).unwrap_or(450);
-    // Safety only: normal completion is acknowledged by the renderer. The fallback
-    // fades the window as well before it hides it.
-    schedule_hint_hide(app, revision, fade_out + 1000, true, true, "fallback");
 }
 /// Der Renderer steht bereits auf voller Deckkraft (fester Filter). Das Fenster
 /// kommt mit Alpha 0 nach vorn und atmet nativ ein – kein WebKit-Frame nötig.

@@ -17,6 +17,12 @@ pub const REDUCED_FADE_MS: u64 = 150;
 /// Interval of the native level stepper: one event per display frame at 60 Hz.
 pub const STEP_MS: u64 = 16;
 
+/// How long a real cue stays at full strength between fade-in and fade-out.
+/// The cue is a one-shot impulse like the sound (0.1.30): it fires once when a
+/// hit begins and ends on its own, however long the hand stays. One second is
+/// enough to be noticed without turning into a held state.
+pub const CUE_HOLD_MS: u64 = 1000;
+
 /// Breathing curve for the cue level (filter strength). One shape for both
 /// directions, so the exhale is the exact mirror of the inhale – two curves
 /// read as two different effects (0.1.27 run). Zero slope at both ends.
@@ -81,6 +87,7 @@ mod tests {
         assert_eq!(hide_delay(3000, true), REDUCED_FADE_MS + SETTLE_MS);
         assert!(ALPHA_FLOOR > 0.0 && ALPHA_FLOOR <= 0.05, "Floor stays invisible but non-zero");
         assert!(SETTLE_MS >= 34 && SETTLE_MS <= 200, "Settle covers two frames, stays imperceptible");
+        assert!(CUE_HOLD_MS >= 500 && CUE_HOLD_MS <= 2000, "A real cue holds about a second, like the sound, then ends on its own");
     }
     #[test]
     fn curves_are_monotonic_and_soft_at_both_ends() {

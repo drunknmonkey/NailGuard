@@ -96,33 +96,32 @@ pub fn install(app: &AppHandle) {
     unsafe { tawel_native_register(receive); }
 }
 pub fn enabled(app: &AppHandle) -> bool { app.state::<NativeState>().enabled.load(Ordering::Relaxed) }
+/// Variante und Stufe für den nächsten Treffer merken. Ein laufender Hinweis
+/// wird nicht umgeschaltet: Er ist ein einmaliger Impuls und klingt von selbst ab.
 pub fn set_hint(app: &AppHandle, style: &str, intensity: u8) {
     if let Ok(mut hint) = app.state::<NativeState>().hint.lock() { *hint = (style.to_string(), intensity.clamp(1, 3)); }
-    if hint_active(app) {
-        let ui_app = app.clone(); let style = style.to_string();
-        let _ = app.run_on_main_thread(move || {
-            if hint_active(&ui_app) { let _ = display_visual_hint(style, intensity, true, 0, ui_app); }
-        });
-    }
 }
 pub fn hint_active(app: &AppHandle) -> bool { app.state::<NativeState>().hint_active.load(Ordering::SeqCst) }
+/// Der sichtbare Hinweis verhält sich wie der Ton: Er wird beim Beginn eines
+/// Treffers einmal ausgelöst (weich ein, kurz halten, weich aus) und endet von
+/// selbst – unabhängig davon, wie lange die Hand im Bereich bleibt. Das Ende des
+/// Treffers löst daher nichts aus; der nächste Treffer spielt ihn erneut.
 fn update_hint(app: &AppHandle, active: bool) {
     if app.state::<NativeState>().hint_active.swap(active, Ordering::SeqCst) == active { return; }
+    if !active { return; }
     let ui_app = app.clone();
     let requested = Instant::now();
     let _ = app.run_on_main_thread(move || {
         // Ignore an obsolete queued transition after pause/camera loss.
-        if hint_active(&ui_app) != active { return; }
-        if active {
-            let hint = ui_app.state::<NativeState>().hint.lock().ok().map(|h| h.clone());
-            if let Some((style, intensity)) = hint {
-                if display_visual_hint(style, intensity, true, 0, ui_app.clone()).is_ok() {
-                    if let Ok(mut p) = ui_app.state::<NativeState>().performance.lock() {
-                        p.visual_presentations += 1; p.visual_dispatch_ms = requested.elapsed().as_secs_f64()*1000.;
-                    }
+        if !hint_active(&ui_app) { return; }
+        let hint = ui_app.state::<NativeState>().hint.lock().ok().map(|h| h.clone());
+        if let Some((style, intensity)) = hint {
+            if display_visual_hint(style, intensity, false, CUE_HOLD_MS, ui_app.clone()).is_ok() {
+                if let Ok(mut p) = ui_app.state::<NativeState>().performance.lock() {
+                    p.visual_presentations += 1; p.visual_dispatch_ms = requested.elapsed().as_secs_f64()*1000.;
                 }
             }
-        } else { release_visual_hint(&ui_app); }
+        }
     });
 }
 pub fn check_hint_health(app: &AppHandle) {

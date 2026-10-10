@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 class Element {
-  constructor() { this.hidden=false; this.disabled=false; this.value=''; this.textContent=''; this.dataset={}; this.listeners={}; this.attributes={}; }
+  constructor() { this.hidden=false; this.disabled=false; this.value=''; this.textContent=''; this.dataset={}; this.listeners={}; this.attributes={}; this.style={}; this.parentElement={clientWidth:640,clientHeight:480}; }
+  appendChild() {}
   addEventListener(name, fn) { this.listeners[name]=fn; }
   setAttribute(name,value) { this.attributes[name]=value; }
   replaceChildren(...children) { this.children=children; }
@@ -14,14 +15,14 @@ const elements = new Map();
 const html = fs.readFileSync(__dirname+'/mac.html','utf8');
 for(const match of html.matchAll(/id="([^"]+)"/g)) elements.set(match[1],new Element());
 let snapshot = {enabled:false,status:0,camera:'',hintActive:false,snoozeUntil:null};
-let fail=false, pendingPreview=null;
+let fail=false, pendingPreview=null, clock=0;
 const calls=[], intervals=[], listeners={};
 const images=[];
 const storage=new Map([['tawel.alpha.hint-style.v1','soft-focus'],['tawel.alpha.hint-intensity.v1','3']]);
 const context = {
-  document:{ getElementById:id=>{assert(elements.has(id),id);return elements.get(id)}, querySelectorAll:()=>[], createElement:()=>new Element(), documentElement:{}, body:{dataset:{}}, addEventListener(){},visibilityState:'visible',hasFocus:()=>true },
+  document:{ getElementById:id=>{assert(elements.has(id),id);return elements.get(id)}, querySelectorAll:()=>[], createElement:()=>new Element(), createElementNS:()=>new Element(), documentElement:{}, body:{dataset:{}}, addEventListener(){},visibilityState:'visible',hasFocus:()=>true },
   localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},
-  setInterval:fn=>intervals.push(fn), console,
+  setInterval:fn=>intervals.push(fn), console, performance:{now:()=>clock},
   setTimeout, clearTimeout,
   Image: class { constructor() { images.push(this); } },
   window:{addEventListener(){},__TAURI__:{ core:{invoke:async(command,args)=>{
@@ -96,6 +97,19 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert.equal(elements.get('cameraFrame').hidden,true,'Decoded image from camera page cannot appear in focus');
  assert.equal(calls.filter(c=>c.command==='native_control'||c.command==='native_start').length,controls,'Returning to focus never pauses or restarts camera');
  pendingPreview=null;
+ // Grace period: a momentary empty answer keeps the last image; a longer gap clears it.
+ await click('settingsTab'); pendingPreview={};
+ const shownPoll=intervals[1](); await flush();
+ pendingPreview.resolve(JSON.stringify({image:'shown frame',timestamp:2,width:640,height:480})); await flush();
+ images.at(-1).onload(); await shownPoll; await flush();
+ assert.equal(elements.get('cameraFrame').hidden,false,'Decoded frame is shown in the camera settings');
+ assert.equal(elements.get('cameraFrame').style.width,'640px','Frame keeps the camera aspect at native size');
+ pendingPreview=null; clock+=200;
+ await intervals[1](); await flush();
+ assert.equal(elements.get('cameraFrame').hidden,false,'A momentary empty answer keeps the last image');
+ clock+=1500; await intervals[1](); await flush();
+ assert.equal(elements.get('cameraFrame').hidden,true,'A longer gap shows the waiting message');
+ assert(fs.readFileSync(__dirname+'/mac.js','utf8').includes('setInterval(refreshCameraPreview, PREVIEW_POLL_MS)')&&fs.readFileSync(__dirname+'/mac.js','utf8').includes('PREVIEW_POLL_MS = 40'),'Preview polls at camera pace');
  await click('settingsTab'); await click('animationSection');
  assert.equal(elements.get('animationPanel').hidden,false);
  elements.get('blur').value='6'; await click('blur','input'); await click('blur','change');

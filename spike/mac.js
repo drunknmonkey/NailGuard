@@ -41,10 +41,13 @@
     $('focusTab').setAttribute('aria-pressed', String(name === 'focus'));
     $('settingsTab').setAttribute('aria-pressed', String(name === 'settings'));
   }
-  let previewGeneration = 0, previewPolling = false, lastPreviewTimestamp = null;
+  // Preview polls at camera pace; a momentary empty answer keeps the last image
+  // for a short grace period instead of flashing the waiting message.
+  const PREVIEW_POLL_MS = 40, PREVIEW_GRACE_MS = 1000;
+  let previewGeneration = 0, previewPolling = false, lastPreviewTimestamp = null, lastPreviewShownAt = -Infinity;
   function clearCameraPreview() {
     previewGeneration++;
-    lastPreviewTimestamp = null;
+    lastPreviewTimestamp = null; lastPreviewShownAt = -Infinity;
     $('cameraFrame').hidden = true; $('cameraImage').removeAttribute('src');
     $('cameraLandmarks').replaceChildren();
     $('cameraPreviewMessage').hidden = false;
@@ -67,7 +70,10 @@
     try {
       const frame = JSON.parse(await invoke('native_preview', {enabled:true}));
       if (generation !== previewGeneration) return;
-      if (!frame.image) { $('cameraFrame').hidden=true; $('cameraImage').removeAttribute('src'); $('cameraLandmarks').replaceChildren(); $('cameraPreviewMessage').hidden=false; return; }
+      if (!frame.image) {
+        if (performance.now() - lastPreviewShownAt < PREVIEW_GRACE_MS) return;
+        $('cameraFrame').hidden=true; $('cameraImage').removeAttribute('src'); $('cameraLandmarks').replaceChildren(); $('cameraPreviewMessage').hidden=false; return;
+      }
       if (frame.timestamp != null && frame.timestamp === lastPreviewTimestamp) return;
       const img = new Image();
       await new Promise(resolve => {
@@ -95,6 +101,7 @@
           for (const p of frame.tips || []) { const [x1,y1]=point(p); add('line',{x1,y1,x2:cx,y2:cy,class:'distance'}); }
         }
         $('cameraFrame').hidden=false; $('cameraPreviewMessage').hidden=true;
+        lastPreviewShownAt = performance.now();
         finish();
       };
       img.src = 'data:image/jpeg;base64,'+frame.image;
@@ -290,5 +297,5 @@
     } catch (_) { showError('connectionError'); }
   })();
   setInterval(refresh, 600);
-  setInterval(refreshCameraPreview, 125);
+  setInterval(refreshCameraPreview, PREVIEW_POLL_MS);
 })();
