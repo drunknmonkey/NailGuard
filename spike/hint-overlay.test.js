@@ -112,8 +112,9 @@ function harness(reduced = false) {
   assert(native.includes('display_visual_hint(style, intensity, false, CUE_HOLD_MS, app)'),'Preview runs the exact cue of a real hit');
   const policy=fs.readFileSync(__dirname+'/../src-tauri/src/hint_finish.rs','utf8');
   assert(policy.includes('enum Curve { Inhale, Exhale }')&&policy.includes('pub const STEP_MS')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0'));
-  assert(js.includes('RADIUS_FLOOR = 1.0, RADIUS_EXPONENT = 0.7')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0')&&policy.includes('pub const RADIUS_EXPONENT: f64 = 0.7'),'Renderer and policy agree on floor and exponent');
-  const q=harness();await q.show(1);q.setLevel(1,0.5);assert(q.blur()>1+0.5*(4-1),'Half level is already past half the radius');
+  assert(js.includes('RADIUS_FLOOR = 1.0, RADIUS_EXPONENT = 1.0')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0')&&policy.includes('pub const RADIUS_EXPONENT: f64 = 1.0'),'Renderer and policy agree on floor and exponent');
+  const q=harness();await q.show(1);q.setLevel(1,0.5);assert.equal(q.blur(),1+0.5*(4-1),'Radius follows the eased level linearly above the floor');
+  assert(policy.includes('t * t * t * (t * (t * 6.0 - 15.0) + 10.0)'),'Quintic smoothstep: no perceptible onset or landing');
   assert(css.includes('.hint-focus-veil {\n  display: block;\n  background: rgba(var(--paper-rgb), var(--focus-veil));\n  opacity: var(--cue-level);'),'Soft focus breathes through a separate veil layer without backdrop');
   assert(fs.readFileSync(__dirname+'/hint-overlay.html','utf8').includes('hint-layer hint-focus-veil'),'Veil layer exists in the markup');
   console.log('hint-overlay.test.js: level-driven filter with floor, native hand-off, hold, preview, stale events and reset passed');

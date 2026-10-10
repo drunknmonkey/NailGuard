@@ -23,24 +23,27 @@ pub const STEP_MS: u64 = 16;
 /// enough to be noticed without turning into a held state.
 pub const CUE_HOLD_MS: u64 = 1000;
 
-/// Breathing curve for the cue level (filter strength). One shape for both
-/// directions, so the exhale is the exact mirror of the inhale – two curves
-/// read as two different effects (0.1.27 run). Zero slope at both ends.
+/// Easing of the cue level (filter strength). One shape for both directions,
+/// so the fade-out is the exact mirror of the fade-in – two curves read as two
+/// different effects (0.1.27 run). Since 0.1.31 a quintic smoothstep: zero
+/// slope AND zero acceleration at both ends, so the cue starts and settles
+/// without any perceptible onset (gentler than the earlier sine in-out).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Curve { Inhale, Exhale }
 impl Curve {
     pub fn label(self) -> &'static str { match self { Self::Inhale => "inhale", Self::Exhale => "exhale" } }
-    /// Progress 0..1 → eased 0..1 (sine in-out, identical for both directions).
+    /// Progress 0..1 → eased 0..1 (quintic smoothstep, identical for both directions).
     pub fn ease(self, t: f64) -> f64 {
-        0.5 - 0.5 * (std::f64::consts::PI * t.clamp(0.0, 1.0)).cos()
+        let t = t.clamp(0.0, 1.0);
+        t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
     }
 }
 
-/// Exponent of the level → radius mapping. Radii below about a pixel sit under
-/// visual acuity; a sub-linear mapping crosses that band quickly in BOTH
-/// directions, so the visible part of the breath gets the time – symmetric for
-/// inhale and exhale. The renderer uses the same value.
-pub const RADIUS_EXPONENT: f64 = 0.7;
+/// Exponent of the level → radius mapping. With the 1 px floor the invisible
+/// sub-pixel band is never entered, so the radius follows the eased level
+/// linearly (0.1.31); the earlier 0.7 made the blur jump at the very start of
+/// the fade-in and at the very end of the fade-out. The renderer uses the same value.
+pub const RADIUS_EXPONENT: f64 = 1.0;
 
 /// Smallest blur radius (px) the cue ever renders. Below a pixel the compositor
 /// renders a gaussian in visible kernel steps (text shimmers, 0.1.28 run), and
@@ -101,8 +104,9 @@ mod tests {
                 assert!((0.0..=1.0 + 1e-9).contains(&value));
                 previous = value;
             }
-            assert!(curve.ease(0.02) < 0.01, "{curve:?} starts without a jump");
-            assert!(curve.ease(0.98) > 0.97, "{curve:?} arrives without a jump");
+            assert!(curve.ease(0.02) < 0.001, "{curve:?} starts without any perceptible onset");
+            assert!(curve.ease(0.98) > 0.999, "{curve:?} settles without any perceptible landing");
+            assert!((curve.ease(0.5) - 0.5).abs() < 1e-9, "{curve:?} is symmetric around the middle");
         }
         for i in 0..=20 { let t = i as f64 / 20.0; assert!((Curve::Exhale.ease(t) - Curve::Inhale.ease(t)).abs() < 1e-12, "Exhale mirrors inhale exactly"); }
         assert!(STEP_MS >= 4 && STEP_MS <= 17);
@@ -124,8 +128,8 @@ mod tests {
         }
         assert!((radius_for(0.0, 7.0) - RADIUS_FLOOR_PX).abs() < 1e-9, "Idle cue keeps the filter alive at an invisible radius");
         assert!((radius_for(1.0, 7.0) - 7.0).abs() < 1e-9);
-        assert!(radius_for(0.5, 1.3) > RADIUS_FLOOR_PX + 0.5 * (1.3 - RADIUS_FLOOR_PX), "Sub-linear mapping crosses the invisible band early");
-        assert!(RADIUS_EXPONENT > 0.5 && RADIUS_EXPONENT < 1.0);
+        assert!((radius_for(0.5, 1.3) - (RADIUS_FLOOR_PX + 0.5 * (1.3 - RADIUS_FLOOR_PX))).abs() < 1e-9, "Radius follows the eased level linearly above the floor");
+        assert!((RADIUS_EXPONENT - 1.0).abs() < 1e-9);
         assert!(radius_for(1.0, 0.1) >= RADIUS_FLOOR_PX, "Max below the floor never produces blur(0)");
         assert!(RADIUS_FLOOR_PX >= 0.5 && RADIUS_FLOOR_PX <= 1.5);
     }
