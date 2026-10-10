@@ -46,7 +46,7 @@ Entweder clean und immer gleich „wie von Apple" – oder etwas anderes.
 
 ### Umschalter
 
-Einstellungen → Hinweis → **„Nativ zeichnen (Test)"**. Aus = bisheriges
+Einstellungen → Animation → **„Nativ zeichnen (Test)"**. Aus = bisheriges
 WebView-Overlay (unverändert, 0.1.31). Stil, Stärke, Unschärfe, Ein-/Ausblendzeit
 und das 1-s-Halten gelten für beide; Vorschau-Knopf und echte Treffer nutzen
 den gewählten Renderer. Gespeichert in `tawel.alpha.hint-renderer.v1`.
