@@ -37,7 +37,7 @@ body {
 #hintOverlay[data-intensity="1"] {
   --vignette-edge: 0.22;
   --vignette-mid: 0.092;
-  --focus-veil: 0.012;
+  --focus-veil: 0.06;
   --desaturate-veil: 0.012;
   --ambient-alpha: 0.24;
   --ambient-petrol-alpha: 0.197;
@@ -49,7 +49,7 @@ body {
 #hintOverlay[data-intensity="2"] {
   --vignette-edge: 0.34;
   --vignette-mid: 0.143;
-  --focus-veil: 0.018;
+  --focus-veil: 0.09;
   --desaturate-veil: 0.022;
   --ambient-alpha: 0.38;
   --ambient-petrol-alpha: 0.312;
@@ -61,7 +61,7 @@ body {
 #hintOverlay[data-intensity="3"] {
   --vignette-edge: 0.48;
   --vignette-mid: 0.202;
-  --focus-veil: 0.028;
+  --focus-veil: 0.13;
   --desaturate-veil: 0.035;
   --ambient-alpha: 0.56;
   --ambient-petrol-alpha: 0.459;
@@ -78,7 +78,7 @@ body {
 #hintOverlay {
   --cue-level: 0;
   --cue-color: 0;
-  --cue-blur-max: 0.3px;
+  --cue-blur-max: 1px;
   --cue-saturation-min: 1;
 }
 
@@ -104,9 +104,18 @@ body {
 #hintOverlay[data-style="soft-focus"] .hint-focus {
   display: block;
   opacity: 1;
-  background: rgba(var(--paper-rgb), var(--focus-veil));
   -webkit-backdrop-filter: blur(var(--cue-blur-max));
   backdrop-filter: blur(var(--cue-blur-max));
+}
+
+/* Der Schleier liegt auf einer eigenen Schicht ohne Backdrop und atmet per
+   Deckkraft – stufenlos wie Vignette und Glow. Er trägt die Bewegung und macht
+   den gehaltenen Zustand sichtbar; die Unschärfe allein schimmert im
+   Sub-Pixel-Bereich und wirkt gehalten fast klar (0.1.28-Lauf). */
+#hintOverlay[data-style="soft-focus"] .hint-focus-veil {
+  display: block;
+  background: rgba(var(--paper-rgb), var(--focus-veil));
+  opacity: var(--cue-level);
 }
 
 /* C · Entsättigung: Der Inhalt bleibt scharf, seine Farben ziehen sich kurz

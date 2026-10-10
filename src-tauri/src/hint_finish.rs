@@ -36,10 +36,12 @@ impl Curve {
 /// inhale and exhale. The renderer uses the same value.
 pub const RADIUS_EXPONENT: f64 = 0.7;
 
-/// Smallest blur radius (px) the cue ever renders. Below about half a pixel a
-/// gaussian blur is invisible, yet the backdrop filter stays structurally intact:
-/// the compositor never gets a `blur(0)` or a full-strength filter to tear down.
-pub const RADIUS_FLOOR_PX: f64 = 0.3;
+/// Smallest blur radius (px) the cue ever renders. Below a pixel the compositor
+/// renders a gaussian in visible kernel steps (text shimmers, 0.1.28 run), and
+/// the filter must stay structurally intact: never `blur(0)`, never a
+/// full-strength filter at teardown. A 1 px blur is barely perceptible; the
+/// separate veil layer carries the visible breath.
+pub const RADIUS_FLOOR_PX: f64 = 1.0;
 
 /// Window alpha does not reach an in-place backdrop filter on this macOS – the
 /// 0.1.25/26 runs had exact alpha ramps and no visible change. What the
@@ -118,7 +120,7 @@ mod tests {
         assert!(radius_for(0.5, 1.3) > RADIUS_FLOOR_PX + 0.5 * (1.3 - RADIUS_FLOOR_PX), "Sub-linear mapping crosses the invisible band early");
         assert!(RADIUS_EXPONENT > 0.5 && RADIUS_EXPONENT < 1.0);
         assert!(radius_for(1.0, 0.1) >= RADIUS_FLOOR_PX, "Max below the floor never produces blur(0)");
-        assert!(RADIUS_FLOOR_PX > 0.0 && RADIUS_FLOOR_PX <= 0.5);
+        assert!(RADIUS_FLOOR_PX >= 0.5 && RADIUS_FLOOR_PX <= 1.5);
     }
     #[test]
     fn successful_completion_cancels_fallback_but_allows_scheduled_hide() {

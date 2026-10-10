@@ -37,11 +37,11 @@ function harness(reduced = false) {
 (async()=>{
   for(const style of ['soft-focus','wash-focus','lavender-vignette','desaturate','ambient-glow']) {
     const h=harness();
-    assert.equal(h.blur(),0.3,'Idle filter sits at the invisible floor, never blur(0)');
+    assert.equal(h.blur(),1,'Idle filter sits at the floor, never blur(0)');
     await h.show(1,{style});
     const ready=h.named('ready_visual_hint').at(-1);
     assert.equal(ready.args.revision,1);assert.equal(ready.args.reducedMotion,false);
-    assert.equal(h.blur(),0.3,'Cue starts at the floor; the native level stream brings it up');
+    assert.equal(h.blur(),1,'Cue starts at the floor; the native level stream brings it up');
     assert.equal(h.overlay.dataset.style,style);assert.equal(h.overlay.dataset.phase,'held');
     // Native level stream: monotonic radius, saturation and wash opacity.
     let previous=h.blur();
@@ -52,7 +52,7 @@ function harness(reduced = false) {
     }
     assert.equal(h.blur(),4,'Full level reaches the configured blur');
     assert.equal(Number(h.overlay.style.values['--cue-saturation-min']),0.56);
-    if(style==='wash-focus'){h.setLevel(1,0.5);assert.equal(h.blur(),0.3,'Colour wash first, focus only in the second half');assert.equal(Number(h.overlay.style.values['--cue-color']),1);h.setLevel(1,1);}
+    if(style==='wash-focus'){h.setLevel(1,0.5);assert.equal(h.blur(),1,'Colour wash first, focus only in the second half');assert.equal(Number(h.overlay.style.values['--cue-color']),1);h.setLevel(1,1);}
     h.setLevel(2,0.1);assert.equal(h.blur(),4,'Level for another revision is ignored');
     assert.equal(h.timers.size,0,'Held cue schedules nothing');
     h.clear(2);
@@ -61,9 +61,9 @@ function harness(reduced = false) {
     assert.equal(h.blur(),4,'Release itself changes nothing; the native exhale drives the level');
     assert.equal(h.overlay.dataset.phase,'releasing');
     for(const value of [0.8,0.4,0.1,0])h.setLevel(2,value);
-    assert.equal(h.blur(),0.3,'Exhale ends at the floor, not at zero');
+    assert.equal(h.blur(),1,'Exhale ends at the floor, not at zero');
     assert(!('--cue-focus' in h.overlay.style.values),'No opacity variable for backdrop layers');
-    h.reset(2);assert.equal(h.overlay.dataset.phase,'idle');assert.equal(h.blur(),0.3);
+    h.reset(2);assert.equal(h.overlay.dataset.phase,'idle');assert.equal(h.blur(),1);
     assert.deepEqual(h.named('trace_visual_hint').map(c=>c.args.stage),['held','release']);
   }
   // A cue arriving mid-exhale keeps the current level instead of snapping down.
@@ -82,7 +82,7 @@ function harness(reduced = false) {
   assert.equal(r.named('ready_visual_hint').at(-1).args.reducedMotion,true);
   r.advance(1349);assert.equal(r.named('complete_visual_hint').length,0);r.advance(1);assert.equal(r.named('complete_visual_hint').length,1);
   assert.equal(r.calls.at(-1).args.reducedMotion,true,'Reduce Motion flag reaches the native fade-out');
-  const stale=harness();stale.clear(4);await stale.show(3);assert.equal(stale.blur(),0.3,'Clear ahead of show keeps the newer revision');
+  const stale=harness();stale.clear(4);await stale.show(3);assert.equal(stale.blur(),1,'Clear ahead of show keeps the newer revision');
   const css=fs.readFileSync(__dirname+'/hint-overlay.css','utf8');
   assert(!css.includes('@keyframes')&&!css.includes('transition'),'No CSS animation anywhere in the overlay');
   assert(css.includes('blur(var(--cue-blur-max))')&&!css.includes('--cue-focus'),'Backdrop layers animate radius only');
@@ -105,8 +105,10 @@ function harness(reduced = false) {
   assert(!native.includes('animator'),'No AppKit animator: duration and curve are explicit');
   assert(native.includes('"tawel:hint-reset"'),'Renderer is neutralized after the hide');
   const policy=fs.readFileSync(__dirname+'/../src-tauri/src/hint_finish.rs','utf8');
-  assert(policy.includes('enum Curve { Inhale, Exhale }')&&policy.includes('pub const STEP_MS')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 0.3'));
-  assert(js.includes('RADIUS_FLOOR = 0.3, RADIUS_EXPONENT = 0.7')&&policy.includes('pub const RADIUS_EXPONENT: f64 = 0.7'),'Renderer and policy agree on floor and exponent');
-  const q=harness();await q.show(1);q.setLevel(1,0.5);assert(q.blur()>0.3+0.5*(4-0.3),'Half level is already past half the radius');
+  assert(policy.includes('enum Curve { Inhale, Exhale }')&&policy.includes('pub const STEP_MS')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0'));
+  assert(js.includes('RADIUS_FLOOR = 1.0, RADIUS_EXPONENT = 0.7')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 1.0')&&policy.includes('pub const RADIUS_EXPONENT: f64 = 0.7'),'Renderer and policy agree on floor and exponent');
+  const q=harness();await q.show(1);q.setLevel(1,0.5);assert(q.blur()>1+0.5*(4-1),'Half level is already past half the radius');
+  assert(css.includes('.hint-focus-veil {\n  display: block;\n  background: rgba(var(--paper-rgb), var(--focus-veil));\n  opacity: var(--cue-level);'),'Soft focus breathes through a separate veil layer without backdrop');
+  assert(fs.readFileSync(__dirname+'/hint-overlay.html','utf8').includes('hint-layer hint-focus-veil'),'Veil layer exists in the markup');
   console.log('hint-overlay.test.js: level-driven filter with floor, native hand-off, hold, preview, stale events and reset passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

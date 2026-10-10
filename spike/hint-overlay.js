@@ -8,7 +8,7 @@
   "use strict";
   var overlay = document.getElementById("hintOverlay");
   var styles = ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"];
-  var RADIUS_FLOOR = 0.3, RADIUS_EXPONENT = 0.7;
+  var RADIUS_FLOOR = 1.0, RADIUS_EXPONENT = 0.7;
   var revision = 0, expiry = null, level = 0;
   var combo = false, blurMax = 2.7, saturationMin = 0.56;
   var state = "idle";
