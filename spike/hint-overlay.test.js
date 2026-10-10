@@ -106,6 +106,7 @@ function harness(reduced = false) {
   assert(native.includes('"tawel:hint-reset"'),'Renderer is neutralized after the hide');
   const policy=fs.readFileSync(__dirname+'/../src-tauri/src/hint_finish.rs','utf8');
   assert(policy.includes('enum Curve { Inhale, Exhale }')&&policy.includes('pub const STEP_MS')&&policy.includes('pub const RADIUS_FLOOR_PX: f64 = 0.3'));
-  assert(js.includes('RADIUS_FLOOR = 0.3'),'Renderer and policy agree on the floor');
+  assert(js.includes('RADIUS_FLOOR = 0.3, RADIUS_EXPONENT = 0.7')&&policy.includes('pub const RADIUS_EXPONENT: f64 = 0.7'),'Renderer and policy agree on floor and exponent');
+  const q=harness();await q.show(1);q.setLevel(1,0.5);assert(q.blur()>0.3+0.5*(4-0.3),'Half level is already past half the radius');
   console.log('hint-overlay.test.js: level-driven filter with floor, native hand-off, hold, preview, stale events and reset passed');
 })().catch(error=>{console.error(error);process.exitCode=1});

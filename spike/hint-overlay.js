@@ -8,7 +8,7 @@
   "use strict";
   var overlay = document.getElementById("hintOverlay");
   var styles = ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"];
-  var RADIUS_FLOOR = 0.3;
+  var RADIUS_FLOOR = 0.3, RADIUS_EXPONENT = 0.7;
   var revision = 0, expiry = null, level = 0;
   var combo = false, blurMax = 2.7, saturationMin = 0.56;
   var state = "idle";
@@ -27,13 +27,14 @@
     expiry = null;
   }
   // Level 0..1 → filter strength. Blur keeps a floor so the filter is never
-  // structurally removed; washes (no backdrop) may use opacity.
+  // structurally removed, and a sub-linear mapping crosses the sub-pixel band
+  // quickly in both directions; washes (no backdrop) may use opacity.
   function paint(value) {
     level = Math.max(0, Math.min(1, Number(value) || 0));
     var focus = combo ? Math.max(0, level * 2 - 1) : level;
     overlay.style.setProperty('--cue-level', String(level));
     overlay.style.setProperty('--cue-color', String(combo ? Math.min(1, level * 2) : level));
-    overlay.style.setProperty('--cue-blur-max', (RADIUS_FLOOR + (Math.max(RADIUS_FLOOR, blurMax) - RADIUS_FLOOR) * focus).toFixed(3) + 'px');
+    overlay.style.setProperty('--cue-blur-max', (RADIUS_FLOOR + (Math.max(RADIUS_FLOOR, blurMax) - RADIUS_FLOOR) * Math.pow(focus, RADIUS_EXPONENT)).toFixed(3) + 'px');
     overlay.style.setProperty('--cue-saturation-min', (1 - (1 - saturationMin) * level).toFixed(4));
     overlay.dataset.phase = state;
   }

@@ -17,24 +17,24 @@ pub const REDUCED_FADE_MS: u64 = 150;
 /// Interval of the native level stepper: one event per display frame at 60 Hz.
 pub const STEP_MS: u64 = 16;
 
-/// Breathing curves for the cue level (filter strength). Both start and end
-/// with zero slope, so neither direction snaps; the exhale holds the strong
-/// part a little longer.
+/// Breathing curve for the cue level (filter strength). One shape for both
+/// directions, so the exhale is the exact mirror of the inhale – two curves
+/// read as two different effects (0.1.27 run). Zero slope at both ends.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Curve { Inhale, Exhale }
 impl Curve {
     pub fn label(self) -> &'static str { match self { Self::Inhale => "inhale", Self::Exhale => "exhale" } }
-    /// Progress 0..1 → eased 0..1 in perceived space.
+    /// Progress 0..1 → eased 0..1 (sine in-out, identical for both directions).
     pub fn ease(self, t: f64) -> f64 {
-        let sine = 0.5 - 0.5 * (std::f64::consts::PI * t.clamp(0.0, 1.0)).cos();
-        match self {
-            // Soft start, soft arrival – like drawing a breath.
-            Self::Inhale => sine,
-            // Same shape, held back slightly: the cue lets go with a sigh.
-            Self::Exhale => sine.powf(1.15),
-        }
+        0.5 - 0.5 * (std::f64::consts::PI * t.clamp(0.0, 1.0)).cos()
     }
 }
+
+/// Exponent of the level → radius mapping. Radii below about a pixel sit under
+/// visual acuity; a sub-linear mapping crosses that band quickly in BOTH
+/// directions, so the visible part of the breath gets the time – symmetric for
+/// inhale and exhale. The renderer uses the same value.
+pub const RADIUS_EXPONENT: f64 = 0.7;
 
 /// Smallest blur radius (px) the cue ever renders. Below about half a pixel a
 /// gaussian blur is invisible, yet the backdrop filter stays structurally intact:
@@ -52,7 +52,7 @@ pub fn level_for(from: f64, to: f64, progress: f64, curve: Curve) -> f64 {
 
 /// Blur radius for a level, never below the floor while the cue exists.
 pub fn radius_for(level: f64, max_px: f64) -> f64 {
-    RADIUS_FLOOR_PX + (max_px.max(RADIUS_FLOOR_PX) - RADIUS_FLOOR_PX) * level.clamp(0.0, 1.0)
+    RADIUS_FLOOR_PX + (max_px.max(RADIUS_FLOOR_PX) - RADIUS_FLOOR_PX) * level.clamp(0.0, 1.0).powf(RADIUS_EXPONENT)
 }
 
 /// Duration of a native window fade (entrance or release).
@@ -95,7 +95,7 @@ mod tests {
             assert!(curve.ease(0.02) < 0.01, "{curve:?} starts without a jump");
             assert!(curve.ease(0.98) > 0.97, "{curve:?} arrives without a jump");
         }
-        assert!(Curve::Exhale.ease(0.5) < Curve::Inhale.ease(0.5), "Exhale holds the strong part longer");
+        for i in 0..=20 { let t = i as f64 / 20.0; assert!((Curve::Exhale.ease(t) - Curve::Inhale.ease(t)).abs() < 1e-12, "Exhale mirrors inhale exactly"); }
         assert!(STEP_MS >= 4 && STEP_MS <= 17);
     }
     #[test]
@@ -115,7 +115,8 @@ mod tests {
         }
         assert!((radius_for(0.0, 7.0) - RADIUS_FLOOR_PX).abs() < 1e-9, "Idle cue keeps the filter alive at an invisible radius");
         assert!((radius_for(1.0, 7.0) - 7.0).abs() < 1e-9);
-        assert!((radius_for(0.5, 1.3) - (RADIUS_FLOOR_PX + 0.5 * (1.3 - RADIUS_FLOOR_PX))).abs() < 1e-9);
+        assert!(radius_for(0.5, 1.3) > RADIUS_FLOOR_PX + 0.5 * (1.3 - RADIUS_FLOOR_PX), "Sub-linear mapping crosses the invisible band early");
+        assert!(RADIUS_EXPONENT > 0.5 && RADIUS_EXPONENT < 1.0);
         assert!(radius_for(1.0, 0.1) >= RADIUS_FLOOR_PX, "Max below the floor never produces blur(0)");
         assert!(RADIUS_FLOOR_PX > 0.0 && RADIUS_FLOOR_PX <= 0.5);
     }
