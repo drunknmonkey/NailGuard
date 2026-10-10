@@ -88,7 +88,11 @@ function harness(reduced = false) {
   assert(native.includes('fade_overlay_alpha(&app, revision, "out", ALPHA_FLOOR, fade, Curve::Exhale)'),'Window breathes out natively, never to zero');
   assert(!native.includes('animator'),'No AppKit animator: duration and curve are explicit');
   assert(native.includes('"tawel:hint-reset"'),'Renderer is neutralized after the hide');
+  assert(native.includes('hint_finish::alpha_for(from, to, progress, curve, gamma)'),'Alpha follows perceived strength, not the raw mix');
+  assert(native.includes('hint_finish::perceptual_gamma(style, animation.blur)'),'Each style and blur gets its own perceptual exponent');
+  assert(native.includes('if !visible { fade_overlay_alpha(&app, revision, "in", 0.0, 0, Curve::Inhale); }'),'A cue arriving mid-exhale breathes on from where it is');
   const policy=fs.readFileSync(__dirname+'/../src-tauri/src/hint_finish.rs','utf8');
   assert(policy.includes('enum Curve { Inhale, Exhale }')&&policy.includes('pub const STEP_MS'));
+  assert(policy.includes('pub fn alpha_for')&&policy.includes('pub fn perceptual_gamma'));
   console.log('hint-overlay.test.js: static layer, native breathing hand-off, hold, preview, stale events and reset passed');
 })().catch(error=>{console.error(error);process.exitCode=1});
