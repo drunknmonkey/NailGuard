@@ -254,14 +254,6 @@
   $('preview').addEventListener('click', () => perform(preview));
   const animationPreview = () => invoke('show_visual_hint', {...config(),style:['soft-focus','wash-focus'].includes(style) ? style : 'soft-focus'});
   $('animationPreview').addEventListener('click', () => perform(animationPreview));
-  function testHintFinish(finishMode) {
-    if (state.enabled && state.status !== 3) { showError('pauseForHintTest'); return; }
-    return perform(() => invoke('show_visual_hint', {...config(),holdMs:3000,finishMode}));
-  }
-  $('heldPreview').addEventListener('click', () => testHintFinish('keep_transparent'));
-  $('delayedPreview').addEventListener('click', () => testHintFinish('delayed'));
-  $('parkedPreview').addEventListener('click', () => testHintFinish('parked'));
-  $('endHintTest').addEventListener('click', () => perform(() => invoke('hide_visual_hint')));
   for (const key of ['blur','fadeIn','fadeOut']) {
     $(key).addEventListener('input', () => { animation[key] = Number($(key).value); render(); });
     $(key).addEventListener('change', () => perform(async () => { await syncHint(); await animationPreview(); }));

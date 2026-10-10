@@ -20,48 +20,29 @@ const {chromium} = require(process.argv[2]);
         const selectors = {'soft-focus':'.hint-focus','wash-focus':'.hint-combo-focus',desaturate:'.hint-desaturate','ambient-glow':'.hint-ambient','lavender-vignette':'.hint-vignette'};
         const layer = root.querySelector(selectors[style]);
         const tick = () => new Promise(requestAnimationFrame);
-        window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,finish:'opacity',animation:{blur:6,fadeIn:300,fadeOut:200}}});
-        const start = performance.now();
-        while(performance.now()-start < (style === 'wash-focus' ? 400 : 120)) await tick();
+        const sample = () => { const css=getComputedStyle(layer); return {filter:css.backdropFilter, opacity:Number(css.opacity), level:Number(root.style.getPropertyValue('--cue-level'))}; };
+        window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,animation:{blur:6,fadeIn:300,fadeOut:200}}});
+        const entrance=[]; const start = performance.now();
+        while(root.dataset.phase!=='held') { await tick(); entrance.push(sample()); if(performance.now()-start>5000) throw Error('Entrance did not finish'); }
+        const held = sample();
         window.hintEvents['tawel:hint-clear']({payload:revision+1});
-        const samples=[];
-        while(root.dataset.phase!=='idle') {
-          await tick();
-          const css=getComputedStyle(layer);
-          samples.push({filter:css.backdropFilter,opacity:Number(css.opacity),level:Number(root.style.getPropertyValue('--cue-level'))});
-          if(samples.length>240)throw Error('Release did not finish');
-        }
-        return {samples,animations:root.getAnimations({subtree:true}).length};
+        const since = performance.now(); while(performance.now()-since < 300) await tick();
+        const released = {...sample(), phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
+        window.hintEvents['tawel:hint-reset']({payload:revision+1});
+        await tick();
+        return {entrance, held, released, reset:{...sample(), phase:root.dataset.phase}};
       }, {revision:index*3+1,style});
-      assert(result.samples.length>1);
-      for(let i=1;i<result.samples.length;i++)assert(result.samples[i].level<=result.samples[i-1].level);
-      assert.equal(result.animations,0,'No competing CSS animation');
-      const first=result.samples[0], last=result.samples.at(-1);
-      for(const sample of result.samples)assert.equal(sample.filter,first.filter,'Backdrop filter never changes while the cue is on screen');
-      if(style==='soft-focus'||style==='wash-focus')assert.equal(first.filter,'blur(6px)');
-      else if(style==='desaturate')assert.match(first.filter,/^saturate\(0\.56\)$/);
-      else assert.equal(first.filter,'none');
-      assert.equal(last.opacity,0,'Release ends at opacity zero');
-      assert(first.opacity>0,'Release starts from a visible layer');
+      assert(result.entrance.length>1);
+      for(let i=1;i<result.entrance.length;i++)assert(result.entrance[i].level>=result.entrance[i-1].level,'Entrance only strengthens');
+      for(const s of result.entrance)assert.equal(s.filter,result.held.filter,'Backdrop filter never changes while the cue is on screen');
+      if(style==='soft-focus'||style==='wash-focus')assert.equal(result.held.filter,'blur(6px)');
+      else if(style==='desaturate')assert.match(result.held.filter,/^saturate\(0\.56\)$/);
+      else assert.equal(result.held.filter,'none');
+      assert.equal(result.held.opacity,1);
+      assert.equal(result.released.opacity,1,'Release leaves the layer untouched; the window fades natively');
+      assert.equal(result.released.filter,result.held.filter);assert.equal(result.released.phase,'releasing');assert.equal(result.released.animations,0,'No competing CSS animation');
+      assert.equal(result.reset.opacity,0,'Reset after the off-screen hide neutralizes the layer');assert.equal(result.reset.phase,'idle');
     }
-    // Product path: on a native release the renderer must not touch the layer at all.
-    const native = await page.evaluate(async () => {
-      const root = document.getElementById('hintOverlay'), layer = root.querySelector('.hint-focus');
-      const tick = () => new Promise(requestAnimationFrame);
-      window.hintEvents['tawel:visual-hint']({payload:{revision:100,style:'soft-focus',intensity:2,held:true,finish:'native',animation:{blur:6,fadeIn:150,fadeOut:200}}});
-      const start = performance.now(); while(performance.now()-start < 400) await tick();
-      const before = {filter:getComputedStyle(layer).backdropFilter, opacity:getComputedStyle(layer).opacity};
-      window.hintEvents['tawel:hint-clear']({payload:{revision:101,finish:'native'}});
-      const since = performance.now(); while(performance.now()-since < 300) await tick();
-      const after = {filter:getComputedStyle(layer).backdropFilter, opacity:getComputedStyle(layer).opacity, phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
-      window.hintEvents['tawel:hint-reset']({payload:101});
-      await tick();
-      return {before, after, reset:{opacity:getComputedStyle(layer).opacity, phase:root.dataset.phase}};
-    });
-    assert.equal(native.before.opacity,'1');
-    assert.deepEqual({filter:native.after.filter,opacity:native.after.opacity},native.before,'Native release leaves filter and opacity untouched');
-    assert.equal(native.after.phase,'releasing');assert.equal(native.after.animations,0);
-    assert.equal(native.reset.opacity,'0');assert.equal(native.reset.phase,'idle');
-    console.log('Browser rendering: all five styles fade by opacity only with a fixed backdrop filter; native release leaves the layer untouched');
+    console.log('Browser rendering: five styles fade in by opacity on a fixed backdrop filter; release leaves the layer untouched');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1});

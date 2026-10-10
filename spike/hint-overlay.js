@@ -1,21 +1,22 @@
-/* One animation clock owns both entrance and release. Camera detection is native.
-   The filter is fixed per cue; only opacity moves. On release the native side
-   decides (payload.finish): `native` keeps this layer untouched while the window
-   itself fades, `opacity` fades to 0, `floor` fades to a small non-zero floor.
-   The window is never torn down on screen (see MAC-0.1.22.md). */
+/* One animation clock owns the entrance. Camera detection is native.
+   The filter is fixed per cue; only opacity moves, and only on the way in. On
+   release this layer is left untouched: the window server fades the window, the
+   native side parks and hides it and then sends tawel:hint-reset. Any opacity
+   change WebKit drives on the backdrop layer makes the compositor replay a fade
+   afterwards (hardware result, MAC-0.1.22/23). */
 (function () {
   "use strict";
   var overlay = document.getElementById("hintOverlay");
   var styles = ["lavender-vignette", "soft-focus", "desaturate", "ambient-glow", "wash-focus"];
   var revision = 0, frame = null, timer = null, expiry = null, level = 0;
-  var fadeOut = 450, combo = false, finish = "native";
+  var combo = false;
   var state = "idle";
-  var FLOOR = 0.02, STALL_MS = 120;
+  var STALL_MS = 50;
   function bounded(value, min, max, fallback) {
     value = Number(value);
     return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
   }
-  function reduced() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function reduced() { return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   function invoke(name, args) {
     var core = window.__TAURI__ && window.__TAURI__.core;
     return core ? core.invoke(name, args).catch(function () {}) : Promise.resolve();
@@ -36,7 +37,7 @@
     overlay.dataset.phase = state;
   }
   // rAF drives the clock; a timer steps in when WebKit stops delivering frames
-  // (observed once on hardware) so a cue can still finish and report completion.
+  // (seen on hardware right after the window reappears) so the cue still fades in.
   function animate(target, duration, done, started) {
     cancel();
     var from = level, start = performance.now(), token = revision, stalled = false;
@@ -59,28 +60,17 @@
     }
     schedule();
   }
-  function complete(token) { invoke('complete_visual_hint', {revision: token}); }
   function release(payload) {
     var token = payload && typeof payload === 'object' ? payload.revision : payload;
-    var mode = payload && typeof payload === 'object' && payload.finish ? payload.finish : finish;
     if (!Number.isSafeInteger(token) || token < revision) return;
     if (state === 'idle') { revision = token; return; }
     if (token === revision && state === 'releasing') return;
     revision = token;
     state = 'releasing';
+    // Stop the entrance where it is; the window fades from exactly this frame.
+    cancel(); overlay.dataset.phase = state;
     trace('release');
-    if (mode === 'native') {
-      // Layer stays as it is; the window server fades the window, then it is
-      // parked and hidden. tawel:hint-reset neutralizes this layer afterwards.
-      cancel(); overlay.dataset.phase = state; complete(token);
-      return;
-    }
-    var target = mode === 'floor' ? FLOOR : 0;
-    // Cancel the entrance, including the delayed focus stage. Never restart it.
-    animate(target, reduced() ? 150 : fadeOut, function () {
-      state = 'idle'; paint(target);
-      complete(token);
-    });
+    invoke('complete_visual_hint', {revision: token, reducedMotion: reduced()});
   }
   function reset(token) {
     if (!Number.isSafeInteger(token) || token !== revision) return;
@@ -94,11 +84,9 @@
     var intensity = Math.round(bounded(value.intensity, 1, 3, 2));
     var tuning = value.animation || {};
     combo = style === 'wash-focus';
-    finish = ['native', 'opacity', 'floor'].indexOf(value.finish) >= 0 ? value.finish : 'native';
     var blur = bounded(tuning.blur, 0.5, 10, [1.4, 2.7, 4.4][intensity - 1]);
     var saturation = [0.76, 0.56, 0.34][intensity - 1];
     var fadeIn = bounded(tuning.fadeIn, 150, 3000, 650);
-    fadeOut = bounded(tuning.fadeOut, 150, 3000, 450);
     // Filter strength is set once, while the window is still neutral.
     overlay.style.setProperty('--cue-blur-max', blur + 'px');
     overlay.style.setProperty('--cue-saturation-min', String(saturation));
@@ -108,7 +96,7 @@
       if (revision !== value.revision || state !== 'entering') return;
       animate(1, reduced() ? 150 : fadeIn * (combo ? 2 : 1), function () {
         state = 'held'; paint(1); trace('held');
-        if (!value.held) expiry = setTimeout(function () { release({revision: value.revision, finish: finish}); }, value.preview_hold_ms || 1200);
+        if (!value.held) expiry = setTimeout(function () { release(value.revision); }, value.preview_hold_ms || 1200);
       }, function () { trace('shown'); });
     });
   }
