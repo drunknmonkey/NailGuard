@@ -103,8 +103,10 @@ jobs:
       - name: Check Rust (annotated)
         run: |
           set -o pipefail
-          cargo check --manifest-path src-tauri/Cargo.toml --message-format short 2>&1 | tee /tmp/cargo-check.log | sed -nE 's#^(src-tauri/)?([^:]+):([0-9]+):([0-9]+): (error|warning)(.*)$#::\5 file=src-tauri/\2,line=\3::\5\6#p'
-          ! grep -qE '^(src-tauri/)?[^:]+:[0-9]+:[0-9]+: error' /tmp/cargo-check.log
+          cargo check --manifest-path src-tauri/Cargo.toml --message-format short > /tmp/cargo-check.log 2>&1 || true
+          grep -nE 'error|panick|failed' /tmp/cargo-check.log | head -40 | sed 's/^/::error title=cargo check::/'
+          tail -n 25 /tmp/cargo-check.log | sed 's/^/::warning title=cargo tail::/'
+          ! grep -qE 'error(\[E[0-9]+\])?:|could not compile' /tmp/cargo-check.log
 
       - name: Build unsigned bundle
         run: tauri build
