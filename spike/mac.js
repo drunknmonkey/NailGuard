@@ -260,6 +260,7 @@
   }
   $('heldPreview').addEventListener('click', () => testHintFinish('keep_transparent'));
   $('delayedPreview').addEventListener('click', () => testHintFinish('delayed'));
+  $('parkedPreview').addEventListener('click', () => testHintFinish('parked'));
   $('endHintTest').addEventListener('click', () => perform(() => invoke('hide_visual_hint')));
   for (const key of ['blur','fadeIn','fadeOut']) {
     $(key).addEventListener('input', () => { animation[key] = Number($(key).value); render(); });

@@ -62,10 +62,14 @@ const click=async(id,event='click')=>{elements.get(id).listeners[event]({});awai
  assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.finishMode,'keep_transparent');
  await click('delayedPreview');
  assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.finishMode,'delayed');
+ await click('parkedPreview');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.finishMode,'parked');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').at(-1).args.holdMs,3000);
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').filter(c=>!c.args.finishMode).length>0,true,'Preview and real cues leave the finish to the native default');
  const beforeTest=calls.filter(c=>c.command==='show_visual_hint').length;
  snapshot={...snapshot,enabled:true,status:2};await intervals[0]();await flush();
- await click('heldPreview');await click('delayedPreview');
- assert.equal(calls.filter(c=>c.command==='show_visual_hint').length,beforeTest,'A/B tests require a paused or stopped camera');
+ await click('heldPreview');await click('delayedPreview');await click('parkedPreview');
+ assert.equal(calls.filter(c=>c.command==='show_visual_hint').length,beforeTest,'A/B/C tests require a paused or stopped camera');
  assert.equal(elements.get('error').textContent,context.window.TAWEL_MAC_COPY.de.pauseForHintTest);
  snapshot.status=3;await intervals[0]();await flush();await click('delayedPreview');
  assert.equal(calls.filter(c=>c.command==='show_visual_hint').length,beforeTest+1);

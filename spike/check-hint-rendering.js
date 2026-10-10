@@ -20,7 +20,7 @@ const {chromium} = require(process.argv[2]);
         const selectors = {'soft-focus':'.hint-focus','wash-focus':'.hint-combo-focus',desaturate:'.hint-desaturate','ambient-glow':'.hint-ambient','lavender-vignette':'.hint-vignette'};
         const layer = root.querySelector(selectors[style]);
         const tick = () => new Promise(requestAnimationFrame);
-        window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,animation:{blur:6,fadeIn:300,fadeOut:200}}});
+        window.hintEvents['tawel:visual-hint']({payload:{revision,style,intensity:2,held:true,finish:'opacity',animation:{blur:6,fadeIn:300,fadeOut:200}}});
         const start = performance.now();
         while(performance.now()-start < (style === 'wash-focus' ? 400 : 120)) await tick();
         window.hintEvents['tawel:hint-clear']({payload:revision+1});
@@ -44,6 +44,24 @@ const {chromium} = require(process.argv[2]);
       assert.equal(last.opacity,0,'Release ends at opacity zero');
       assert(first.opacity>0,'Release starts from a visible layer');
     }
-    console.log('Browser rendering: all five styles fade by opacity only, with a fixed backdrop filter');
+    // Product path: on a native release the renderer must not touch the layer at all.
+    const native = await page.evaluate(async () => {
+      const root = document.getElementById('hintOverlay'), layer = root.querySelector('.hint-focus');
+      const tick = () => new Promise(requestAnimationFrame);
+      window.hintEvents['tawel:visual-hint']({payload:{revision:100,style:'soft-focus',intensity:2,held:true,finish:'native',animation:{blur:6,fadeIn:150,fadeOut:200}}});
+      const start = performance.now(); while(performance.now()-start < 400) await tick();
+      const before = {filter:getComputedStyle(layer).backdropFilter, opacity:getComputedStyle(layer).opacity};
+      window.hintEvents['tawel:hint-clear']({payload:{revision:101,finish:'native'}});
+      const since = performance.now(); while(performance.now()-since < 300) await tick();
+      const after = {filter:getComputedStyle(layer).backdropFilter, opacity:getComputedStyle(layer).opacity, phase:root.dataset.phase, animations:root.getAnimations({subtree:true}).length};
+      window.hintEvents['tawel:hint-reset']({payload:101});
+      await tick();
+      return {before, after, reset:{opacity:getComputedStyle(layer).opacity, phase:root.dataset.phase}};
+    });
+    assert.equal(native.before.opacity,'1');
+    assert.deepEqual({filter:native.after.filter,opacity:native.after.opacity},native.before,'Native release leaves filter and opacity untouched');
+    assert.equal(native.after.phase,'releasing');assert.equal(native.after.animations,0);
+    assert.equal(native.reset.opacity,'0');assert.equal(native.reset.phase,'idle');
+    console.log('Browser rendering: all five styles fade by opacity only with a fixed backdrop filter; native release leaves the layer untouched');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1});

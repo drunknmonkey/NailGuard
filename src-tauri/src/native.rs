@@ -104,7 +104,7 @@ pub fn set_hint(app: &AppHandle, style: &str, intensity: u8) {
     if hint_active(app) {
         let ui_app = app.clone(); let style = style.to_string();
         let _ = app.run_on_main_thread(move || {
-            if hint_active(&ui_app) { let _ = display_visual_hint(style, intensity, true, 0, FinishMode::Immediate, ui_app); }
+            if hint_active(&ui_app) { let _ = display_visual_hint(style, intensity, true, 0, FinishMode::NativeFade, ui_app); }
         });
     }
 }
@@ -119,7 +119,7 @@ fn update_hint(app: &AppHandle, active: bool) {
         if active {
             let hint = ui_app.state::<NativeState>().hint.lock().ok().map(|h| h.clone());
             if let Some((style, intensity)) = hint {
-                if display_visual_hint(style, intensity, true, 0, FinishMode::Immediate, ui_app.clone()).is_ok() {
+                if display_visual_hint(style, intensity, true, 0, FinishMode::NativeFade, ui_app.clone()).is_ok() {
                     if let Ok(mut p) = ui_app.state::<NativeState>().performance.lock() {
                         p.visual_presentations += 1; p.visual_dispatch_ms = requested.elapsed().as_secs_f64()*1000.;
                     }

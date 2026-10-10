@@ -21,7 +21,7 @@ function harness(reduced = false) {
   vm.runInNewContext(fs.readFileSync(__dirname+'/hint-overlay.js','utf8'),context);
   async function flush(){for(let i=0;i<6;i++)await Promise.resolve()}
   async function show(revision,extra={}) {
-    events.get('tawel:visual-hint')({payload:{revision,style:'soft-focus',intensity:2,held:true,animation:{blur:4,fadeIn:2000,fadeOut:450},...extra}});
+    events.get('tawel:visual-hint')({payload:{revision,style:'soft-focus',intensity:2,held:true,finish:'opacity',animation:{blur:4,fadeIn:2000,fadeOut:450},...extra}});
     await flush();
   }
   function advance(ms) {
@@ -29,7 +29,7 @@ function harness(reduced = false) {
     const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(now));
     for(const [key,timer] of [...timers])if(timer.at<=now){timers.delete(key);timer.fn()}
   }
-  return {show,advance,level,overlay,calls,frames,timers,clear:revision=>events.get('tawel:hint-clear')({payload:revision})};
+  return {show,advance,level,overlay,calls,frames,timers,clear:(revision,finish)=>events.get('tawel:hint-clear')({payload:finish?{revision,finish}:revision}),reset:revision=>events.get('tawel:hint-reset')({payload:revision})};
 }
 (async()=>{
   for(const style of ['soft-focus','wash-focus','lavender-vignette','desaturate','ambient-glow']) {
@@ -73,6 +73,29 @@ function harness(reduced = false) {
   const r=harness(true);await r.show(1,{style:'wash-focus'});r.advance(150);assert.equal(r.level(),1);
   r.clear(2);r.advance(150);assert.equal(r.level(),0,'Reduce Motion applies to both transitions');
   const stale=harness();stale.clear(4);await stale.show(3);assert.equal(stale.level(),0);
+  // Product path: the renderer only acknowledges; the window server fades the window.
+  const n=harness();await n.show(1,{finish:'native'});n.advance(2000);assert.equal(n.level(),1);
+  n.clear(2,'native');assert.equal(n.calls.at(-1).command,'complete_visual_hint','Native release acknowledges at once');
+  assert.equal(n.calls.at(-1).args.revision,2);assert.equal(n.calls.at(-1).level,1,'Layer stays untouched while the window fades');
+  n.advance(3000);assert.equal(n.level(),1,'No renderer animation in native mode');assert.equal(n.overlay.dataset.phase,'releasing');
+  assert.equal(n.frames.size,0,'Nothing renders while the window fades natively');
+  n.reset(2);assert.equal(n.level(),0,'Reset after the off-screen hide neutralizes the layer');assert.equal(n.overlay.dataset.phase,'idle');
+  n.reset(1);n.clear(1,'native');assert.equal(n.level(),0,'Stale reset/clear are ignored');
+  // A clear during the entrance stops the entrance; the window fades from there.
+  const e=harness();await e.show(1,{finish:'native'});e.advance(500);const partial=e.level();assert(partial>0&&partial<1);
+  e.clear(2,'native');e.advance(2000);assert.equal(e.level(),partial,'Entrance frozen for the native fade');
+  await e.show(3,{finish:'native'});assert.equal(e.level(),0,'Next cue starts neutral even without reset');
+  // Test C: renderer fades to a small floor, never to zero, before park + hide.
+  const f=harness();await f.show(1,{finish:'floor',held:false,preview_hold_ms:3000});f.advance(2000);f.advance(3000);
+  for(let i=0;i<12;i++)f.advance(50);
+  assert.equal(f.level(),0.02,'Floor keeps the backdrop group alive');assert.equal(f.calls.at(-1).command,'complete_visual_hint');
+  f.reset(1);assert.equal(f.level(),0);
+  // Clock keeps running on a timer when rAF stalls, and reports it once per stall.
+  const s=harness();await s.show(1);s.frames.clear();
+  s.advance(130);assert(s.level()>0,'Timer fallback advanced the entrance without rAF');
+  assert(s.calls.some(c=>c.command==='trace_visual_hint'&&c.args.stage==='stall'),'Stall is reported to the native log');
+  for(let i=0;i<20;i++){s.frames.clear();s.advance(130);}assert.equal(s.level(),1,'Entrance completes on the timer alone');
+  assert.equal(s.calls.filter(c=>c.command==='trace_visual_hint'&&c.args.stage==='held').length,1);
   const css=fs.readFileSync(__dirname+'/hint-overlay.css','utf8');
   assert(!css.includes('@keyframes')&&!css.includes('transition'),'No independent animation can compete with release');
   assert(css.includes('blur(var(--cue-blur-max))')&&!css.includes('--cue-blur)'),'Blur radius is fixed per cue; only opacity moves');
@@ -83,8 +106,12 @@ function harness(reduced = false) {
   assert(native.includes('fn trace_visual_hint(revision: u64'));
   assert(native.includes('== revision'),'Native completion is revision guarded');
   assert(native.includes('.focusable(false)'),'Hint window can never become key window');
-  assert(native.includes('set_overlay_alpha(&overlay, 0.0)')&&native.includes('set_overlay_alpha(&overlay, 1.0)'),'Window alpha gates the native hide');
+  assert(native.includes('animate_overlay_alpha(&overlay, 1.0, 0)'),'Alpha returns to 1 before the window is shown');
   const policy=fs.readFileSync(__dirname+'/../src-tauri/src/hint_finish.rs','utf8');
-  assert(policy.includes('gate_alpha: true, hide_after_ms: Some(ALPHA_SETTLE_MS)'),'Product path: transparent first, hidden after settle');
+  assert(policy.includes('renderer: "native", fade_window: true, park: true'),'Product path: window fades itself and is parked before hiding');
+  assert(native.includes('fn park_hint_overlay')&&native.includes('park_hint_overlay(app, &overlay)'),'Window leaves the screen before it is hidden');
+  assert(native.includes('animate_overlay_alpha(&overlay, ALPHA_FLOOR, fade_out)'),'Native fade ends above zero');
+  assert(native.includes('BackgroundThrottlingPolicy::Disabled'),'Overlay clock is never throttled by WebKit');
+  assert(native.includes('"tawel:hint-reset"'),'Renderer is neutralized after the off-screen hide');
   console.log('hint-overlay.test.js: monotonic release, hold, preview, stale events and neutral handoff passed');
 })().catch(error=>{console.error(error);process.exitCode=1});
