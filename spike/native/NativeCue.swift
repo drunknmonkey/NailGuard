@@ -171,7 +171,7 @@ final class NativeCue: NSObject {
         layer.contentsGravity = .resize
         let w = max(1, Int(bounds.width.rounded(.up))), h = max(1, Int(bounds.height.rounded(.up)))
         if let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
-                               bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapByteOrderInfo.order32Little.rawValue) {
+                               bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) {
             draw(ctx, CGRect(x: 0, y: 0, width: CGFloat(w), height: CGFloat(h)))
             layer.contents = ctx.makeImage()
         }
